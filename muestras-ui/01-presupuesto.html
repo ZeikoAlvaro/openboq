@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OpenBOQ - Presupuesto</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Custom scrollbar for high-density tables */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f8f9ff;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c3c7cb;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #747780;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary": "#5a5f62",
+                        "background": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "surface": "#f8f9ff",
+                        "secondary-fixed-dim": "#c3c7cb",
+                        "tertiary": "#3a1b00",
+                        "surface-container-low": "#eff4ff",
+                        "primary-container": "#1f3864",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-secondary-container": "#5e6367",
+                        "primary-fixed": "#d8e2ff",
+                        "on-secondary": "#ffffff",
+                        "inverse-surface": "#213145",
+                        "surface-bright": "#f8f9ff",
+                        "on-primary-fixed": "#001a41",
+                        "outline": "#747780",
+                        "surface-variant": "#d3e4fe",
+                        "inverse-primary": "#afc6fb",
+                        "on-primary-fixed-variant": "#2e4673",
+                        "tertiary-container": "#592d00",
+                        "on-primary-container": "#8ba2d5",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#dce0e4",
+                        "on-tertiary-container": "#ef8820",
+                        "primary-fixed-dim": "#afc6fb",
+                        "surface-dim": "#cbdbf5",
+                        "tertiary-fixed-dim": "#ffb77d",
+                        "surface-container": "#e5eeff",
+                        "on-secondary-fixed": "#171c1f",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-high": "#dce9ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-tint": "#475e8c",
+                        "primary": "#03224d",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#6e3900",
+                        "on-tertiary-fixed": "#2f1500",
+                        "on-surface-variant": "#44474f",
+                        "on-secondary-fixed-variant": "#43474b",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#dfe3e7",
+                        "outline-variant": "#c4c6d0",
+                        "tertiary-fixed": "#ffdcc3",
+                        "on-background": "#0b1c30",
+                        "accent-amber": "#d97706"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "input-height": "36px",
+                        "unit": "4px",
+                        "container-padding": "24px",
+                        "data-row-height": "32px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter", "sans-serif"],
+                        "headline-sm": ["Inter", "sans-serif"],
+                        "body-sm": ["Inter", "sans-serif"],
+                        "data-tabular": ["Inter", "sans-serif"],
+                        "label-caps": ["Inter", "sans-serif"],
+                        "headline-md": ["Inter", "sans-serif"],
+                        "body-md": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-sm": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "data-tabular": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-sm h-screen overflow-hidden flex flex-col">
+<!-- App Container -->
+<div class="flex flex-1 h-full w-full">
+<!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full w-[240px] bg-primary text-on-primary border-r border-outline-variant flex-col justify-between py-container-padding z-20">
+<!-- Header -->
+<div class="px-gutter mb-8">
+<div class="flex items-center gap-3 mb-1">
+<span class="material-symbols-outlined text-3xl">architecture</span>
+<h1 class="font-headline-md text-headline-md font-black text-on-primary">Open BOQ v2.0</h1>
+</div>
+<p class="text-primary-fixed-dim font-body-sm text-body-sm pl-10">v2.0</p>
+</div>
+<!-- Tabs -->
+<div class="flex-1 overflow-y-auto w-full">
+<ul class="flex flex-col gap-1 w-full">
+<!-- Active Tab -->
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 bg-primary-container text-on-primary-container font-bold border-l-4 border-on-tertiary-container font-headline-sm text-headline-sm uppercase tracking-wider w-full" href="#">
+<span class="material-symbols-outlined">payments</span>
+                            PRESUPUESTO
+                        </a>
+</li>
+<!-- Inactive Tabs -->
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-primary-fixed-dim hover:text-on-primary hover:bg-primary-container/30 transition-colors font-headline-sm text-headline-sm uppercase tracking-wider w-full border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                            ANÁLISIS
+                        </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-primary-fixed-dim hover:text-on-primary hover:bg-primary-container/30 transition-colors font-headline-sm text-headline-sm uppercase tracking-wider w-full border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">category</span>
+                            INSUMOS
+                        </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-primary-fixed-dim hover:text-on-primary hover:bg-primary-container/30 transition-colors font-headline-sm text-headline-sm uppercase tracking-wider w-full border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">warning</span>
+                            INCIDENCIAS
+                        </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-primary-fixed-dim hover:text-on-primary hover:bg-primary-container/30 transition-colors font-headline-sm text-headline-sm uppercase tracking-wider w-full border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">calculate</span>
+                            CÓMPUTOS
+                        </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-primary-fixed-dim hover:text-on-primary hover:bg-primary-container/30 transition-colors font-headline-sm text-headline-sm uppercase tracking-wider w-full border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">database</span>
+                            BASE DE DATOS
+                        </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-primary-fixed-dim hover:text-on-primary hover:bg-primary-container/30 transition-colors font-headline-sm text-headline-sm uppercase tracking-wider w-full border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">schedule</span>
+                            CRONOGRAMA
+                        </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-primary-fixed-dim hover:text-on-primary hover:bg-primary-container/30 transition-colors font-headline-sm text-headline-sm uppercase tracking-wider w-full border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">description</span>
+                            REPORTES
+                        </a>
+</li>
+</ul>
+</div>
+<!-- Footer Tabs -->
+<div class="px-gutter mt-auto pt-4 border-t border-primary-container">
+<div class="flex items-center justify-between">
+<button class="flex items-center gap-2 text-primary-fixed-dim hover:text-on-primary hover:bg-primary-container/30 p-2 rounded transition-colors text-sm">
+<span class="material-symbols-outlined">account_circle</span>
+                        Invitado
+                    </button>
+<button class="text-primary-fixed-dim hover:text-on-primary hover:bg-primary-container/30 p-2 rounded transition-colors" title="Tema">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas (Offset for Sidebar) -->
+<main class="flex-1 flex flex-col w-full md:pl-[240px] bg-background">
+<!-- TopAppBar -->
+<header class="w-full bg-surface border-b border-outline-variant flex flex-col z-10 sticky top-0">
+<!-- Row 1: Project & Global Actions -->
+<div class="flex justify-between items-center px-gutter py-3">
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md font-bold text-primary">Mejoramiento Av. Cívica — Oruro</h2>
+</div>
+<div class="flex items-center gap-3">
+<button class="bg-surface border border-outline text-on-surface hover:bg-surface-container-low font-headline-sm text-headline-sm px-4 py-1.5 rounded transition-colors">
+                            Exportar
+                        </button>
+<button class="bg-primary-container text-on-primary-container hover:opacity-90 font-headline-sm text-headline-sm px-4 py-1.5 rounded transition-opacity flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                            Guardar
+                        </button>
+<button class="text-secondary hover:text-primary hover:bg-surface-container-low p-1.5 rounded transition-colors ml-1">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+<!-- Row 2: Module, DB Context & Filters -->
+<div class="flex justify-between items-center px-gutter py-2 bg-surface-container-lowest border-t border-outline-variant/30 text-sm">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="font-bold text-on-surface-variant">Módulo:</span>
+<select class="h-8 pl-2 pr-8 border-outline-variant bg-surface rounded text-on-surface focus:ring-1 focus:ring-primary focus:border-primary text-sm py-0">
+<option>Módulo 1 — Obras preliminares</option>
+<option>Módulo 2 — Obra gruesa</option>
+<option>Módulo 3 — Obra fina</option>
+</select>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-bold text-on-surface-variant">Base de Datos:</span>
+<span class="text-primary font-medium bg-primary-fixed/30 px-2 py-0.5 rounded border border-primary-fixed">REVISTA P&amp;C 2026</span>
+</div>
+</div>
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-secondary text-[18px]">search</span>
+<input class="w-full h-8 pl-8 pr-3 border border-outline-variant rounded bg-surface focus:ring-1 focus:ring-primary focus:border-primary text-sm placeholder-secondary" placeholder="Filtrar ítems..." type="text"/>
+</div>
+</div>
+</header>
+<!-- Toolbar (Data Actions) -->
+<div class="w-full bg-surface-container-low border-b border-outline-variant px-gutter py-1.5 flex items-center gap-1 overflow-x-auto">
+<button class="flex items-center gap-1 px-3 py-1 bg-surface border border-outline-variant rounded text-on-surface hover:bg-surface-variant transition-colors text-xs font-medium">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                    Nuevo ítem
+                </button>
+<div class="w-px h-5 bg-outline-variant mx-1"></div>
+<button class="flex items-center gap-1 px-3 py-1 bg-surface border border-outline-variant rounded text-on-surface hover:bg-surface-variant transition-colors text-xs font-medium">
+<span class="material-symbols-outlined text-[16px]">library_books</span>
+                    Traer de BD
+                </button>
+<div class="w-px h-5 bg-outline-variant mx-1"></div>
+<button class="p-1 bg-surface border border-outline-variant rounded text-on-surface hover:bg-surface-variant transition-colors" title="Mover Arriba">
+<span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+</button>
+<button class="p-1 bg-surface border border-outline-variant rounded text-on-surface hover:bg-surface-variant transition-colors" title="Mover Abajo">
+<span class="material-symbols-outlined text-[16px]">arrow_downward</span>
+</button>
+<div class="w-px h-5 bg-outline-variant mx-1"></div>
+<button class="flex items-center gap-1 px-3 py-1 bg-surface border border-outline-variant rounded text-on-surface hover:bg-surface-variant transition-colors text-xs font-medium">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+                    Duplicar
+                </button>
+<button class="flex items-center gap-1 px-3 py-1 bg-error-container border border-error/20 rounded text-error hover:bg-error-container/80 transition-colors text-xs font-medium ml-auto">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+                    Eliminar
+                </button>
+</div>
+<!-- Data Table Workspace -->
+<div class="flex-1 overflow-auto bg-surface relative">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead class="sticky top-0 bg-surface-container-high z-10 shadow-sm border-b border-outline">
+<tr>
+<th class="w-12 px-3 py-2 font-label-caps text-label-caps text-on-surface-variant border-r border-outline-variant/30 text-center">Nº</th>
+<th class="px-3 py-2 font-label-caps text-label-caps text-on-surface-variant border-r border-outline-variant/30">DESCRIPCIÓN</th>
+<th class="w-20 px-3 py-2 font-label-caps text-label-caps text-on-surface-variant border-r border-outline-variant/30 text-center">UNIDAD</th>
+<th class="w-28 px-3 py-2 font-label-caps text-label-caps text-on-surface-variant border-r border-outline-variant/30 text-right">CANTIDAD</th>
+<th class="w-32 px-3 py-2 font-label-caps text-label-caps text-on-surface-variant border-r border-outline-variant/30 text-right">PRECIO UNITARIO</th>
+<th class="w-36 px-3 py-2 font-label-caps text-label-caps text-on-surface border-r border-outline-variant/30 text-right bg-surface-container-highest">TOTAL Bs</th>
+<th class="w-16 px-2 py-2 font-label-caps text-label-caps text-on-surface-variant text-center"></th>
+</tr>
+</thead>
+<tbody class="font-data-tabular text-data-tabular">
+<!-- Group Header -->
+<tr class="bg-surface-variant/50 border-y border-outline-variant font-bold text-primary">
+<td class="px-3 py-1.5 border-r border-outline-variant/30"></td>
+<td class="px-3 py-1.5 border-r border-outline-variant/30" colspan="4">MÓDULO 1 — OBRAS PRELIMINARES</td>
+<td class="px-3 py-1.5 border-r border-outline-variant/30 text-right bg-surface-variant/80">173,650.00</td>
+<td class="px-2 py-1.5 text-center"></td>
+</tr>
+<!-- Item 1 -->
+<tr class="border-b border-outline-variant/20 hover:bg-surface-container-lowest cursor-pointer group bg-surface">
+<td class="px-3 py-data-row-height text-center text-secondary border-r border-outline-variant/30">1</td>
+<td class="px-3 py-data-row-height text-on-surface border-r border-outline-variant/30 group-hover:text-primary transition-colors">Replanteo y trazado</td>
+<td class="px-3 py-data-row-height text-center text-secondary border-r border-outline-variant/30">m2</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">1,200.00</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">15.50</td>
+<td class="px-3 py-data-row-height text-right font-semibold text-on-surface border-r border-outline-variant/30 bg-surface-container-low/30 group-hover:bg-surface-container-low">18,600.00</td>
+<td class="px-2 py-data-row-height text-center">
+<button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-primary transition-all p-1" title="Analizar">
+<span class="material-symbols-outlined text-[18px]">analytics</span>
+</button>
+</td>
+</tr>
+<!-- Item 2 (Selected) -->
+<tr class="border-b border-primary/20 bg-primary-fixed/20 cursor-pointer group shadow-[inset_2px_0_0_0_#1f3864]">
+<td class="px-3 py-data-row-height text-center text-primary font-bold border-r border-outline-variant/30">2</td>
+<td class="px-3 py-data-row-height text-primary font-medium border-r border-outline-variant/30">Excavación común 0-2 m</td>
+<td class="px-3 py-data-row-height text-center text-secondary border-r border-outline-variant/30">m3</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">450.00</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">42.00</td>
+<td class="px-3 py-data-row-height text-right font-bold text-primary border-r border-outline-variant/30 bg-primary-fixed/40">18,900.00</td>
+<td class="px-2 py-data-row-height text-center">
+<button class="text-primary hover:text-primary-container p-1 bg-surface rounded" title="Analizar">
+<span class="material-symbols-outlined text-[18px]">analytics</span>
+</button>
+</td>
+</tr>
+<!-- Item 3 -->
+<tr class="border-b border-outline-variant/20 hover:bg-surface-container-lowest cursor-pointer group bg-surface">
+<td class="px-3 py-data-row-height text-center text-secondary border-r border-outline-variant/30">3</td>
+<td class="px-3 py-data-row-height text-on-surface border-r border-outline-variant/30 group-hover:text-primary transition-colors">Hormigón simple H21 para cimientos</td>
+<td class="px-3 py-data-row-height text-center text-secondary border-r border-outline-variant/30">m3</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">85.00</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">950.00</td>
+<td class="px-3 py-data-row-height text-right font-semibold text-on-surface border-r border-outline-variant/30 bg-surface-container-low/30 group-hover:bg-surface-container-low">80,750.00</td>
+<td class="px-2 py-data-row-height text-center">
+<button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-primary transition-all p-1" title="Analizar">
+<span class="material-symbols-outlined text-[18px]">analytics</span>
+</button>
+</td>
+</tr>
+<!-- Item 4 -->
+<tr class="border-b border-outline-variant/20 hover:bg-surface-container-lowest cursor-pointer group bg-surface-bright">
+<td class="px-3 py-data-row-height text-center text-secondary border-r border-outline-variant/30">4</td>
+<td class="px-3 py-data-row-height text-on-surface border-r border-outline-variant/30 group-hover:text-primary transition-colors">Muro de ladrillo 6H visto</td>
+<td class="px-3 py-data-row-height text-center text-secondary border-r border-outline-variant/30">m2</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">320.00</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">125.00</td>
+<td class="px-3 py-data-row-height text-right font-semibold text-on-surface border-r border-outline-variant/30 bg-surface-container-low/30 group-hover:bg-surface-container-low">40,000.00</td>
+<td class="px-2 py-data-row-height text-center">
+<button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-primary transition-all p-1" title="Analizar">
+<span class="material-symbols-outlined text-[18px]">analytics</span>
+</button>
+</td>
+</tr>
+<!-- Item 5 -->
+<tr class="border-b border-outline-variant/20 hover:bg-surface-container-lowest cursor-pointer group bg-surface">
+<td class="px-3 py-data-row-height text-center text-secondary border-r border-outline-variant/30">5</td>
+<td class="px-3 py-data-row-height text-on-surface border-r border-outline-variant/30 group-hover:text-primary transition-colors">Cielo raso de yeso</td>
+<td class="px-3 py-data-row-height text-center text-secondary border-r border-outline-variant/30">m2</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">280.00</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">55.00</td>
+<td class="px-3 py-data-row-height text-right font-semibold text-on-surface border-r border-outline-variant/30 bg-surface-container-low/30 group-hover:bg-surface-container-low">15,400.00</td>
+<td class="px-2 py-data-row-height text-center">
+<button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-primary transition-all p-1" title="Analizar">
+<span class="material-symbols-outlined text-[18px]">analytics</span>
+</button>
+</td>
+</tr>
+<!-- Extra Rows for Density -->
+<tr class="border-b border-outline-variant/20 hover:bg-surface-container-lowest cursor-pointer group bg-surface-bright">
+<td class="px-3 py-data-row-height text-center text-secondary border-r border-outline-variant/30">6</td>
+<td class="px-3 py-data-row-height text-on-surface border-r border-outline-variant/30 group-hover:text-primary transition-colors">Zócalo de madera tajibo</td>
+<td class="px-3 py-data-row-height text-center text-secondary border-r border-outline-variant/30">ml</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">450.00</td>
+<td class="px-3 py-data-row-height text-right text-on-surface border-r border-outline-variant/30">35.00</td>
+<td class="px-3 py-data-row-height text-right font-semibold text-on-surface border-r border-outline-variant/30 bg-surface-container-low/30 group-hover:bg-surface-container-low">15,750.00</td>
+<td class="px-2 py-data-row-height text-center">
+<button class="text-secondary opacity-0 group-hover:opacity-100 hover:text-primary transition-all p-1" title="Analizar">
+<span class="material-symbols-outlined text-[18px]">analytics</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Footer (Status Bar) -->
+<footer class="w-full bg-surface-container-highest border-t border-outline-variant h-[32px] flex justify-between items-center px-gutter flex-none font-label-caps text-label-caps z-10">
+<div class="flex items-center gap-6 text-on-surface-variant">
+<span>Ítems: 42</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span>Insumos: 118</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span>Módulo: 1 de 4</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-on-surface">TOTAL GENERAL</span>
+<span class="font-headline-md text-headline-md font-bold text-[#d97706] tracking-tight">1.284.930,55 Bs</span>
+</div>
+</footer>
+</main>
+</div>
+</body></html>

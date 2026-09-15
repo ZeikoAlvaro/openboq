@@ -1,0 +1,20 @@
+{
+  "name": "OpenBOQ — Presupuestos y cómputos métricos",
+  "short_name": "OpenBOQ",
+  "description": "Presupuestos de obra, análisis de precios unitarios, cómputos métricos y cronograma. Requiere conexión a internet.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#eceae5",
+  "theme_color": "#1f3864",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icono.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

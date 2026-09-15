@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Política de privacidad — OpenBOQ</title>
+<meta name="description" content="Qué datos recoge OpenBOQ, para qué los usa, con quién los comparte y cómo se borran.">
+<!-- =======================================================================
+     Esta página existe por una razón concreta y conviene no perderla de
+     vista al editarla: Google EXIGE una política de privacidad, alojada en
+     el mismo dominio que la aplicación y enlazada desde la página principal,
+     para aprobar el permiso de Google Drive. Un intento anterior fue
+     rechazado porque la política apuntaba al repositorio de GitHub, que no
+     responde y no es un dominio calificado.
+
+     Regla al tocarla: lo que dice acá tiene que ser lo que el código HACE.
+     Si cambia js/nube.js o js/drive.js, esto se revisa.
+     ======================================================================= -->
+<style>
+  :root {
+    color-scheme: light dark;
+    --fondo: #f4f5f6;
+    --hoja: #ffffff;
+    --tinta: #1a1d22;
+    --tinta-2: #4a525b;
+    --apagado: #79828c;
+    --regla: #dfe3e7;
+    --acento: #1f6fa8;
+    --aviso-piso: #eef4f8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #14171b;
+      --hoja: #1b1f24;
+      --tinta: #e5e8eb;
+      --tinta-2: #a8b0b8;
+      --apagado: #7d868f;
+      --regla: #2c323a;
+      --acento: #4795c8;
+      --aviso-piso: #1a2530;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 18px 80px;
+    background: var(--fondo); color: var(--tinta);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .hoja {
+    max-width: 760px; margin: 0 auto; background: var(--hoja);
+    border: 1px solid var(--regla); border-top: 3px solid var(--acento);
+    padding: 0 clamp(18px, 5vw, 48px) 48px;
+  }
+  header { padding: 30px 0 20px; border-bottom: 1px solid var(--regla); }
+  .marca { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--acento); margin: 0 0 10px; }
+  h1 { font-size: clamp(26px, 5vw, 34px); line-height: 1.12; margin: 0 0 10px; }
+  .fecha { color: var(--apagado); font-size: 14px; margin: 0; }
+  h2 { font-size: 20px; margin: 34px 0 8px; line-height: 1.25; }
+  h3 { font-size: 16px; margin: 22px 0 6px; color: var(--tinta-2); }
+  p, li { max-width: 68ch; }
+  p { margin: 12px 0; }
+  ul { margin: 12px 0; padding-left: 22px; }
+  li { margin: 7px 0; }
+  a { color: var(--acento); }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: .9em; background: var(--fondo); padding: 1px 5px; border-radius: 3px; }
+  .destacado { background: var(--aviso-piso); border-left: 3px solid var(--acento); padding: 14px 18px; margin: 20px 0; }
+  .destacado p { margin: 0; }
+  .destacado p + p { margin-top: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 16px 0; }
+  th, td { text-align: left; padding: 9px 12px 9px 0; vertical-align: top; border-bottom: 1px solid var(--regla); }
+  th { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--apagado); }
+  footer { max-width: 760px; margin: 0 auto; padding: 18px 4px 0; font-size: 13px; color: var(--apagado); }
+</style>
+</head>
+<body>
+
+<div class="hoja">
+<header>
+  <p class="marca">OpenBOQ</p>
+  <h1>Política de privacidad</h1>
+  <p class="fecha">Vigente desde el 10 de septiembre de 2026 · Última revisión: 10 de septiembre de 2026</p>
+</header>
+
+<h2>1. Qué es OpenBOQ y quién lo hace</h2>
+<p>OpenBOQ es una aplicación web gratuita para elaborar presupuestos de obra, análisis de
+precios unitarios, cómputos métricos y cronogramas. Está disponible en
+<a href="https://openboq.pages.dev/">https://openboq.pages.dev/</a>.</p>
+<p>Es un proyecto personal desarrollado y mantenido por <strong>Alvaro Oczachoque</strong>,
+ingeniero civil, en Oruro, Bolivia. No pertenece a ninguna empresa ni institución, no vende
+publicidad y no comercializa datos de sus usuarios.</p>
+<p><strong>Contacto:</strong> <a href="mailto:alvaroedwin76@gmail.com">alvaroedwin76@gmail.com</a></p>
+
+<h2>2. El principio que ordena todo lo demás</h2>
+<div class="destacado">
+  <p><strong>Su trabajo es suyo y se queda donde usted lo pone.</strong> OpenBOQ funciona
+  íntegramente en su navegador. El proyecto que arma, sus cantidades de obra, sus montos y
+  el nombre de la entidad para la que trabaja <strong>no se envían a ningún servidor
+  nuestro</strong>.</p>
+  <p>Si decide respaldar en la nube, el archivo va a <strong>su propio Google Drive</strong>,
+  no al nuestro. Nosotros no tenemos copia y no podemos abrirlo.</p>
+</div>
+
+<h2>3. Qué datos se manejan, y para qué</h2>
+
+<h3>3.1 Datos que quedan solo en su equipo</h3>
+<p>Mientras usa OpenBOQ, el proyecto abierto, sus bases de precios propias y sus preferencias
+se guardan en el almacenamiento local de su navegador
+(<code>localStorage</code> e <code>IndexedDB</code>). Esa información no sale de su equipo, no
+la recibimos y no podemos consultarla. Se borra si usted borra los datos del sitio en su
+navegador.</p>
+
+<h3>3.2 Datos de su cuenta de Google (si decide iniciar sesión)</h3>
+<p>Iniciar sesión es <strong>opcional</strong>: sin cuenta, OpenBOQ funciona igual y todo
+queda en su equipo. Si entra con Google, recibimos de Google únicamente:</p>
+<ul>
+  <li>su <strong>dirección de correo electrónico</strong>;</li>
+  <li>su <strong>identificador de cuenta</strong> de Google.</li>
+</ul>
+<p>Se usan para una sola cosa: reconocer que usted es usted entre una sesión y otra, y saber
+con qué cuenta autorizar el acceso a su Google Drive. No se usan para publicidad, no se
+cruzan con otras fuentes y no se comparten con terceros.</p>
+
+<h3>3.3 Su Google Drive</h3>
+<p>Si autoriza el respaldo en la nube, OpenBOQ solicita el permiso
+<code>https://www.googleapis.com/auth/drive.file</code>. Este permiso es deliberadamente el
+más restringido que existe para esta función, y conviene ser explícito sobre su alcance:</p>
+<ul>
+  <li>OpenBOQ <strong>solo puede ver y modificar los archivos que él mismo crea</strong>,
+    dentro de una carpeta llamada «OpenBOQ» en su Drive.</li>
+  <li><strong>No puede ver, listar, abrir ni descargar ningún otro archivo</strong> de su
+    Google Drive. Ni documentos, ni fotos, ni carpetas ajenas a la aplicación.</li>
+  <li>Los archivos que guarda ahí <strong>no pasan por ningún servidor nuestro</strong>: van
+    de su navegador directamente a Google.</li>
+  <li>El permiso de acceso <strong>dura una hora</strong>, vive únicamente en la memoria de
+    la pestaña y <strong>no se guarda</strong> en su equipo ni en ningún servidor. Cuando
+    vence, se vuelve a pedir.</li>
+</ul>
+<div class="destacado">
+  <p>El uso y la transferencia por parte de OpenBOQ de la información recibida de las API de
+  Google se ajustará a la
+  <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política
+  de Datos de Usuario de los Servicios de API de Google</a>, incluidos los
+  <strong>requisitos de Uso Limitado</strong>.</p>
+  <p>En concreto: los datos obtenidos de las API de Google no se usan para publicidad, no se
+  venden, no se transfieren a terceros y no son leídos por ninguna persona, salvo que usted
+  lo autorice expresamente para resolver un problema que haya reportado, o que la ley lo
+  exija.</p>
+</div>
+
+<h3>3.4 Actualizaciones anónimas a una base de datos consolidada con beneficio para los usuarios</h3>
+<p>OpenBOQ mantiene una base de precios unitarios de uso libre. Cuando usted guarda un
+análisis en su propia biblioteca, la parte <strong>técnica</strong> de ese análisis se suma a
+esa base común de forma <strong>anónima</strong>.</p>
+<table>
+  <thead><tr><th>Sí se envía</th><th>Nunca se envía</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>
+        Descripción del análisis y su unidad<br>
+        Cada insumo: tipo, descripción, unidad<br>
+        Precio unitario del insumo<br>
+        Rendimiento
+      </td>
+      <td>
+        Cantidades de obra y cómputos métricos<br>
+        Montos y totales del presupuesto<br>
+        Nombre del proyecto<br>
+        Nombre de la entidad o del cliente<br>
+        Su nombre, su correo o cualquier identificador suyo
+      </td>
+    </tr>
+  </tbody>
+</table>
+<p>El anonimato no es una promesa: es cómo está construido. La tabla que recibe los aportes
+<strong>no tiene columna de usuario ni de correo</strong>, y no se puede consultar desde la
+aplicación. Además los aportes se envían <strong>con retraso y en lote</strong>, en una
+sesión posterior, para que cruzar marcas de tiempo tampoco permita atribuirlos.</p>
+
+<h3>3.5 Reportes de error</h3>
+<p>Si usted decide reportar un error desde la aplicación, se envía el texto que escriba, la
+versión de OpenBOQ y datos técnicos del navegador. <strong>Su correo se incluye</strong>, y
+solo para eso: poder repreguntarle qué pasó. Un reporte sin forma de repreguntar no sirve.</p>
+
+<h2>4. Con quién se comparte</h2>
+<p>No vendemos, alquilamos ni cedemos datos personales a nadie. Los únicos terceros que
+intervienen son los proveedores de infraestructura necesarios para que la aplicación
+funcione:</p>
+<table>
+  <thead><tr><th>Proveedor</th><th>Para qué</th><th>Qué recibe</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Cloudflare Pages</td>
+      <td>Alojar la aplicación</td>
+      <td>Datos técnicos de la conexión (dirección IP, navegador), como cualquier sitio web</td>
+    </tr>
+    <tr>
+      <td>Supabase</td>
+      <td>Identidad y base de precios común</td>
+      <td>Su correo e identificador de cuenta; los aportes anónimos</td>
+    </tr>
+    <tr>
+      <td>Google</td>
+      <td>Inicio de sesión y almacenamiento en su Drive</td>
+      <td>Lo que usted ya tiene con Google. Los archivos quedan en su propia cuenta</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>5. Cuánto tiempo se conserva y cómo se borra</h2>
+<ul>
+  <li><strong>Lo de su equipo:</strong> se borra cuando usted borra los datos del sitio en su
+    navegador.</li>
+  <li><strong>Lo de su Drive:</strong> lo controla usted por completo. Puede borrar los
+    archivos o la carpeta «OpenBOQ» desde su Google Drive en cualquier momento.</li>
+  <li><strong>El permiso de Drive:</strong> puede revocarlo cuando quiera desde
+    <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">la
+    página de permisos de su cuenta de Google</a>. OpenBOQ deja de acceder de inmediato.</li>
+  <li><strong>Su cuenta:</strong> escriba a
+    <a href="mailto:alvaroedwin76@gmail.com">alvaroedwin76@gmail.com</a> pidiendo la baja y
+    se elimina su correo e identificador. Se responde dentro de los 30 días.</li>
+  <li><strong>Los aportes anónimos:</strong> por diseño no están asociados a ninguna persona,
+    de modo que <strong>no es posible identificarlos ni recuperarlos</strong> para borrarlos.
+    Contienen solo información técnica de precios, sin ningún dato personal.</li>
+</ul>
+
+<h2>6. Seguridad</h2>
+<p>La conexión con el sitio y con todos los servicios viaja cifrada (HTTPS). El acceso a la
+información de cada cuenta está restringido a nivel de base de datos, de modo que una cuenta
+no puede leer los datos de otra. No se guarda ninguna contraseña: el ingreso es siempre a
+través de Google.</p>
+
+<h2>7. Menores de edad</h2>
+<p>OpenBOQ es una herramienta profesional de ingeniería y no está dirigida a menores de 13
+años, ni recoge deliberadamente información de ellos.</p>
+
+<h2>8. Cambios en esta política</h2>
+<p>Si cambia lo que la aplicación hace con los datos, esta página se actualiza y cambia la
+fecha del encabezado. Los cambios que amplíen lo que se recoge se avisarán además dentro de
+la aplicación.</p>
+
+<h2>9. Sus derechos</h2>
+<p>Puede pedir en cualquier momento saber qué datos suyos existen, corregirlos o eliminarlos,
+escribiendo a <a href="mailto:alvaroedwin76@gmail.com">alvaroedwin76@gmail.com</a>.</p>
+
+<p style="margin-top:34px"><a href="index.html">← Volver a OpenBOQ</a></p>
+</div>
+
+<footer>OpenBOQ · Oruro, Bolivia · <a href="index.html">openboq.pages.dev</a></footer>
+</body>
+</html>

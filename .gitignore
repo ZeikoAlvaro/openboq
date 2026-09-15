@@ -1,0 +1,56 @@
+# --- Catálogo de precios -----------------------------------------------
+# Se versiona solo el catálogo cifrado (data/catalogo.obq.js), que es el que
+# se publica. El catálogo en texto plano y los CSV de origen quedan fuera.
+data/catalogo.js
+data/*.csv
+
+# --- Proyectos y muestras ------------------------------------------------
+# Los proyectos reales son de quien los elaboró: no se suben.
+muestras/
+entregables/
+*.ddp
+*.DDP
+*.PRE
+*.IND
+*.DAT
+*.boq
+!ejemplos/*.boq
+
+# Casos de prueba con proyectos reales (ver CONTRIBUTING.md)
+*.local.json
+
+# --- Exportaciones -------------------------------------------------------
+*.xlsx
+*.xls
+*.csv
+
+# --- Versión portable ----------------------------------------------------
+OpenBOQ-Portable-*/
+OpenBOQ-Portable-*.zip
+
+# --- Secretos ------------------------------------------------------------
+# La clave service_role de Supabase salta el RLS: nunca se versiona.
+clave*.txt
+CLAVE*.txt
+.env
+.env.local
+*.local.*
+supabase/respaldos/
+supabase/restaurar_precios*.sql
+
+# --- Aplicación de escritorio (Electron) --------------------------------
+# Solo se versiona la fuente; instaladores y dependencias se regeneran.
+escritorio/salida/
+escritorio/node_modules/
+escritorio/.cache/
+
+# --- Herramientas, sistema y editores ----------------------------------
+node_modules/
+.wrangler/
+graphify-out/
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.log

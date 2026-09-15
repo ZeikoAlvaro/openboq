@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>OpenBOQ — permiso de Drive</title>
+<!-- =======================================================================
+     Página de vuelta del permiso de Drive.
+     -----------------------------------------------------------------------
+     Google exige que la dirección de retorno esté registrada y sea exacta.
+     Se usa una página propia y no index.html por una razón concreta: el
+     login de Supabase TAMBIÉN vuelve con `access_token` en el fragmento, y
+     js/nube.js lo recoge. Si los dos aterrizaran en la misma página, un
+     token de Drive terminaría guardado como si fuera la sesión de OpenBOQ.
+
+     Acá no se guarda nada: se lee el fragmento, se le pasa a la ventana que
+     abrió esta, y se cierra. El token nunca toca localStorage ni el disco.
+     ======================================================================= -->
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #f7f7f8; color: #24252a;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #17181c; color: #e6e6e8; }
+  }
+  .caja { text-align: center; padding: 24px 28px; max-width: 340px; }
+  .t { font-weight: 600; margin: 0 0 6px; }
+  .m { margin: 0; opacity: .7; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="caja">
+  <p class="t" id="t">Conectando con Drive…</p>
+  <p class="m" id="m">Ya podés cerrar esta ventana.</p>
+</div>
+
+<script>
+'use strict';
+(function () {
+  /* Google devuelve el resultado en el fragmento cuando el flujo salió
+     bien, y a veces en la query cuando falló antes de emitir token. Se
+     miran los dos. */
+  var frag = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+  var qry  = new URLSearchParams(location.search || '');
+  var dato = {
+    openboq: 'drive',
+    state: frag.get('state') || qry.get('state') || '',
+    access_token: frag.get('access_token') || '',
+    expires_in: frag.get('expires_in') || '',
+    scope: frag.get('scope') || '',
+    error: frag.get('error') || qry.get('error') || ''
+  };
+
+  /* El token no puede quedar en la barra de direcciones ni en el historial. */
+  try { history.replaceState(null, '', location.pathname); } catch (e) { }
+
+  var abridora = null;
+  try { abridora = window.opener; } catch (e) { abridora = null; }
+
+  if (abridora && !abridora.closed) {
+    /* location.origin como destino: el mensaje no sale de este sitio. */
+    try { abridora.postMessage(dato, location.origin); } catch (e) { }
+    setTimeout(function () { try { window.close(); } catch (e) { } }, 120);
+    return;
+  }
+
+  /* Sin ventana que la haya abierto no hay a quién avisarle: el usuario
+     llegó acá de frente, o el navegador cortó la relación. Se le dice qué
+     pasó en vez de dejarlo mirando «Conectando…» para siempre. */
+  var t = document.getElementById('t');
+  var m = document.getElementById('m');
+  if (dato.error) {
+    t.textContent = 'No se pudo conectar con Drive';
+    m.textContent = dato.error === 'access_denied'
+      ? 'Se rechazó el permiso. Cerrá esta ventana y volvé a intentar desde OpenBOQ.'
+      : 'Cerrá esta ventana y volvé a intentar desde OpenBOQ.';
+  } else if (dato.access_token) {
+    t.textContent = 'Permiso concedido';
+    m.textContent = 'Cerrá esta ventana y volvé a OpenBOQ.';
+  } else {
+    t.textContent = 'Nada que hacer acá';
+    m.textContent = 'Esta página es parte del permiso de Drive de OpenBOQ.';
+  }
+})();
+</script>
+</body>
+</html>

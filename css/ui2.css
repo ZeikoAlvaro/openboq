@@ -1,0 +1,364 @@
+/* OpenBOQ v2 — capa de armazón y color
+   ------------------------------------------------------------------
+   Se carga DESPUÉS de estilo.css y solo lo pisa. Nada de lógica: los
+   identificadores (#tabs, #menubar, #barraModulos…) son los mismos que busca
+   ui.js, así que el rediseño no toca ni una línea de JavaScript.
+
+   Modelo visual: pantalla generada en Stitch (muestras-ui/01-presupuesto.png).
+   Paleta de esa pantalla: navy #03224d / #1f3864, fondo #f8f9ff,
+   contenedor #e5eeff, contorno #747780, acento ámbar #ef8820.
+
+   El tema oscuro sigue viviendo en html[data-tema="oscuro"]: acá se vuelven a
+   definir las mismas variables para los dos temas. Si se agrega un color
+   nuevo, va en las dos listas o el oscuro queda roto. */
+
+/* ============ 1. COLOR ============ */
+:root{
+  /* el rojo de marca sale de toda la aplicación: pasa a ser el navy */
+  --rojo:#1f3864;
+  --rojo-osc:#03224d;
+  --rojo-txt:#03224d;
+  --azul:#1f3864;
+  --azul-osc:#03224d;
+  --azul-txt:#2e4673;
+  --azul-claro:#e5eeff;
+  /* acento ámbar: totales y el ítem activo de la barra lateral */
+  --acento:#ef8820;
+  --acento-osc:#c96f16;
+  /* superficies */
+  --papel:#ffffff;
+  --papel-2:#f8f9ff;
+  --papel-3:#eff4ff;
+  --papel-4:#f8f9ff;
+  --campo:#ffffff;
+  --cabecera:#eff4ff;
+  --gris-barra:#e5eeff;
+  --gris-borde:#c3c7cb;
+  --gris-fondo:#f8f9ff;
+  --linea:#dce0e4;
+  --linea-suave:#eaeef5;
+  --grupo:#e5eeff;           /* fila de módulo: fondo claro, texto navy */
+  --grupo-txt:#03224d;
+  --texto:#0b1c30;
+  --texto-medio:#44474f;
+  --texto-suave:#5a5f62;
+  --texto-tenue:#747780;
+  --sel:#dce9ff;
+  --amarillo:#fff4e2;
+  --sombra:rgba(3,34,77,.16);
+  --velo:rgba(3,34,77,.45);
+  /* barra lateral */
+  --lat:#03224d;
+  --lat-2:#0b2c5e;
+  --lat-txt:#b9c8e4;
+  --lat-txt-on:#ffffff;
+  --lat-linea:#17335f;
+  /* radios y sombras */
+  --r:6px;
+  --r-g:8px;
+  --sombra-1:0 1px 2px rgba(3,34,77,.06);
+  --sombra-2:0 4px 14px rgba(3,34,77,.12);
+}
+
+html[data-tema="oscuro"]{
+  --rojo:#2d6cb0;
+  --rojo-osc:#1c4d84;
+  --rojo-txt:#afc6fb;
+  --azul:#2d6cb0;
+  --azul-osc:#3a83d0;
+  --azul-txt:#afc6fb;
+  --azul-claro:#1a2942;
+  --acento:#ffb77d;
+  --acento-osc:#ef8820;
+  --papel:#0f1621;
+  --papel-2:#141d2b;
+  --papel-3:#1a2433;
+  --papel-4:#141d2b;
+  --campo:#111a27;
+  --cabecera:#16202f;
+  --gris-barra:#16202f;
+  --gris-borde:#33405a;
+  --gris-fondo:#0b111a;
+  --linea:#26324a;
+  --linea-suave:#1d2739;
+  --grupo:#1c2b45;
+  --grupo-txt:#d8e2ff;
+  --texto:#e6ecf7;
+  --texto-medio:#bcc6d8;
+  --texto-suave:#9aa5ba;
+  --texto-tenue:#7b8699;
+  --sel:#25405f;
+  --amarillo:#3a2c17;
+  --sombra:rgba(0,0,0,.5);
+  --velo:rgba(0,0,0,.6);
+  --lat:#081426;
+  --lat-2:#122542;
+  --lat-txt:#9fb3d6;
+  --lat-txt-on:#ffffff;
+  --lat-linea:#1a2c49;
+  --sombra-1:0 1px 2px rgba(0,0,0,.4);
+  --sombra-2:0 4px 14px rgba(0,0,0,.5);
+}
+
+/* ============ 2. ARMAZÓN ============
+   .app abarca la barra lateral y la columna de trabajo; body sigue siendo
+   una columna, así que .app tiene que poder encogerse (min-height:0). */
+body{font-family:Inter,"Segoe UI",Tahoma,Arial,sans-serif}
+.app{flex:1;display:flex;min-height:0}
+.col{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+
+/* ---- barra lateral ---- */
+.lateral{
+  width:232px;flex:0 0 232px;background:var(--lat);color:var(--lat-txt);
+  display:flex;flex-direction:column;min-height:0;
+}
+.lat-marca{
+  display:flex;align-items:center;gap:10px;padding:14px 16px 12px;
+  color:#fff;border-bottom:1px solid var(--lat-linea);
+}
+.lat-marca .logo{
+  width:28px;height:28px;flex:0 0 28px;border-radius:var(--r);
+  background:linear-gradient(180deg,#2e4673,#1f3864);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:12px;letter-spacing:.5px;
+}
+.lat-marca .txt{line-height:1.15}
+.lat-marca .txt b{font-size:15px;font-weight:700;letter-spacing:.2px}
+.lat-marca .txt small{display:block;font-size:10px;color:var(--lat-txt);letter-spacing:.6px}
+
+/* #tabs deja de ser una fila roja y pasa a ser la navegación vertical */
+.tabs{
+  flex-direction:column;background:transparent;padding:10px 8px;gap:2px;
+  overflow:auto;flex:1;min-height:0;
+}
+.tabs button{
+  background:transparent;color:var(--lat-txt);border:0;border-radius:var(--r);
+  padding:9px 12px;font-size:12px;letter-spacing:.4px;text-align:left;
+  display:flex;align-items:center;gap:10px;width:100%;
+}
+.tabs button::before{
+  content:"▪";font-size:12px;width:18px;flex:0 0 18px;text-align:center;opacity:.75;
+}
+.tabs button[data-v="presupuesto"]::before{content:"📋"}
+.tabs button[data-v="analisis"]::before{content:"🧮"}
+.tabs button[data-v="insumos"]::before{content:"🧱"}
+.tabs button[data-v="incidencias"]::before{content:"⚙"}
+.tabs button[data-v="computos"]::before{content:"📐"}
+.tabs button[data-v="base"]::before{content:"🗄"}
+.tabs button[data-v="cronograma"]::before{content:"📅"}
+.tabs button[data-v="reportes"]::before{content:"🖨"}
+.tabs button:hover{background:var(--lat-2);color:#fff}
+.tabs button.on{
+  background:var(--lat-2);color:var(--lat-txt-on);font-weight:700;
+  box-shadow:inset 3px 0 0 var(--acento);
+}
+.tabs .cuenta{
+  margin:0;color:var(--lat-txt);font-size:11px;padding:8px 12px 0;display:block;
+}
+
+/* botón de plegado, arriba a la derecha de la marca */
+.lat-plegar{
+  margin-left:auto;flex:0 0 auto;background:transparent;border:0;color:var(--lat-txt);
+  font-size:15px;line-height:1;padding:6px 7px;border-radius:var(--r);
+}
+.lat-plegar:hover{background:var(--lat-2);color:#fff}
+
+.lat-pie{
+  border-top:1px solid var(--lat-linea);padding:10px;display:flex;
+  align-items:center;gap:8px;
+}
+.lat-pie .quien{
+  flex:1;min-width:0;display:flex;align-items:center;gap:8px;color:var(--lat-txt);
+  font-size:12px;background:transparent;border:0;padding:6px 8px;border-radius:var(--r);
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.lat-pie .quien:hover{background:var(--lat-2);color:#fff}
+/* con sesión iniciada el pie muestra el correo: se resalta para que se note
+   que no dice «Invitado». El correo puede ser largo, así que se recorta. */
+.lat-pie .quien.dentro{color:#fff;font-weight:600}
+.lat-pie .quien .txt{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.lat-pie .tema-bt{
+  flex:0 0 auto;background:transparent;border:1px solid var(--lat-linea);
+  color:var(--lat-txt);border-radius:var(--r);padding:6px 9px;font-size:13px;
+}
+.lat-pie .tema-bt:hover{background:var(--lat-2);color:#fff}
+
+/* ---- barra de menú (ARCHIVO, EDICIÓN…) ---- */
+.menubar{
+  background:var(--papel);border-bottom:1px solid var(--linea);
+  padding:0 6px;box-shadow:var(--sombra-1);
+}
+.menubar .m{
+  padding:8px 12px;font-size:11px;letter-spacing:.6px;color:var(--texto-medio);
+  border-radius:var(--r);margin:4px 1px;
+}
+.menubar .m:hover,.menubar .m.abierto{background:var(--azul-claro);color:var(--rojo-txt)}
+/* la marca ya está arriba de la barra lateral: en la barra de menús sobra */
+.menubar .marca{display:none}
+.menu-pop{border-radius:var(--r);box-shadow:var(--sombra-2);border-color:var(--linea);overflow:hidden}
+.menu-pop div{padding:7px 16px}
+
+/* ---- cabecera de proyecto ---- */
+.cabecera{
+  background:var(--cabecera);border-bottom:1px solid var(--linea);padding:8px 12px;gap:12px;
+}
+.cabecera .titulo-proy{color:var(--texto);font-size:14px;font-weight:700}
+.pill{background:var(--azul-claro);color:var(--rojo-txt);font-weight:600;border-radius:999px}
+
+/* ---- barras de herramientas de cada vista ---- */
+.bar{
+  background:var(--papel);border-bottom:1px solid var(--linea);padding:8px 12px;
+}
+.btn{border-radius:var(--r);padding:6px 12px;font-weight:600;box-shadow:var(--sombra-1)}
+.btn.sec{background:var(--papel);border:1px solid var(--gris-borde);color:var(--texto-medio);box-shadow:none}
+.btn.sec:hover{background:var(--azul-claro);border-color:var(--azul-txt);color:var(--rojo-txt)}
+input[type=text],input[type=number],input[type=date],input[type=email],
+input[type=password],input[type=search],select,textarea{border-radius:var(--r);padding:5px 8px}
+.bar input[type=search]{border-radius:999px;padding:5px 12px}
+
+/* ---- rejilla ---- */
+main{background:var(--papel-2)}
+table.rej{font-size:12.5px}
+table.rej th{
+  background:var(--gris-barra);color:var(--rojo-txt);border:0;
+  border-bottom:1px solid var(--gris-borde);padding:8px 8px;
+  font-size:11px;letter-spacing:.5px;
+}
+table.rej td{border:0;border-bottom:1px solid var(--linea-suave);padding:7px 8px}
+table.rej tbody tr:nth-child(even){background:var(--papel-2)}
+table.rej tbody tr:hover{background:var(--azul-claro)}
+table.rej tbody tr.sel{background:var(--sel)!important;box-shadow:inset 3px 0 0 var(--rojo)}
+table.rej .grupo td{
+  background:var(--grupo);color:var(--grupo-txt);border-bottom:1px solid var(--gris-borde);
+}
+table.rej tfoot td{background:var(--papel-3);border:0;border-top:1px solid var(--gris-borde)}
+
+/* ---- pestañas de módulo y barra de estado ---- */
+.modulos{background:var(--papel);border-top:1px solid var(--linea)}
+.modulos .mtab{border-radius:var(--r) var(--r) 0 0;border-color:var(--linea)}
+.modulos .mtab.on{background:var(--azul-claro);color:var(--rojo-txt)}
+.estado{
+  background:var(--papel);border-top:1px solid var(--linea);padding:7px 14px;
+  color:var(--texto-suave);
+}
+.estado .total{color:var(--rojo-txt);font-size:15px}
+.estado .total b{color:var(--rojo-txt)}
+
+/* ---- diálogos ---- */
+.modal{border-radius:var(--r-g);box-shadow:var(--sombra-2)}
+
+/* ============ 2b. BARRA LATERAL PLEGADA ============
+   Con body.lat-cerrada la barra queda en 56 px: una tira de íconos donde el
+   ítem activo se sigue viendo (fondo más claro y filo ámbar). El texto no se
+   borra del HTML —lo necesita ui.js— sino que se achica a 0 y el ícono, que
+   es un ::before aparte, conserva su tamaño. */
+.lateral{transition:width .16s ease,flex-basis .16s ease}
+body.lat-cerrada .lateral{width:56px;flex:0 0 56px}
+body.lat-cerrada .lat-marca{flex-direction:column;gap:6px;padding:10px 0}
+body.lat-cerrada .lat-marca .txt{display:none}
+body.lat-cerrada .lat-plegar{margin:0}
+/* la tira es angosta: la barra de desplazamiento se comería 15 de los 56 px,
+   así que se oculta (la lista sigue desplazándose con la rueda) */
+body.lat-cerrada .tabs{padding:10px 6px;scrollbar-width:none}
+body.lat-cerrada .tabs::-webkit-scrollbar{width:0;height:0}
+body.lat-cerrada .tabs button{
+  font-size:0;justify-content:center;padding:10px 0;gap:0;
+}
+body.lat-cerrada .tabs button::before{font-size:17px;width:auto;flex:0 0 auto}
+body.lat-cerrada .tabs .cuenta{display:none}
+body.lat-cerrada .lat-pie{flex-direction:column;padding:8px 6px;gap:6px}
+body.lat-cerrada .lat-pie .quien{
+  font-size:0;justify-content:center;padding:8px 0;width:100%;
+}
+body.lat-cerrada .lat-pie .quien .i{font-size:15px}
+body.lat-cerrada .lat-pie .tema-bt{width:100%;text-align:center;padding:8px 0}
+
+/* ============ 3. PANTALLAS ANGOSTAS ============
+   Debajo de 900 px la barra lateral se acuesta: vuelve a ser una fila de
+   pestañas arriba, con desplazamiento horizontal. */
+@media (max-width:900px){
+  .app{flex-direction:column}
+  .lateral{width:auto;flex:0 0 auto;flex-direction:row;align-items:center;overflow:hidden}
+  .lat-marca{border-bottom:0;border-right:1px solid var(--lat-linea);padding:10px 12px}
+  .lat-marca .txt small{display:none}
+  .tabs{flex-direction:row;padding:6px;overflow-x:auto;flex-wrap:nowrap}
+  .tabs button{width:auto;white-space:nowrap}
+  .tabs button.on{box-shadow:inset 0 -3px 0 var(--acento)}
+  .tabs .cuenta{display:none}
+  .lat-pie{border-top:0;border-left:1px solid var(--lat-linea)}
+  .lat-pie .quien{display:none}
+}
+
+/* ============ 4. INTERFAZ SIMPLE ============
+   body.modo-simple lo pone aplicarModo() de js/ui.js. Solo OCULTA: todo lo
+   de abajo sigue en la página y vuelve con el botón ⇄ (Interfaz completa).
+   Quedan cuatro pasos: buscar ítems, presupuesto, detalle del precio e
+   imprimir. */
+.lat-pie{flex-wrap:wrap}
+.lat-pie .modo-bt{
+  order:-1;flex:1 0 100%;display:flex;align-items:center;gap:8px;background:transparent;
+  border:1px solid var(--lat-linea);color:var(--lat-txt);border-radius:var(--r);
+  padding:6px 9px;font-size:12px;text-align:left;
+}
+.lat-pie .modo-bt:hover{background:var(--lat-2);color:#fff}
+body.lat-cerrada .lat-pie .modo-bt{font-size:0;justify-content:center;padding:8px 0}
+body.lat-cerrada .lat-pie .modo-bt .i{font-size:15px}
+
+/* navegación: los cuatro pasos, en el orden en que se hacen */
+body.modo-simple .tabs button[data-v="insumos"],
+body.modo-simple .tabs button[data-v="incidencias"],
+body.modo-simple .tabs button[data-v="computos"],
+body.modo-simple .tabs button[data-v="cronograma"]{display:none}
+body.modo-simple .tabs button[data-v="base"]{order:1}
+body.modo-simple .tabs button[data-v="presupuesto"]{order:2}
+body.modo-simple .tabs button[data-v="analisis"]{order:3}
+body.modo-simple .tabs button[data-v="reportes"]{order:4}
+body.modo-simple .tabs .cuenta{order:5}
+body.modo-simple .tabs button{font-size:13px;padding:11px 12px}
+
+/* menús: solo ARCHIVO (abrir, guardar) y AYUDA */
+body.modo-simple .menubar .m:not([data-menu="archivo"]):not([data-menu="ayuda"]){display:none}
+
+/* cabecera: el nombre del proyecto y nada más */
+body.modo-simple .cabecera .campo,
+body.modo-simple .cabecera #pillStats{display:none}
+
+/* presupuesto: sin módulos, sin reordenar, sin el desglose material/obrero/equipo */
+body.modo-simple #v-presupuesto [data-acc="subirItem"],
+body.modo-simple #v-presupuesto [data-acc="bajarItem"],
+body.modo-simple #v-presupuesto [data-acc="dupItem"],
+body.modo-simple #barraModulos{display:none}
+body.modo-simple #v-presupuesto [data-acc="irBase"]{order:-1}
+body.modo-simple #tblPresupuesto th:nth-child(n+7):nth-child(-n+10),
+body.modo-simple #tblPresupuesto tbody td:nth-child(n+7):nth-child(-n+10),
+body.modo-simple #tblPresupuesto tfoot td:nth-child(n+3):nth-child(-n+5){display:none}
+
+/* base de datos: buscar y traer; las bases propias quedan para la completa */
+body.modo-simple #v-base [data-acc="nuevaBasePropia"],
+body.modo-simple #v-base [data-acc="proyectoABase"]{display:none}
+
+/* detalle del precio: se mira, no se arma */
+body.modo-simple #v-analisis [data-acc="addInsumo"],
+body.modo-simple #v-analisis [data-acc="paramsGlobal"]{display:none}
+
+/* imprimir: presupuesto, análisis y Excel */
+body.modo-simple #v-reportes [data-acc="repElementales"],
+body.modo-simple #v-reportes [data-acc="repInsumos"],
+body.modo-simple #v-reportes [data-acc="repComputos"],
+body.modo-simple #v-reportes [data-acc="repCrono"],
+body.modo-simple #v-reportes [data-acc="repResumen"],
+body.modo-simple #v-reportes [data-acc="exportarCsvIns"]{display:none}
+
+/* barra de estado: el total y el guardado */
+body.modo-simple .estado > span:nth-child(-n+3){display:none}
+
+/* la guía del presupuesto vacío */
+.guia-simple{text-align:left !important;padding:22px 26px !important;line-height:1.6}
+.guia-simple b:first-child{font-size:15px;color:var(--azul-txt)}
+.guia-simple ol{margin:8px 0 14px;padding-left:22px}
+.guia-simple .btn{font-size:14px;padding:8px 16px}
+
+/* la pregunta de la pantalla de inicio */
+.ini-perfil{border:1px solid var(--gris-borde);border-left:4px solid var(--acento);
+  border-radius:var(--r);padding:12px 14px;margin-bottom:12px;display:grid;gap:8px}
+.ini-perfil .ini-bts{display:flex;gap:8px;flex-wrap:wrap}

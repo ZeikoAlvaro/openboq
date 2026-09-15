@@ -1,0 +1,721 @@
+/* OpenBOQ — hoja de estilo
+   Rejilla densa de trabajo, con tipografía y espaciado modernos.
+
+   TEMA CLARO Y OSCURO
+   Ningún color se escribe suelto dentro de una regla: todos salen de las
+   variables de :root. El tema oscuro solo vuelve a definir esas variables en
+   html[data-tema="oscuro"], así que agregar un color nuevo en claro sin
+   pensarlo deja el modo oscuro roto. Si hace falta uno nuevo, se agrega a las
+   dos listas. El tema lo elige el usuario (pantalla de inicio o
+   CONFIGURACIÓN) y queda guardado en el navegador; al imprimir se fuerza el
+   claro, porque un reporte en negro se lleva el tóner. */
+
+:root{
+  color-scheme:light;
+  /* marca */
+  --rojo:#c00000;
+  --rojo-osc:#8c0000;
+  --rojo-txt:#c00000;        /* el rojo cuando es TEXTO sobre fondo claro */
+  --azul:#1a4b8c;            /* relleno de botones, barras y pastillas */
+  --azul-osc:#123a6d;        /* el mismo, al pasar el puntero */
+  --azul-txt:#1a4b8c;        /* el azul cuando es TEXTO */
+  --azul-claro:#dce6f4;      /* fila señalada al pasar el puntero */
+  --verde:#137333;
+  /* estados */
+  --ok:#137333;
+  --err:#a1281c;
+  --aviso:#8a6100;
+  --aviso-fondo:#fff8e1;
+  --aviso-borde:#e0c060;
+  /* texto */
+  --texto:#1b1b1b;
+  --texto-medio:#444;
+  --texto-suave:#666;
+  --texto-tenue:#888;
+  /* superficies */
+  --papel:#fff;              /* área de trabajo, diálogos, tarjetas */
+  --papel-2:#f6f5f2;         /* filas alternas y cajas suaves */
+  --papel-3:#efece5;         /* pies de tabla y subtotales */
+  --papel-4:#f3f1ec;         /* barras de herramientas de cada pestaña */
+  --campo:#fff;              /* fondo de los campos de escritura */
+  --cabecera:#e7e4dd;
+  --gris-barra:#d8d4cc;
+  --gris-borde:#a9a49b;
+  --gris-fondo:#eceae5;
+  --linea:#d5d2cb;           /* bordes de celda */
+  --linea-suave:#e5e2db;     /* separadores finos */
+  --grupo:#3d3d3d;           /* filas de grupo / títulos de bloque */
+  --grupo-txt:#fff;
+  --amarillo:#fff3bf;
+  --sel:#ffe9a8;
+  /* pastillas M / O / E de la pestaña INSUMOS */
+  --badge-bg:#e3e8f0;
+  --badge-txt:#33507a;
+  --badge-m:#e6f0ff;
+  --badge-o:#e9f7ec;
+  --badge-e:#fdecea;
+  --sombra:rgba(0,0,0,.25);
+  --velo:rgba(0,0,0,.45);    /* fondo del diálogo modal */
+  /* cronograma */
+  --zebra-a:#f6f4f0;
+  --zebra-b:#dedbd4;
+  --pie-crono:#faf9f7;
+  --uso:#f4f1ea;             /* fila desplegada de usos de un insumo */
+  --uso-th:#5a5a5a;
+  --uso-th-b:#454545;
+  --fila-alt:var(--papel-2); /* nombre viejo, se mantiene por compatibilidad */
+}
+
+html[data-tema="oscuro"]{
+  color-scheme:dark;
+  --rojo:#a83b38;
+  --rojo-osc:#7d2a28;
+  --rojo-txt:#ef8b86;
+  --azul:#2d6cb0;
+  --azul-osc:#3a83d0;
+  --azul-txt:#8ab8ea;
+  --azul-claro:#22344a;
+  --verde:#3fa463;
+  --ok:#5ec27f;
+  --err:#f08a84;
+  --aviso:#e0b95a;
+  --aviso-fondo:#3a3220;
+  --aviso-borde:#6b5a2a;
+  --texto:#e8e6e1;
+  --texto-medio:#c3c0b9;
+  --texto-suave:#a7a49d;
+  --texto-tenue:#8d8a83;
+  --papel:#1b1e23;
+  --papel-2:#212630;
+  --papel-3:#272d38;
+  --papel-4:#1f242c;
+  --campo:#14171c;
+  --cabecera:#1f242c;
+  --gris-barra:#232830;
+  --gris-borde:#3c434e;
+  --gris-fondo:#14161a;
+  --linea:#333a45;
+  --linea-suave:#2b313b;
+  --grupo:#0f1216;
+  --grupo-txt:#e8e6e1;
+  --amarillo:#4a4526;
+  --sel:#4a3f18;
+  --badge-bg:#2a3038;
+  --badge-txt:#c3c0b9;
+  --badge-m:#1d3350;
+  --badge-o:#1c3a28;
+  --badge-e:#3d2320;
+  --sombra:rgba(0,0,0,.6);
+  --velo:rgba(0,0,0,.65);
+  --zebra-a:#1e232b;
+  --zebra-b:#2a303a;
+  --pie-crono:#191d23;
+  --uso:#252a33;
+  --uso-th:#3a414c;
+  --uso-th-b:#2c323b;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+/* en el celular la barra del navegador aparece y desaparece: dvh sigue esa
+   altura real, así la barra de estado no queda tapada */
+@supports (height:100dvh){html,body{height:100dvh}}
+body{
+  margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;font-size:13px;color:var(--texto);
+  background:var(--gris-fondo);display:flex;flex-direction:column;overflow:hidden;
+  -webkit-text-size-adjust:100%;
+}
+button{font-family:inherit;font-size:12px;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:12px;color:var(--texto)}
+input[type=text],input[type=number],input[type=date],input[type=email],
+input[type=password],input[type=search],select,textarea{
+  border:1px solid var(--gris-borde);background:var(--campo);padding:2px 4px;border-radius:2px;
+}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--azul-txt);outline-offset:-1px}
+/* sin flechitas de incremento: los números se escriben con el teclado
+   (en el celular sigue apareciendo el teclado numérico) */
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;appearance:none;margin:0}
+
+/* ---------- barra de menú ---------- */
+.menubar{display:flex;align-items:stretch;background:var(--gris-barra);
+  border-bottom:1px solid var(--gris-borde);user-select:none;position:relative;z-index:60}
+.menubar .m{padding:5px 11px;font-size:12px;letter-spacing:.4px}
+.menubar .m:hover,.menubar .m.abierto{background:var(--azul);color:#fff;cursor:default}
+.menubar .marca{margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 12px;
+  font-weight:700;color:var(--rojo-txt);letter-spacing:1px}
+.menubar .marca small{font-weight:400;color:var(--texto-suave);letter-spacing:0}
+.menubar .marca .bq{color:var(--azul-txt)}
+.menu-pop{position:fixed;background:var(--papel);border:1px solid var(--gris-borde);
+  box-shadow:2px 3px 8px var(--sombra);min-width:250px;padding:3px 0;z-index:100}
+.menu-pop div{padding:5px 16px;font-size:12px;display:flex;justify-content:space-between;gap:20px}
+.menu-pop div:hover{background:var(--azul);color:#fff}
+.menu-pop div.sep{padding:0;margin:3px 0;border-top:1px solid var(--linea);pointer-events:none}
+.menu-pop kbd{color:var(--texto-tenue);font-size:11px}
+.menu-pop div:hover kbd{color:#dbe6f5}
+
+/* ---------- campos de las barras ----------
+   La barra de botones de acceso rápido se quitó: todo está en los menús de
+   arriba y en la barra propia de cada pestaña. */
+.campo{display:flex;align-items:center;gap:4px}
+.campo label{font-size:11px;color:var(--texto-medio)}
+
+.cabecera{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:5px 8px;
+  background:var(--cabecera);border-bottom:1px solid var(--gris-borde)}
+.cabecera .titulo-proy{font-weight:700;color:var(--rojo-txt);min-width:190px}
+/* empuja a la derecha lo que venga después (precisión, moneda, tipo de cambio) */
+.cabecera .empuja{margin-left:auto}
+.pill{background:var(--azul);color:#fff;padding:2px 8px;border-radius:9px;font-size:11px}
+
+/* ---------- pestañas de vista ---------- */
+.tabs{display:flex;background:var(--rojo);padding:0 6px;gap:2px}
+.tabs button{background:var(--rojo-osc);color:#fff;border:0;padding:7px 16px;font-size:12px;
+  letter-spacing:.5px;border-radius:4px 4px 0 0}
+.tabs button.on{background:var(--papel);color:var(--rojo-txt);font-weight:700}
+.tabs .cuenta{margin-left:auto;color:#ffd9d9;font-size:11px;display:flex;align-items:center;padding-right:8px}
+
+/* ---------- área principal ---------- */
+main{flex:1;overflow:auto;background:var(--papel)}
+.vista{display:none;height:100%}
+.vista.on{display:flex;flex-direction:column}
+.panel{padding:10px 12px}
+.split{display:flex;height:100%;min-height:0}
+.split>.izq{width:400px;min-width:260px;border-right:1px solid var(--gris-borde);
+  display:flex;flex-direction:column;min-height:0}
+.split>.der{flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto}
+.scroll{overflow:auto;flex:1;min-height:0}
+
+/* ---------- tablas ---------- */
+table.rej{border-collapse:collapse;width:100%;font-size:12px}
+table.rej th{background:var(--rojo);color:#fff;font-weight:600;padding:5px 6px;
+  position:sticky;top:0;z-index:5;text-align:center;white-space:nowrap;border:1px solid var(--rojo-osc)}
+/* unidad al lado del título de la columna, más chica y sin negrita */
+table.rej th .und{font-weight:400;opacity:.85}
+table.rej td{border:1px solid var(--linea);padding:3px 6px;vertical-align:middle}
+table.rej tbody tr:nth-child(even){background:var(--papel-2)}
+table.rej tbody tr:hover{background:var(--azul-claro)}
+table.rej tbody tr.sel{background:var(--sel)!important}
+table.rej td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.rej td.ctr{text-align:center}
+table.rej tfoot td{background:var(--papel-3);font-weight:700;border:1px solid var(--gris-borde)}
+table.rej td input{width:100%;border:1px solid transparent;background:transparent;
+  text-align:right;padding:1px 3px;font-variant-numeric:tabular-nums}
+table.rej td input:hover{border-color:var(--gris-borde);background:var(--campo)}
+table.rej td input.txt{text-align:left}
+table.rej .grupo td{background:var(--grupo);color:var(--grupo-txt);font-weight:700;letter-spacing:.5px}
+.mini{font-size:11px;color:var(--texto-suave)}
+.badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;
+  background:var(--badge-bg);color:var(--badge-txt)}
+.badge.M{background:var(--badge-m);color:var(--azul-txt)}
+.badge.O{background:var(--badge-o);color:var(--ok)}
+.badge.E{background:var(--badge-e);color:var(--err)}
+.b-del{color:var(--err);background:none;border:0;font-weight:700;padding:0 4px}
+.vacio{padding:40px;text-align:center;color:var(--texto-tenue)}
+/* insumo que no entra en ningún análisis: se muestra solo si se piden */
+.rej td.sin-uso{color:var(--texto-tenue);font-style:italic}
+#lblSinUso{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+
+/* En el B-3 la descripción no se edita: se abre con doble clic */
+table.rej td.ins-d{cursor:pointer;user-select:none}
+
+/* detalle de usos de un insumo: fila que se despliega debajo de la suya
+   (pestaña INSUMOS, doble clic en la descripción) */
+table.rej tbody tr.uso,table.rej tbody tr.uso:hover{background:var(--uso)}
+table.rej tr.uso>td{padding:8px 10px}
+.uso-cab{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.uso-cab button{margin-left:auto}
+.uso-scroll{overflow-x:auto}
+table.rej.uso-det{width:auto;min-width:min(100%,720px);background:var(--papel)}
+table.rej.uso-det th{position:static;background:var(--uso-th);border-color:var(--uso-th-b)}
+
+/* ---------- módulos ---------- */
+.modulos{display:flex;align-items:center;gap:8px;background:var(--gris-barra);
+  border-top:1px solid var(--gris-borde);padding:3px 6px}
+/* con las cajas de ancho fijo diez módulos ya no entran en la pantalla: el
+   carril se desplaza solo y el total del módulo queda fijo a la derecha, en
+   vez de irse al final de la fila */
+.modulos .mtabs{display:flex;align-items:center;gap:3px;flex:1;min-width:0;
+  overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;scrollbar-width:thin;
+  -webkit-overflow-scrolling:touch;padding-bottom:1px}
+/* la línea lo separa del carril: sin ella el módulo a medio recortar parece
+   seguir por debajo del total */
+.modulos .tot-mod{flex:0 0 auto;white-space:nowrap;align-self:stretch;
+  display:flex;align-items:center;gap:4px;padding-left:10px;border-left:1px solid var(--gris-borde)}
+/* Las cajas de módulo son todas del mismo tamaño: el ancho lo fija la caja y
+   no el nombre, así la fila queda pareja aunque un módulo se llame «M-05
+   PAISAJISMO» y el de al lado «M-04 ARQUITECTURA EXTERIOR». El nombre se
+   recorta con puntos suspensivos y se lee entero en el title. */
+.modulos .mtab{background:var(--papel);border:1px solid var(--gris-borde);border-bottom:0;
+  padding:0 10px;font-size:12px;border-radius:4px 4px 0 0;cursor:pointer;color:var(--texto);
+  flex:0 0 auto;width:93px;height:34px;display:flex;align-items:center;gap:5px;
+  overflow:hidden;white-space:nowrap}
+.modulos .mtab .mn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.modulos .mtab .mini{flex:0 0 auto}
+.modulos .mtab.on{background:var(--amarillo);font-weight:700;color:var(--rojo-txt)}
+.modulos .mtab.on .mini{color:var(--rojo-txt)}
+/* la de agregar es un cuadrado: no lleva nombre que recortar */
+.modulos .mtab.nueva{width:34px;justify-content:center;padding:0;font-size:14px}
+
+/* ---------- barra de estado ---------- */
+.estado{display:flex;align-items:center;gap:14px;padding:4px 10px;background:var(--gris-barra);
+  border-top:1px solid var(--gris-borde);font-size:11.5px;flex-wrap:wrap}
+.estado b{font-variant-numeric:tabular-nums}
+.estado .total{margin-left:auto;font-size:14px;color:var(--rojo-txt);font-weight:700}
+/* ---------- entrar a la cuenta ----------
+   El botón de Google sigue su guía de marca: fondo blanco, borde gris, el
+   logo a color y el texto en gris oscuro. Es una marca ajena; inventarle un
+   estilo propio la hace ver falsa, así que este es el único lugar donde los
+   colores van escritos y no salen del tema. */
+.btn.google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+  background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:4px;
+  padding:10px;font-size:13px;font-weight:500}
+.btn.google:hover{background:#f8f9fa;border-color:#d2e3fc}
+.separador{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--texto-tenue);font-size:11px}
+.separador::before,.separador::after{content:"";flex:1;height:1px;background:var(--gris-borde)}
+
+/* quién está usando la aplicación. Se hace clic para entrar o salir, así que
+   se ve que es pulsable y no un texto más de la barra. */
+.cuenta-est{cursor:pointer;padding:1px 8px;border:1px solid transparent;border-radius:10px;
+  color:var(--texto-suave);white-space:nowrap;max-width:32ch;overflow:hidden;text-overflow:ellipsis}
+.cuenta-est:hover{border-color:var(--gris-borde);background:var(--papel)}
+.cuenta-est.dentro{color:var(--azul-txt);font-weight:600}
+/* confirmar o descartar los cambios en prueba sin salir de la pestaña */
+.acc-ensayo{display:flex;align-items:center;gap:6px}
+.acc-ensayo .btn{padding:3px 9px;font-size:11px}
+
+/* punto de color del estado de la conexión: solo informa, no bloquea nada */
+#stAcceso{font-size:15px;line-height:1;letter-spacing:0}
+.btn:disabled,button:disabled{opacity:.4;cursor:not-allowed}
+
+/* ---------- formulario B-2 ---------- */
+.b2{max-width:1080px;margin:0 auto;padding:14px}
+.b2 .encab{border:2px solid var(--rojo);padding:8px 10px;margin-bottom:10px;background:var(--papel-2)}
+.b2 .encab h2{margin:0 0 6px;font-size:15px;color:var(--rojo-txt);text-transform:uppercase}
+.b2 .encab .rej-datos{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 14px;font-size:12px}
+.b2 .encab .rej-datos label{display:block;color:var(--texto-suave);font-size:11px}
+.b2 h3{margin:14px 0 4px;font-size:13px;background:var(--grupo);color:var(--grupo-txt);padding:4px 8px}
+.res{margin-top:14px;border:1px solid var(--gris-borde)}
+.res .fila{display:flex;justify-content:space-between;padding:4px 10px;border-bottom:1px solid var(--linea-suave)}
+.res .fila:last-child{border-bottom:0}
+.res .fila.sub{background:var(--papel-3);font-weight:700}
+.res .fila.tot{background:var(--rojo);color:#fff;font-weight:700;font-size:15px}
+.res .fila input{width:70px;text-align:right}
+.res .val{font-variant-numeric:tabular-nums}
+
+/* ---------- utilidades ---------- */
+.bar{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--papel-4);
+  border-bottom:1px solid var(--gris-borde);flex-wrap:wrap}
+.bar input[type=search]{flex:1;min-width:160px;padding:4px 8px;border:1px solid var(--gris-borde);border-radius:3px}
+.btn{background:var(--azul);color:#fff;border:0;padding:5px 12px;border-radius:3px}
+.btn:hover{background:var(--azul-osc)}
+.btn.sec{background:var(--papel);color:var(--azul-txt);border:1px solid var(--azul-txt)}
+.btn.sec:hover{background:var(--azul-claro)}
+.btn.rojo{background:var(--rojo)}
+.btn.rojo:hover{background:var(--rojo-osc)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.lista{list-style:none;margin:0;padding:0}
+.lista li{padding:5px 9px;border-bottom:1px solid var(--linea-suave);cursor:pointer;font-size:12px}
+.lista li:hover{background:var(--azul-claro)}
+.lista li.sel{background:var(--sel)}
+.lista li .cod{color:var(--texto-tenue);font-size:11px;margin-right:6px}
+.lista li .pu{float:right;font-variant-numeric:tabular-nums;color:var(--rojo-txt);font-weight:600}
+
+/* ---------- modal ---------- */
+.overlay{position:fixed;inset:0;background:var(--velo);display:none;
+  align-items:center;justify-content:center;z-index:200}
+.overlay.on{display:flex}
+.modal{background:var(--papel);border-radius:4px;box-shadow:0 10px 40px var(--sombra);
+  min-width:380px;max-width:92vw;max-height:88vh;display:flex;flex-direction:column}
+.modal h3{margin:0;background:var(--rojo);color:#fff;padding:8px 12px;font-size:13px;border-radius:4px 4px 0 0}
+.modal .cuerpo{padding:12px;overflow:auto}
+.modal .pie{padding:9px 12px;border-top:1px solid var(--gris-borde);display:flex;gap:8px;justify-content:flex-end}
+.form-g{display:grid;grid-template-columns:150px 1fr;gap:7px 10px;align-items:center}
+.form-g label{font-size:12px;color:var(--texto-medio)}
+.form-g input,.form-g select,.form-g textarea{width:100%}
+
+/* ---------- pantalla de inicio ----------
+   Tapa la aplicación entera al abrir. Va por encima del modal genérico
+   (z-index 200) porque el aviso de proyecto recuperado vive acá adentro.
+
+   La caja se centra con «margin:auto» y NO con align-items:center: cuando el
+   contenido es más alto que la pantalla —celular apaisado, tres casilleros
+   ocupados— el centrado por flex recorta la parte de arriba y no se puede
+   desplazar hasta ella. Con margin automático se centra si entra y se
+   desplaza entero si no. */
+.inicio{position:fixed;inset:0;background:var(--gris-fondo);display:none;
+  justify-content:center;align-items:flex-start;z-index:300;overflow:auto;
+  padding:clamp(10px,2.5vw,28px);overscroll-behavior:contain}
+.inicio.on{display:flex}
+.ini-caja{position:relative;background:var(--papel);border-top:4px solid var(--rojo);
+  box-shadow:0 10px 40px var(--sombra);padding:clamp(14px,2.2vw,24px);
+  width:100%;max-width:1000px;margin:auto;border-radius:0 0 4px 4px}
+
+/* encabezado: marca a la izquierda, tema y cerrar a la derecha */
+.ini-top{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;
+  padding-bottom:12px;border-bottom:1px solid var(--linea-suave)}
+.ini-marca{font-size:clamp(20px,2.6vw,26px);color:var(--azul-txt);letter-spacing:.5px;
+  flex:1 1 240px;min-width:0}
+.ini-marca b{color:var(--rojo-txt)}
+.ini-marca .mini{display:block;margin-top:2px}
+.ini-top-bts{display:flex;align-items:center;gap:6px;flex:0 0 auto;margin-left:auto}
+.ini-tema{display:inline-flex;align-items:center;gap:7px;background:var(--papel-2);
+  color:var(--texto-medio);border:1px solid var(--gris-borde);border-radius:20px;
+  padding:5px 12px;font-size:12px;white-space:nowrap}
+.ini-tema:hover{border-color:var(--azul-txt);color:var(--azul-txt)}
+.ini-tema .i{font-size:14px;line-height:1}
+.ini-x{background:none;border:1px solid transparent;color:var(--texto-tenue);
+  font-size:15px;line-height:1;padding:6px 9px;border-radius:20px}
+.ini-x:hover{color:var(--rojo-txt);border-color:var(--gris-borde)}
+
+/* cuerpo: dos columnas en pantalla ancha, una sola cuando no entran.
+   Las dos columnas llevan minmax(0,·) para que un nombre largo de proyecto
+   no estire la rejilla por encima de la caja. */
+.ini-cuerpo{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);
+  gap:16px;align-items:start;margin-top:16px}
+.ini-col{min-width:0;display:flex;flex-direction:column;gap:14px}
+
+.ini-sesion{border:1px solid var(--gris-borde);border-left:4px solid var(--verde);
+  background:var(--papel-2);padding:12px 14px;min-width:0}
+.ini-sesion.vacia{border-left-color:var(--gris-borde)}
+.ini-sesion h4{margin:0 0 3px;font-size:14px;color:var(--azul-txt)}
+.ini-sesion .proy{overflow-wrap:anywhere}
+.ini-sesion .ini-bts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.ini-acc{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.ini-op{display:grid;grid-template-columns:26px minmax(0,1fr);gap:2px 10px;text-align:left;
+  background:var(--papel);border:1px solid var(--gris-borde);padding:10px 12px;cursor:pointer;
+  color:var(--texto);min-width:0}
+.ini-op:hover{border-color:var(--azul-txt);background:var(--azul-claro)}
+.ini-op span{grid-row:span 2;font-size:19px;align-self:center}
+.ini-op b{font-size:13px;color:var(--azul-txt)}
+.ini-op em{font-style:normal;font-size:11px;color:var(--texto-suave);overflow-wrap:anywhere}
+#iniPie{margin:16px 0 0;border-top:1px solid var(--linea-suave);padding-top:8px}
+
+/* ---------- la cuenta y los proyectos guardados, en la pantalla de inicio ---------- */
+.ini-nube{border:1px solid var(--gris-borde);border-left:4px solid var(--azul-txt);
+  background:var(--papel);padding:12px 14px;min-width:0}
+.ini-nube.dentro{border-left-color:var(--verde)}
+.ini-nube-t{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ini-nube-t>span{font-size:22px}
+.ini-nube-t>div{flex:1 1 180px;min-width:0}
+.ini-nube-t b{display:block;font-size:13px;color:var(--azul-txt)}
+.ini-nube-t em{font-style:normal;font-size:11px;color:var(--texto-suave);overflow-wrap:anywhere}
+.ini-nube-t .btn{flex:0 0 auto}
+.ini-nube .mini{display:block;margin-top:6px}
+/* auto-fit: tres recuadros en pantalla ancha, dos o uno cuando la columna se
+   angosta. Sin minmax(0,·) el contenido empuja la rejilla fuera de la caja. */
+.ini-slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));
+  gap:8px;margin-top:10px}
+/* Desde que son DIEZ y no tres, la rejilla estiraba la pantalla de inicio
+   hasta sacarla de una pantalla y obligaba a desplazar toda la página para
+   ver «Empezar en blanco». Se le pone techo y desplazamiento PROPIO: la caja
+   de la nube queda del alto de la otra columna y los que no entran se ven
+   bajando adentro de la caja. Solo en la pantalla de inicio; en el diálogo
+   «Mis proyectos» ya desplaza el cuerpo del modal. */
+.ini-nube .ini-slots{max-height:min(42vh,300px);overflow-y:auto;
+  padding-right:4px;overscroll-behavior:contain}
+.ini-slots .slot{border:1px solid var(--gris-borde);background:var(--papel-2);
+  padding:8px 10px;min-width:0;display:flex;flex-direction:column}
+.ini-slots .slot.vacio{background:var(--papel);border-style:dashed}
+.ini-slots .slot b{display:block;font-size:12px;color:var(--azul-txt);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ini-slots .slot .mini{display:block;margin:2px 0 6px;overflow-wrap:anywhere}
+.slot-bts{display:flex;gap:4px;flex-wrap:wrap;margin-top:auto}
+.slot-bts .btn{padding:4px 9px;font-size:11.5px}
+/* elegir casillero y poner el candado, en los diálogos */
+.op-slot{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--gris-borde);
+  padding:7px 9px;margin-bottom:5px;cursor:pointer}
+.op-slot:hover{border-color:var(--azul-txt);background:var(--azul-claro)}
+.op-slot .mini{display:block}
+.pie-nube{border-top:1px solid var(--linea-suave);margin-top:12px;padding-top:8px}
+
+/* una sola columna antes de que las dos queden angostas y se pisen */
+@media(max-width:900px){
+  .ini-cuerpo{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:700px){
+  .ini-acc{grid-template-columns:minmax(0,1fr)}
+  .ini-slots{grid-template-columns:minmax(0,1fr)}
+  .ini-top-bts{width:100%;margin-left:0;justify-content:space-between}
+  .ini-tema{flex:1;justify-content:center}
+}
+
+/* ---------- comparar con otro proyecto ----------
+   La diferencia se lee por el color: rojo lo que sube, verde lo que baja.
+   Los módulos que están en un solo archivo van en gris y en bastardilla. */
+table.rej.comp{margin:8px 0;min-width:640px}
+table.rej.comp th{position:static}
+table.rej.comp td.et{width:110px;color:var(--texto-suave);font-size:11px}
+table.rej.comp td.sube{color:var(--err);font-weight:600}
+table.rej.comp td.baja{color:var(--ok);font-weight:600}
+table.rej.comp tr.solo td{color:var(--texto-suave);font-style:italic}
+table.rej.comp tfoot td{background:var(--papel-3);font-weight:700}
+
+/* ---------- estado de la cuenta ---------- */
+.cta-t{margin:14px 0 4px;font-size:12px;letter-spacing:.5px;color:var(--azul-txt);
+  text-transform:uppercase;border-bottom:1px solid var(--linea-suave);padding-bottom:3px}
+table.rej.cta{min-width:0}
+table.rej.cta td .mini{display:block}
+table.rej.cta-proy{min-width:520px}
+.cta-pend{color:var(--err);font-size:11px}
+
+/* ---------- gantt / curva S ---------- */
+.gantt{width:100%;border-collapse:collapse;font-size:11px}
+.gantt th{background:var(--rojo);color:#fff;padding:3px;border:1px solid var(--rojo-osc);font-weight:600}
+.gantt td{border:1px solid var(--linea);padding:2px 4px;height:20px}
+.gantt td.celda,table.rej td.celda{padding:0 2px}
+/* cronograma: columnas angostas sin partir palabras y el Gantt con su propio ancho */
+table.rej.crono td.ctr,table.rej.crono td.num{white-space:nowrap}
+table.rej.crono td.celda{min-width:460px}
+/* N°, EDT y ACTIVIDAD quedan fijas al desplazarse a lo ancho, como en MS Project */
+table.rej.crono tbody tr{background:var(--papel)}
+table.rej.crono tbody tr:nth-child(even){background:var(--papel-2)}
+table.rej.crono tbody tr:hover{background:var(--azul-claro)}
+table.rej.crono th:nth-child(-n+3),table.rej.crono td:nth-child(-n+3){position:sticky}
+table.rej.crono td:nth-child(-n+3){background:inherit;z-index:2}
+table.rej.crono th:nth-child(-n+3){z-index:7}
+table.rej.crono th:nth-child(1),table.rej.crono td:nth-child(1){left:0}
+table.rej.crono th:nth-child(2),table.rej.crono td:nth-child(2){left:32px}
+table.rej.crono th:nth-child(3),table.rej.crono td:nth-child(3){left:76px}
+table.rej.crono th:nth-child(3),table.rej.crono td:nth-child(3){border-right:2px solid var(--gris-borde)}
+table.rej.crono .grupo td:nth-child(-n+3){background:var(--grupo)}
+/* segunda fila del encabezado: una casilla por semana calendario */
+table.rej.crono thead tr.sem th{top:25px;font-size:10px;font-weight:400;padding:2px 0}
+/* pie del cronograma (nota + curva S) con su propio scroll, para que la barra
+   horizontal de la tabla no quede fuera de la pantalla */
+.pie-crono{max-height:45%;overflow:auto;padding:6px 12px;border-top:2px solid var(--gris-borde);
+  background:var(--pie-crono);flex-shrink:0}
+.pie-crono summary{cursor:pointer;padding:2px 0}
+/* subpestañas dentro de una vista (cronograma: programación / recursos) */
+.subtabs{display:flex;gap:2px;background:var(--cabecera);border-bottom:1px solid var(--gris-borde);padding:3px 8px 0}
+.subtabs button{background:var(--gris-barra);color:var(--texto-medio);border:1px solid var(--gris-borde);
+  border-bottom:0;padding:4px 14px;font-size:11px;letter-spacing:.5px;border-radius:4px 4px 0 0}
+.subtabs button.on{background:var(--papel);color:var(--rojo-txt);font-weight:700}
+.sub{display:none;flex:1;min-height:0}
+.sub.on{display:flex;flex-direction:column;min-height:0}
+.gantt .barra,table.rej .barra{background:var(--azul);height:13px;border-radius:2px}
+#curvaS{width:100%;height:260px;background:var(--papel);border:1px solid var(--gris-borde)}
+
+/* Al imprimir se vuelve al tema claro pase lo que pase: el reporte sale en
+   papel blanco y un fondo oscuro se lleva el tóner. Se repiten las variables
+   del claro porque una regla @media no puede «apagar» al selector
+   html[data-tema="oscuro"], que gana por especificidad. */
+@media print{
+  html,html[data-tema="oscuro"]{
+    color-scheme:light;
+    --rojo:#c00000;--rojo-osc:#8c0000;--rojo-txt:#c00000;
+    --azul:#1a4b8c;--azul-osc:#123a6d;--azul-txt:#1a4b8c;--azul-claro:#dce6f4;
+    --verde:#137333;--ok:#137333;--err:#a1281c;--aviso:#8a6100;
+    --aviso-fondo:#fff8e1;--aviso-borde:#e0c060;
+    --texto:#1b1b1b;--texto-medio:#444;--texto-suave:#666;--texto-tenue:#888;
+    --papel:#fff;--papel-2:#f6f5f2;--papel-3:#efece5;--papel-4:#f3f1ec;--campo:#fff;
+    --cabecera:#e7e4dd;--gris-barra:#d8d4cc;--gris-borde:#a9a49b;--gris-fondo:#eceae5;
+    --linea:#d5d2cb;--linea-suave:#e5e2db;--grupo:#3d3d3d;--grupo-txt:#fff;
+    --amarillo:#fff3bf;--sel:#ffe9a8;--sombra:rgba(0,0,0,.25);--velo:rgba(0,0,0,.45);
+    --badge-bg:#e3e8f0;--badge-txt:#33507a;--badge-m:#e6f0ff;--badge-o:#e9f7ec;--badge-e:#fdecea;
+    --zebra-a:#f6f4f0;--zebra-b:#dedbd4;--pie-crono:#faf9f7;
+    --uso:#f4f1ea;--uso-th:#5a5a5a;--uso-th-b:#454545;
+  }
+  .menubar,.cabecera,.tabs,.subtabs,.modulos,.estado,.bar{display:none!important}
+  body{overflow:visible;background:#fff}
+}
+
+/* =======================================================================
+   PANTALLAS CHICAS — tablet y celular (Chrome, Samsung Internet, Safari)
+
+   Las rejillas de trabajo son anchas por naturaleza: en vez de apretarlas
+   hasta que no se lean, se les deja un ancho mínimo y se desplazan a lo
+   ancho dentro de su contenedor. Las barras que no entran (menú, pestañas)
+   también se desplazan, para que ninguna opción quede fuera de la pantalla.
+   ======================================================================= */
+@media (max-width:1000px){
+  /* barras que no entran a lo ancho: se desplazan en vez de recortarse.
+     La de módulos ya se desplaza por su carril .mtabs en cualquier ancho. */
+  .menubar,.tabs,.subtabs{overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;
+    -webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .menubar>*,.tabs button,.subtabs button,.modulos .mtab{flex:0 0 auto}
+  .tabs .cuenta{display:none}
+  .menu-pop{max-width:94vw}
+
+  /* la Base de Datos pasa de dos columnas a dos filas */
+  .split{flex-direction:column}
+  .split>.izq{width:100%;min-width:0;height:44%;min-height:180px;
+    border-right:0;border-bottom:2px solid var(--gris-borde)}
+  .split>.der{flex:1;min-height:0}
+
+  /* rejillas: ancho mínimo y desplazamiento horizontal */
+  .scroll{overflow:auto;-webkit-overflow-scrolling:touch}
+  #tblPresupuesto{min-width:1000px}
+  #tblInsumos{min-width:900px}
+  .b2{padding:8px}
+  .b2 table.rej{min-width:660px}
+  .b2 .encab .rej-datos{grid-template-columns:repeat(2,1fr)}
+  #cuerpoComputos table.rej{min-width:900px}
+  #cuerpoIncidencias table.rej{min-width:560px}
+  /* el B-2 y las tablas de las pestañas necesitan su propia barra horizontal */
+  #cuerpoB2,#cuerpoComputos,#cuerpoIncidencias,#cuerpoRecursos{overflow-x:auto}
+
+  /* los anchos mínimos escritos en el HTML no entran en una pantalla angosta */
+  #selItemAnalisis,#selItemComputo{min-width:0!important;width:100%;flex:1 1 100%}
+  #selBase,#selModulo,#selBaseFiltro{min-width:0!important;max-width:100%}
+  .bar input[type=search]{min-width:120px}
+  /* tablas dentro de los diálogos: se desplazan en vez de apretarse */
+  .modal table.rej{min-width:520px}
+  .modal .cuerpo>div[style*="overflow"]{overflow:auto}
+}
+
+@media (max-width:640px){
+  body{font-size:14px}
+  button,.btn{font-size:13px}
+  /* objetivos de toque más grandes */
+  .menubar .m{padding:9px 12px}
+  .tabs button{padding:9px 14px}
+  /* en pantalla angosta las columnas fijas del cronograma se superponen */
+  table.rej.crono th:nth-child(-n+3),table.rej.crono td:nth-child(-n+3){position:static}
+  .btn{padding:7px 12px}
+  table.rej td{padding:6px}
+  table.rej td input{padding:4px}
+  .b-del{padding:4px 8px;font-size:15px}
+
+  /* la cabecera: el nombre del proyecto arriba y el resto en una sola línea que
+     se desplaza; apilada se comía un cuarto de la pantalla del celular */
+  .cabecera{gap:4px 8px;padding:4px 8px}
+  .cabecera .titulo-proy{min-width:0;width:100%;font-size:12px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cabecera .campo{flex-wrap:wrap;min-width:0}
+  .cabecera select{max-width:50vw}
+  .cabecera .empuja{display:none}
+  /* el recuento de la Base de Datos ya se lee en su selector */
+  .cabecera .pill{display:none}
+  /* moneda, tipo de cambio y decimales pasan a CONFIGURACIÓN en pantalla angosta */
+  .solo-ancho{display:none!important}
+  /* agregar, renombrar y eliminar módulo están en el menú EDICIÓN */
+  .cabecera .campo .btn{display:none}
+
+  /* diálogos: sin ancho mínimo fijo, que en 360 px se salía de pantalla */
+  .modal{min-width:0;width:96vw;max-width:96vw;max-height:92vh}
+  .modal .cuerpo{padding:10px}
+  .modal .pie{flex-wrap:wrap}
+  .form-g{grid-template-columns:1fr;gap:3px}
+  .form-g label{margin-top:5px}
+  /* las columnas del selector de reportes se vuelven una sola */
+  #modalCuerpo div[style*="columns:2"]{columns:1!important}
+
+  /* barra de estado: el total baja a su propia línea */
+  .estado{gap:8px;padding:5px 8px}
+  .estado .total{margin-left:0;width:100%;text-align:right}
+  .acc-ensayo{width:100%;justify-content:flex-end}
+
+  /* las cajas de módulo siguen siendo todas iguales, un poco más angostas */
+  .modulos .mtab{width:75px;height:38px}
+  .modulos .mtab.nueva{width:38px}
+
+  /* el pie del cronograma no se come la pantalla */
+  .pie-crono{max-height:35%}
+  .split>.izq{height:40%}
+}
+
+/* Enlace legal de la pantalla de inicio y de la barra de estado. Discreto,
+   pero visible: Google pide que la politica de privacidad se pueda alcanzar
+   desde la pagina principal. */
+.ini-legal{margin-top:14px;padding-top:12px;border-top:1px solid var(--linea);
+  color:var(--gris-txt)}
+.ini-legal a{color:inherit;text-decoration:underline}
+#stPriv{margin-left:auto;color:inherit;opacity:.75;text-decoration:none}
+#stPriv:hover{opacity:1;text-decoration:underline}
+
+
+/* ---------- fecha del precio (B-3) ----------
+   Dice de cuándo es el precio. El guion de «sin fecha» va apagado a propósito:
+   hoy es la mayoría de los insumos —los que vienen del catálogo o de un .ddp—
+   y no tiene que competir por la atención con las fechas que sí están. */
+.fecha-precio { font-size: 12px; color: var(--texto-suave); white-space: nowrap; }
+.fecha-precio .sin-fecha { color: var(--texto-tenue); }
+
+/* ---------- editor de la cadena de incidencias ----------
+   La pestaña INCIDENCIAS dejo de ser seis casillas y pasó a ser la cadena de
+   cálculo entera. Tres cosas tienen que leerse de un vistazo: cuáles son las
+   entradas del análisis (no se editan), cuál es la última fila (el precio
+   unitario) y qué filas se pueden tocar. */
+.fmt-cab { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px; }
+.fmt-acc { display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
+.fmt-tabla { max-width:980px; }
+.fmt-tabla td { vertical-align:middle; }
+.fmt-tabla .mono { font-family:ui-monospace,Consolas,monospace; }
+.fmt-ent td { background:var(--papel-2); color:var(--texto-medio); }
+.fmt-pu td { background:var(--papel-3); font-weight:600; }
+.fmt-btn { white-space:nowrap; }
+.b-mini { background:none; border:0; color:var(--azul-txt); font-size:11px;
+          padding:0 3px; cursor:pointer; line-height:1; }
+.b-mini:hover { color:var(--azul-osc); }
+.fmt-pie { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:10px 0 4px; max-width:980px; }
+
+/* Caja de aviso: la cadena que todavía no cierra, y la exportación a PRESCOM
+   con un formato propio. Amarilla, no roja: no es un error, es algo que hay
+   que saber antes de seguir. */
+.aviso-caja { background:var(--aviso-fondo); border:1px solid var(--aviso-borde);
+              color:var(--aviso); padding:8px 12px; margin:10px 0; max-width:980px;
+              font-size:12.5px; border-radius:3px; }
+.aviso-caja ul { margin:4px 0 0; padding-left:18px; }
+
+/* ---------- matriz análisis × insumo ----------
+   Una planilla ancha dentro de un diálogo. La primera columna y el encabezado
+   quedan fijos: sin eso, a la tercera columna ya no se sabe qué insumo se está
+   editando. `#overlay.ancho` le da al diálogo casi toda la pantalla, porque el
+   ancho útil es justamente lo que hace servible la matriz. */
+#overlay.ancho .modal { max-width: 96vw; width: 96vw; }
+.mz-envoltura { overflow: auto; max-height: 62vh; border: 1px solid var(--gris-borde); }
+table.rej.mz { border-collapse: separate; border-spacing: 0; }
+.mz-esq { position: sticky; left: 0; top: 0; z-index: 3; background: var(--cabecera); min-width: 260px; }
+.mz-col { position: sticky; top: 0; z-index: 2; background: var(--cabecera);
+          min-width: 104px; max-width: 104px; vertical-align: bottom; }
+.mz-nro { display: block; font-size: 10px; color: var(--texto-tenue); }
+.mz-rot { display: block; font-size: 11px; line-height: 1.2; word-break: break-word;
+          max-height: 4.8em; overflow: hidden; }
+.mz-fila { position: sticky; left: 0; z-index: 1; background: var(--papel);
+           text-align: left; font-weight: 400; min-width: 260px; max-width: 260px; }
+.mz-celda { padding: 1px; }
+.mz-celda input { width: 100%; text-align: right; }
+/* casilla vacía = el insumo no entra en ese análisis; se apaga para que las
+   que sí tienen rendimiento salten a la vista */
+.mz-celda input.mz-vacia { background: var(--papel-2); }
+.mz-pu { position: sticky; bottom: 0; background: var(--papel-3); font-weight: 600; }
+
+/* ---------- listas de opciones de los diálogos de edición masiva ---------- */
+.chk-fila { display: flex; gap: 16px; flex-wrap: wrap; }
+.chk-fila label { display: flex; align-items: center; gap: 5px; font-weight: 400; }
+.lista-chk { max-height: 190px; overflow: auto; border: 1px solid var(--gris-borde);
+             padding: 6px 8px; background: var(--papel); }
+.lista-chk label { display: block; font-weight: 400; padding: 2px 0; }
+.lista-chk input { margin-right: 6px; }
+
+/* ---------- listado de incidencias ----------
+   El panel izquierdo con los formatos del proyecto, al lado de la cadena.
+   El aplicado se marca con un punto y una barra roja: tiene que leerse de un
+   vistazo cuál está calculando el presupuesto, porque los demás son un clic. */
+.fmt-caja { display: flex; gap: 18px; align-items: flex-start; }
+.fmt-lista { flex: 0 0 250px; max-width: 250px; }
+.fmt-lista h3 { margin: 0 0 4px; font-size: 14px; color: var(--rojo-txt); }
+.fmt-cadena { flex: 1 1 auto; min-width: 0; }
+
+.fmt-ul { list-style: none; margin: 8px 0; padding: 0;
+          border: 1px solid var(--gris-borde); background: var(--papel); }
+.fmt-li { position: relative; padding: 7px 26px 7px 11px; cursor: pointer;
+          border-bottom: 1px solid var(--gris-barra); }
+.fmt-li:last-child { border-bottom: 0; }
+.fmt-li:hover { background: var(--azul-claro); }
+.fmt-li.on { background: var(--papel-3); box-shadow: inset 3px 0 0 var(--rojo); cursor: default; }
+.fmt-li-n { display: block; font-weight: 600; font-size: 13px; line-height: 1.25; }
+.fmt-li-d { display: block; font-size: 11px; color: var(--texto-suave); }
+.fmt-li-chk { position: absolute; right: 9px; top: 8px; color: var(--rojo); font-size: 11px; }
+/* renombrar y quitar solo aparecen al pasar por encima: son acciones de
+   mantenimiento y no tienen que competir con el nombre del formato */
+.fmt-li-acc { position: absolute; right: 4px; top: 5px; display: none; white-space: nowrap; }
+.fmt-li:hover .fmt-li-acc { display: inline; }
+.fmt-li:hover .fmt-li-chk { display: none; }
+.fmt-nuevo { width: 100%; }
+
+@media (max-width: 900px) {
+  .fmt-caja { flex-direction: column; }
+  .fmt-lista { flex: 1 1 auto; max-width: 100%; width: 100%; }
+}

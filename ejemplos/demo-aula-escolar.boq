@@ -1,0 +1,949 @@
+{
+ "app": "PRESCOM LIBRE",
+ "v": 1,
+ "_seq": 62,
+ "P": {
+  "nombre": "CONSTRUCCIÓN AULA ESCOLAR — DEMO",
+  "entidad": "Gobierno Autónomo Departamental de Oruro",
+  "ubicacion": "Municipio de Oruro — Distrito 4",
+  "fecha": "2026-07-27",
+  "inicioObra": "2026-07-27",
+  "plazo": 120,
+  "moneda": "Bs",
+  "tc": 6.96,
+  "precision": 2,
+  "params": {
+   "cargas": 55,
+   "ivaMO": 14.94,
+   "herr": 5,
+   "gg": 10,
+   "util": 7,
+   "it": 3.09
+  },
+  "insumos": {
+   "x4ve14": {
+    "id": "x4ve14",
+    "t": "M",
+    "d": "OFICINA TECNICA",
+    "u": "glb",
+    "p": 2500
+   },
+   "x5ve14": {
+    "id": "x5ve14",
+    "t": "M",
+    "d": "DEPOSITO DE MATERIALES",
+    "u": "glb",
+    "p": 1200
+   },
+   "x6ve14": {
+    "id": "x6ve14",
+    "t": "M",
+    "d": "INSTALACION AGUA POTABLE",
+    "u": "glb",
+    "p": 25
+   },
+   "x7ve14": {
+    "id": "x7ve14",
+    "t": "M",
+    "d": "INSTALACION ENERGIA ELECTRICA",
+    "u": "glb",
+    "p": 60
+   },
+   "x8ve14": {
+    "id": "x8ve14",
+    "t": "M",
+    "d": "CERCO DE PROTECCION",
+    "u": "m²",
+    "p": 12
+   },
+   "x9ve14": {
+    "id": "x9ve14",
+    "t": "M",
+    "d": "LETRINA SECA",
+    "u": "pza",
+    "p": 200
+   },
+   "x10ve14": {
+    "id": "x10ve14",
+    "t": "O",
+    "d": "ALBAÑIL",
+    "u": "hr",
+    "p": 18.75
+   },
+   "x11ve14": {
+    "id": "x11ve14",
+    "t": "O",
+    "d": "AYUDANTE",
+    "u": "hr",
+    "p": 12.5
+   },
+   "x13ve15": {
+    "id": "x13ve15",
+    "t": "M",
+    "d": "MADERA DE CONSTRUCCION",
+    "u": "pie²",
+    "p": 4
+   },
+   "x14ve15": {
+    "id": "x14ve15",
+    "t": "M",
+    "d": "ALAMBRE DE AMARRE",
+    "u": "kg",
+    "p": 13.33
+   },
+   "x15ve15": {
+    "id": "x15ve15",
+    "t": "M",
+    "d": "CLAVOS",
+    "u": "kg",
+    "p": 9.23
+   },
+   "x16ve15": {
+    "id": "x16ve15",
+    "t": "O",
+    "d": "PEON",
+    "u": "hr",
+    "p": 4.79
+   },
+   "x18ve15": {
+    "id": "x18ve15",
+    "t": "M",
+    "d": "DINAMITA",
+    "u": "pza",
+    "p": 15
+   },
+   "x20ve15": {
+    "id": "x20ve15",
+    "t": "M",
+    "d": "CEMENTO PORTLAND",
+    "u": "kg",
+    "p": 1.02
+   },
+   "x21ve15": {
+    "id": "x21ve15",
+    "t": "M",
+    "d": "ARENA",
+    "u": "m³",
+    "p": 82
+   },
+   "x22ve15": {
+    "id": "x22ve15",
+    "t": "M",
+    "d": "GRAVA",
+    "u": "m³",
+    "p": 66.230003
+   },
+   "x23ve15": {
+    "id": "x23ve15",
+    "t": "M",
+    "d": "PIEDRA BRUTA",
+    "u": "m³",
+    "p": 57.950001
+   },
+   "x25ve16": {
+    "id": "x25ve16",
+    "t": "M",
+    "d": "HIERRO ESTRUCTURAL",
+    "u": "kg",
+    "p": 4.13
+   },
+   "x26ve16": {
+    "id": "x26ve16",
+    "t": "M",
+    "d": "MADERA DE ENCOFRADO",
+    "u": "pie²",
+    "p": 4
+   },
+   "x27ve16": {
+    "id": "x27ve16",
+    "t": "O",
+    "d": "ENCOFRADOR",
+    "u": "hr",
+    "p": 8.74
+   },
+   "x28ve16": {
+    "id": "x28ve16",
+    "t": "O",
+    "d": "ARMADOR",
+    "u": "hr",
+    "p": 7.69
+   },
+   "x30ve16": {
+    "id": "x30ve16",
+    "t": "M",
+    "d": "ARENA FINA",
+    "u": "m³",
+    "p": 57.950001
+   },
+   "x32ve18": {
+    "id": "x32ve18",
+    "t": "M",
+    "d": "MADERA ENCOFRADO",
+    "u": "pie²",
+    "p": 4
+   },
+   "x33ve18": {
+    "id": "x33ve18",
+    "t": "M",
+    "d": "FIERRO CORRUGADO",
+    "u": "kg",
+    "p": 6.99
+   },
+   "x34ve18": {
+    "id": "x34ve18",
+    "t": "O",
+    "d": "ENFERRADOR",
+    "u": "hr",
+    "p": 9
+   },
+   "x35ve18": {
+    "id": "x35ve18",
+    "t": "E",
+    "d": "MEZCLADORA",
+    "u": "hr",
+    "p": 29.719999
+   },
+   "x36ve18": {
+    "id": "x36ve18",
+    "t": "E",
+    "d": "VIBRADORA",
+    "u": "hr",
+    "p": 29.719999
+   },
+   "x38ve19": {
+    "id": "x38ve19",
+    "t": "M",
+    "d": "MADERA EN VIGAS",
+    "u": "pie²",
+    "p": 8
+   },
+   "x39ve19": {
+    "id": "x39ve19",
+    "t": "M",
+    "d": "CLAVOS DE CALAMINA",
+    "u": "kg",
+    "p": 23.09
+   },
+   "x40ve19": {
+    "id": "x40ve19",
+    "t": "M",
+    "d": "CALAMINA GALVANIZADA Nº 30",
+    "u": "m²",
+    "p": 45
+   },
+   "x42ve19": {
+    "id": "x42ve19",
+    "t": "M",
+    "d": "ESTUCO ORDINARIO",
+    "u": "kg",
+    "p": 0.41
+   },
+   "x45ve1b": {
+    "id": "x45ve1b",
+    "t": "M",
+    "d": "PIEDRA MANZANA",
+    "u": "m³",
+    "p": 57.950001
+   },
+   "x46ve1b": {
+    "id": "x46ve1b",
+    "t": "M",
+    "d": "CERAMICA GLADYMAR 20 X 25",
+    "u": "m²",
+    "p": 64.639999
+   },
+   "x48ve1b": {
+    "id": "x48ve1b",
+    "t": "M",
+    "d": "PINTURA LATEX",
+    "u": "l",
+    "p": 15.72
+   },
+   "x49ve1b": {
+    "id": "x49ve1b",
+    "t": "M",
+    "d": "LIJA",
+    "u": "hoja",
+    "p": 0.82
+   },
+   "x50ve1b": {
+    "id": "x50ve1b",
+    "t": "M",
+    "d": "COLA FRESCA",
+    "u": "kg",
+    "p": 3.78
+   },
+   "x52ve1b": {
+    "id": "x52ve1b",
+    "t": "M",
+    "d": "MADERA MARA",
+    "u": "pie²",
+    "p": 7.56
+   },
+   "x53ve1b": {
+    "id": "x53ve1b",
+    "t": "O",
+    "d": "CARPINTERO",
+    "u": "hr",
+    "p": 10.08
+   },
+   "x55ve1c": {
+    "id": "x55ve1c",
+    "t": "M",
+    "d": "BARNIZ COPAL",
+    "u": "l",
+    "p": 33.59
+   },
+   "x56ve1c": {
+    "id": "x56ve1c",
+    "t": "M",
+    "d": "BROCHA DE 2",
+    "u": "pza",
+    "p": 6.72
+   },
+   "x58ve1c": {
+    "id": "x58ve1c",
+    "t": "M",
+    "d": "SOQUETE",
+    "u": "pza",
+    "p": 5.5
+   },
+   "x59ve1c": {
+    "id": "x59ve1c",
+    "t": "M",
+    "d": "CINTA AISLANTE",
+    "u": "rollo",
+    "p": 11.77
+   },
+   "x60ve1c": {
+    "id": "x60ve1c",
+    "t": "M",
+    "d": "FOCO 100 W",
+    "u": "pza",
+    "p": 3.3
+   },
+   "x61ve1c": {
+    "id": "x61ve1c",
+    "t": "O",
+    "d": "ESPECIALISTA",
+    "u": "hr",
+    "p": 14.4
+   }
+  },
+  "modulos": [
+   {
+    "id": "x1ve10",
+    "n": "MÓDULO 1 — OBRA GRUESA",
+    "items": [
+     {
+      "id": "x3ve14",
+      "cod": "17039",
+      "desc": "INSTALACION DE FAENAS URB.",
+      "und": "glb",
+      "cant": 1,
+      "comp": [
+       {
+        "ins": "x4ve14",
+        "rend": 18
+       },
+       {
+        "ins": "x5ve14",
+        "rend": 28
+       },
+       {
+        "ins": "x6ve14",
+        "rend": 1
+       },
+       {
+        "ins": "x7ve14",
+        "rend": 1
+       },
+       {
+        "ins": "x8ve14",
+        "rend": 222
+       },
+       {
+        "ins": "x9ve14",
+        "rend": 4
+       },
+       {
+        "ins": "x10ve14",
+        "rend": 60
+       },
+       {
+        "ins": "x11ve14",
+        "rend": 60
+       }
+      ],
+      "computos": [],
+      "dias": 51,
+      "inicio": 0,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x12ve15",
+      "cod": "32399",
+      "desc": "REPLANTEO",
+      "und": "m²",
+      "cant": 72,
+      "comp": [
+       {
+        "ins": "x13ve15",
+        "rend": 1
+       },
+       {
+        "ins": "x14ve15",
+        "rend": 0.03
+       },
+       {
+        "ins": "x15ve15",
+        "rend": 0.02
+       },
+       {
+        "ins": "x10ve14",
+        "rend": 0.05
+       },
+       {
+        "ins": "x16ve15",
+        "rend": 0.05
+       }
+      ],
+      "computos": [],
+      "dias": 1,
+      "inicio": 31,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x17ve15",
+      "cod": "11939",
+      "desc": "EXCAVACION DE 0-2 M. SUELO DURO",
+      "und": "m³",
+      "cant": 20.16,
+      "comp": [
+       {
+        "ins": "x18ve15",
+        "rend": 2.5
+       },
+       {
+        "ins": "x11ve14",
+        "rend": 16
+       },
+       {
+        "ins": "x16ve15",
+        "rend": 12
+       }
+      ],
+      "computos": [
+       {
+        "d": "Cimientos eje A-A",
+        "n": 2,
+        "l": 12,
+        "a": 0.6,
+        "h": 0.8
+       },
+       {
+        "d": "Cimientos eje 1-1",
+        "n": 2,
+        "l": 6,
+        "a": 0.6,
+        "h": 0.8
+       },
+       {
+        "d": "Zapatas aisladas",
+        "n": 4,
+        "l": 1.2,
+        "a": 1.2,
+        "h": 0.5
+       }
+      ],
+      "dias": 6,
+      "inicio": 32,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x19ve15",
+      "cod": "6239",
+      "desc": "CIMIENTO DE Hº Cº",
+      "und": "m³",
+      "cant": 12,
+      "comp": [
+       {
+        "ins": "x20ve15",
+        "rend": 130
+       },
+       {
+        "ins": "x21ve15",
+        "rend": 0.3
+       },
+       {
+        "ins": "x22ve15",
+        "rend": 0.3
+       },
+       {
+        "ins": "x23ve15",
+        "rend": 0.6
+       },
+       {
+        "ins": "x10ve14",
+        "rend": 6
+       },
+       {
+        "ins": "x16ve15",
+        "rend": 6
+       }
+      ],
+      "computos": [],
+      "dias": 3,
+      "inicio": 36,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x24ve16",
+      "cod": "13019",
+      "desc": "HORMIGON ARMADO SOBRECIMIENTOS",
+      "und": "m³",
+      "cant": 9,
+      "comp": [
+       {
+        "ins": "x20ve15",
+        "rend": 325
+       },
+       {
+        "ins": "x21ve15",
+        "rend": 0.5
+       },
+       {
+        "ins": "x22ve15",
+        "rend": 0.7
+       },
+       {
+        "ins": "x25ve16",
+        "rend": 90
+       },
+       {
+        "ins": "x26ve16",
+        "rend": 70
+       },
+       {
+        "ins": "x14ve15",
+        "rend": 2
+       },
+       {
+        "ins": "x15ve15",
+        "rend": 1.2
+       },
+       {
+        "ins": "x10ve14",
+        "rend": 4
+       },
+       {
+        "ins": "x16ve15",
+        "rend": 6
+       },
+       {
+        "ins": "x11ve14",
+        "rend": 6
+       },
+       {
+        "ins": "x27ve16",
+        "rend": 10
+       },
+       {
+        "ins": "x28ve16",
+        "rend": 10
+       }
+      ],
+      "computos": [],
+      "dias": 9,
+      "inicio": 38,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x29ve16",
+      "cod": "11159",
+      "desc": "EMBOQUILLADO DE MURO DE LADRILLO 6 H",
+      "und": "m²",
+      "cant": 80.64,
+      "comp": [
+       {
+        "ins": "x20ve15",
+        "rend": 2.3
+       },
+       {
+        "ins": "x30ve16",
+        "rend": 0.01
+       },
+       {
+        "ins": "x10ve14",
+        "rend": 0.35
+       },
+       {
+        "ins": "x16ve15",
+        "rend": 0.35
+       }
+      ],
+      "computos": [
+       {
+        "d": "Muro longitudinal",
+        "n": 2,
+        "l": 12,
+        "a": "",
+        "h": 2.8
+       },
+       {
+        "d": "Muro transversal",
+        "n": 2,
+        "l": 6,
+        "a": "",
+        "h": 2.8
+       },
+       {
+        "d": "Descuento vanos",
+        "n": -1,
+        "l": 9.6,
+        "a": "",
+        "h": 2.1
+       }
+      ],
+      "dias": 1,
+      "inicio": 43,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x31ve18",
+      "cod": "73919",
+      "desc": "VIGAS DE HORMIGON ARMADO",
+      "und": "m³",
+      "cant": 4.5,
+      "comp": [
+       {
+        "ins": "x20ve15",
+        "rend": 350
+       },
+       {
+        "ins": "x21ve15",
+        "rend": 0.45
+       },
+       {
+        "ins": "x22ve15",
+        "rend": 0.9
+       },
+       {
+        "ins": "x14ve15",
+        "rend": 1.5
+       },
+       {
+        "ins": "x32ve18",
+        "rend": 70
+       },
+       {
+        "ins": "x15ve15",
+        "rend": 1.5
+       },
+       {
+        "ins": "x33ve18",
+        "rend": 115
+       },
+       {
+        "ins": "x10ve14",
+        "rend": 10
+       },
+       {
+        "ins": "x16ve15",
+        "rend": 22
+       },
+       {
+        "ins": "x27ve16",
+        "rend": 16
+       },
+       {
+        "ins": "x34ve18",
+        "rend": 12
+       },
+       {
+        "ins": "x35ve18",
+        "rend": 1
+       },
+       {
+        "ins": "x36ve18",
+        "rend": 0.8
+       }
+      ],
+      "computos": [],
+      "dias": 7,
+      "inicio": 44,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x37ve19",
+      "cod": "8099",
+      "desc": "CUBIERTA CALAMINA",
+      "und": "m²",
+      "cant": 88,
+      "comp": [
+       {
+        "ins": "x38ve19",
+        "rend": 8.7
+       },
+       {
+        "ins": "x39ve19",
+        "rend": 0.14
+       },
+       {
+        "ins": "x15ve15",
+        "rend": 0.15
+       },
+       {
+        "ins": "x40ve19",
+        "rend": 1.2
+       },
+       {
+        "ins": "x10ve14",
+        "rend": 2.6
+       },
+       {
+        "ins": "x16ve15",
+        "rend": 3.6
+       }
+      ],
+      "computos": [],
+      "dias": 13,
+      "inicio": 48,
+      "origen": "ORURO"
+     }
+    ]
+   },
+   {
+    "id": "x2ve10",
+    "n": "MÓDULO 2 — OBRA FINA",
+    "items": [
+     {
+      "id": "x41ve19",
+      "cod": "35519",
+      "desc": "REVOQUE INTERIOR ESTUCO",
+      "und": "m²",
+      "cant": 180,
+      "comp": [
+       {
+        "ins": "x42ve19",
+        "rend": 13.5
+       },
+       {
+        "ins": "x10ve14",
+        "rend": 1.2
+       },
+       {
+        "ins": "x16ve15",
+        "rend": 1.3
+       }
+      ],
+      "computos": [],
+      "dias": 6,
+      "inicio": 56,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x43ve1a",
+      "cod": "7499",
+      "desc": "CONTRAPISO DE HORMIGON",
+      "und": "m²",
+      "cant": 72,
+      "comp": [
+       {
+        "ins": "x20ve15",
+        "rend": 17.1
+       },
+       {
+        "ins": "x30ve16",
+        "rend": 0.01
+       },
+       {
+        "ins": "x22ve15",
+        "rend": 0.04
+       },
+       {
+        "ins": "x10ve14",
+        "rend": 1.3
+       },
+       {
+        "ins": "x16ve15",
+        "rend": 1.7
+       }
+      ],
+      "computos": [],
+      "dias": 4,
+      "inicio": 60,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x44ve1b",
+      "cod": "24179",
+      "desc": "PISO CERAMICA ESMALTADA +C/P",
+      "und": "m²",
+      "cant": 72,
+      "comp": [
+       {
+        "ins": "x20ve15",
+        "rend": 22.200001
+       },
+       {
+        "ins": "x21ve15",
+        "rend": 0.03
+       },
+       {
+        "ins": "x22ve15",
+        "rend": 0.04
+       },
+       {
+        "ins": "x45ve1b",
+        "rend": 0.12
+       },
+       {
+        "ins": "x46ve1b",
+        "rend": 1.03
+       },
+       {
+        "ins": "x10ve14",
+        "rend": 3.3
+       },
+       {
+        "ins": "x16ve15",
+        "rend": 3.9
+       }
+      ],
+      "computos": [],
+      "dias": 11,
+      "inicio": 62,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x47ve1b",
+      "cod": "23219",
+      "desc": "PINTURA EXTERIOR LATEX",
+      "und": "m²",
+      "cant": 180,
+      "comp": [
+       {
+        "ins": "x48ve1b",
+        "rend": 0.3
+       },
+       {
+        "ins": "x49ve1b",
+        "rend": 0.1
+       },
+       {
+        "ins": "x50ve1b",
+        "rend": 0.1
+       },
+       {
+        "ins": "x10ve14",
+        "rend": 1
+       },
+       {
+        "ins": "x16ve15",
+        "rend": 1.2
+       }
+      ],
+      "computos": [],
+      "dias": 6,
+      "inicio": 69,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x51ve1b",
+      "cod": "5099",
+      "desc": "CARPINTERIA PUERTAS DE MADERA",
+      "und": "m²",
+      "cant": 3,
+      "comp": [
+       {
+        "ins": "x52ve1b",
+        "rend": 21
+       },
+       {
+        "ins": "x53ve1b",
+        "rend": 16.5
+       },
+       {
+        "ins": "x11ve14",
+        "rend": 16.5
+       }
+      ],
+      "computos": [],
+      "dias": 2,
+      "inicio": 73,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x54ve1c",
+      "cod": "2879",
+      "desc": "BARNIZADO VENTANAS",
+      "und": "m²",
+      "cant": 6,
+      "comp": [
+       {
+        "ins": "x55ve1c",
+        "rend": 0.21
+       },
+       {
+        "ins": "x56ve1c",
+        "rend": 0.03
+       },
+       {
+        "ins": "x49ve1b",
+        "rend": 0.2
+       },
+       {
+        "ins": "x53ve1b",
+        "rend": 0.1
+       },
+       {
+        "ins": "x11ve14",
+        "rend": 0.15
+       }
+      ],
+      "computos": [],
+      "dias": 1,
+      "inicio": 74,
+      "origen": "ORURO"
+     },
+     {
+      "id": "x57ve1c",
+      "cod": "57899",
+      "desc": "PUNTO DE ILUMINACION INCANDESCENTE",
+      "und": "pto",
+      "cant": 12,
+      "comp": [
+       {
+        "ins": "x58ve1c",
+        "rend": 1
+       },
+       {
+        "ins": "x59ve1c",
+        "rend": 0.01
+       },
+       {
+        "ins": "x60ve1c",
+        "rend": 1
+       },
+       {
+        "ins": "x61ve1c",
+        "rend": 0.2
+       },
+       {
+        "ins": "x11ve14",
+        "rend": 0.2
+       }
+      ],
+      "computos": [],
+      "dias": 1,
+      "inicio": 75,
+      "origen": "ORURO"
+     }
+    ]
+   }
+  ],
+  "moduloActivo": 0,
+  "itemSel": "x57ve1c"
+ }
+}

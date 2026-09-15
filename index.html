@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- VERIFICACION DE PROPIEDAD (Google Search Console).
+     Prueba que openboq.pages.dev es de Alvaro, que es lo que Google exige para
+     aceptarla como pagina principal de la aplicacion al aprobar el permiso de
+     Drive. NO BORRAR ni cambiar: si la etiqueta se va, Search Console pierde la
+     propiedad y con ella se cae la verificacion de la aplicacion. Tiene que
+     seguir presente en TODOS los despliegues. -->
+<meta name="google-site-verification" content="69txlahKDZ1L3nMAvdEnY-9Zr1l6R4cGgkGMqQobjE8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenBOQ — Presupuestos y cómputos métricos</title>
+<meta name="description" content="OpenBOQ — presupuestos de obra, análisis de precios unitarios, cómputos métricos y cronograma.">
+<meta name="theme-color" content="#1f3864">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231f3864'/%3E%3Ctext x='32' y='43' font-family='Segoe UI,Arial' font-size='26' font-weight='bold' fill='%23fff' text-anchor='middle'%3EBQ%3C/text%3E%3C/svg%3E">
+<!-- Tema claro u oscuro, ANTES de la hoja de estilo y de que se pinte nada:
+     si se hiciera desde ui.js, quien eligió el oscuro vería un destello
+     blanco en cada arranque. Solo lee lo que ya está guardado; el cambio y
+     el guardado viven en ui.js (TEMA). -->
+<script>
+  try {
+    var t = localStorage.getItem('openboq_tema');
+    if (t === 'oscuro' || t === 'claro') document.documentElement.dataset.tema = t;
+  } catch (e) { /* navegador sin almacenamiento: queda el tema claro */ }
+</script>
+<!-- ===================== VUELTA DEL LOGIN =====================
+     Solo corre en la pestaña que el NAVEGADOR abrió para entrar con Google
+     cuando quien pidió entrar fue la aplicación de escritorio.
+
+     Google no deja que su pantalla de login corra dentro de una ventana de
+     Electron, así que ese login sale al navegador del sistema. El proveedor
+     devuelve el token en el fragmento de la URL —que nunca llega al
+     servidor— y redirige a 127.0.0.1, que es el servidor interno de la
+     aplicación. Sin esto, el token se guardaba acá, en el almacenamiento
+     del navegador, y la aplicación seguía viéndose como invitada: la sesión
+     quedaba del otro lado del vidrio.
+
+     Lo que hace: se lleva el fragmento antes de que lo vea nadie, se lo pasa
+     a la aplicación por 127.0.0.1 y reemplaza esta pestaña por un cartel.
+     Si del otro lado no contesta —o sea: no es la aplicación de escritorio,
+     es el servidor de pruebas— devuelve el fragmento a su lugar y recarga,
+     y todo sigue como siempre.
+
+     Va ANTES que cualquier script de la aplicación, y no se activa nunca en
+     la versión publicada: exige que el sitio sea 127.0.0.1 o localhost. -->
+<script>
+(function () {
+  if (window.OPENBOQ_ESCRITORIO) return;            /* ya estamos adentro */
+  var h = location.hash || '';
+  if (h.indexOf('access_token') < 0) return;
+  var n = location.hostname;
+  if (n !== '127.0.0.1' && n !== 'localhost') return;
+  /* Navegador viejo: mejor seguir como siempre que dejar la página a medias. */
+  if (!window.fetch || !window.URLSearchParams) return;
+
+  var p = new URLSearchParams(h.slice(1));
+  /* El fragmento se saca YA: si la aplicación arrancara con él todavía
+     puesto, guardaría la sesión en este navegador, que es justo lo que se
+     está tratando de evitar. */
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { }
+
+  var espera = document.createElement('style');
+  espera.textContent = 'body{visibility:hidden}';
+  document.documentElement.appendChild(espera);
+
+  function cartel(t, d) {
+    document.documentElement.innerHTML =
+      '<head><meta charset="utf-8"><title>OpenBOQ</title></head><body style="margin:0;' +
+      'min-height:100vh;display:flex;align-items:center;justify-content:center;' +
+      'background:#eceae5;color:#1f3864;font:15px/1.5 Segoe UI,Arial,sans-serif">' +
+      '<div style="max-width:380px;text-align:center;padding:28px">' +
+      '<div style="width:56px;height:56px;border-radius:12px;background:#1f3864;color:#fff;' +
+      'font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center;' +
+      'margin:0 auto 16px">BQ</div><h1 style="font-size:19px;margin:0 0 8px"></h1>' +
+      '<p style="margin:0;color:#4a5568"></p></div></body>';
+    document.querySelector('h1').textContent = t;
+    document.querySelector('p').textContent = d;
+  }
+
+  function seguirComoSiempre() {
+    try { location.replace(location.pathname + location.search + h); } catch (e) { location.reload(); }
+  }
+
+  fetch('/entrar/recibir', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      access_token: p.get('access_token'),
+      refresh_token: p.get('refresh_token'),
+      token_type: p.get('token_type'),
+      expires_in: p.get('expires_in'),
+      llave: new URLSearchParams(location.search).get('e') || ''
+    })
+  }).then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (r) {
+      if (r && r.ok) cartel('Listo', 'Ya puede cerrar esta pestaña y volver a OpenBOQ.');
+      else seguirComoSiempre();
+    })
+    .catch(seguirComoSiempre);
+})();
+</script>
+
+<!-- ?v=N en cada archivo propio: sin eso el navegador puede seguir usando el
+     .css o .js viejo de su caché. Al publicar, subir N acá y en sw.js. -->
+<link rel="stylesheet" href="css/estilo.css?v=70">
+<!-- Capa v2: solo armazón y color, cargada después para pisar lo anterior.
+     Los identificadores no cambian, así que ui.js sigue igual. -->
+<link rel="stylesheet" href="css/ui2.css?v=70">
+</head>
+<body>
+
+<!-- ===================== ARMAZÓN v2 =====================
+     Barra lateral con la navegación (el mismo #tabs de siempre, acostado) y
+     a la derecha la columna de trabajo: menús, cabecera, vistas y estado. -->
+<div class="app">
+<aside class="lateral">
+  <div class="lat-marca">
+    <div class="logo">BQ</div>
+    <div class="txt"><b>Open BOQ</b><small>v2.6</small></div>
+    <!-- pliega la barra a una tira de íconos; lo maneja js/ui2.js -->
+    <button class="lat-plegar" id="btnLateral" aria-expanded="true"
+      aria-controls="tabs" title="Plegar el menú">☰</button>
+  </div>
+
+  <!-- ===================== NAVEGACIÓN (antes: pestañas) =====================
+       Sigue siendo #tabs con botones data-v: ui.js no distingue si la lista
+       está acostada o parada. -->
+  <div class="tabs" id="tabs">
+    <button data-v="presupuesto" class="on">PRESUPUESTO</button>
+    <button data-v="analisis">ANÁLISIS (B-2)</button>
+    <button data-v="insumos">INSUMOS (B-3)</button>
+    <button data-v="incidencias">INCIDENCIAS</button>
+    <button data-v="computos">CÓMPUTOS</button>
+    <button data-v="base">BASE DE DATOS</button>
+    <button data-v="cronograma">CRONOGRAMA</button>
+    <button data-v="reportes">REPORTES</button>
+    <span class="cuenta" id="lblCuenta"></span>
+  </div>
+
+  <div class="lat-pie">
+    <!-- El texto lo pinta pintarCuenta() en js/ui.js, igual que #stCuenta de la
+         barra de estado: acá decía «Invitado» fijo y no cambiaba al entrar. -->
+    <button class="quien" id="btnCuenta" data-acc="cuenta" title="Mi cuenta"><span class="i">👤</span><span class="txt">Invitado</span></button>
+    <!-- interfaz simple (4 pasos) o completa; el texto lo pinta aplicarModo() en ui.js -->
+    <button class="modo-bt" id="btnModo" data-acc="cambiarModo" title="Solo los cuatro pasos básicos"><span class="i">⇄</span><span class="txt">Interfaz simple</span></button>
+    <button class="tema-bt" data-acc="tema" title="Cambiar entre el tema claro y el oscuro">🌓</button>
+  </div>
+</aside>
+
+<div class="col">
+
+<!-- ===================== BARRA DE MENÚ ===================== -->
+<div class="menubar" id="menubar">
+  <div class="m" data-menu="archivo">ARCHIVO</div>
+  <div class="m" data-menu="edicion">EDICIÓN</div>
+  <div class="m" data-menu="insertar">INSERTAR</div>
+  <div class="m" data-menu="reportes">REPORTES</div>
+  <div class="m" data-menu="herramientas">HERRAMIENTAS</div>
+  <div class="m" data-menu="config">CONFIGURACIÓN</div>
+  <div class="m" data-menu="ayuda">AYUDA</div>
+  <div class="marca">Open<span class="bq">BOQ</span> <small>v2.6</small></div>
+</div>
+
+<!-- ===================== CABECERA DE PROYECTO =====================
+     La barra de botones que iba acá (Nuevo, Abrir, Guardar, B-1, B-2…) se
+     quitó: todo eso está en los menús de arriba y en la barra de cada
+     pestaña. Solo quedan los campos que no viven en ningún menú. -->
+<div class="cabecera">
+  <span class="titulo-proy" id="lblProyecto">Sin nombre</span>
+  <div class="campo"><label>Módulo:</label>
+    <select id="selModulo" style="min-width:170px"></select>
+    <button class="btn sec" data-acc="nuevoModulo" title="Agregar módulo">＋</button>
+    <button class="btn sec" data-acc="renModulo" title="Renombrar módulo">✎</button>
+    <button class="btn sec" data-acc="delModulo" title="Eliminar módulo">🗑</button>
+  </div>
+  <div class="campo"><label>Base de Datos:</label>
+    <select id="selBase" style="min-width:230px"></select>
+  </div>
+  <span class="pill" id="pillStats">—</span>
+  <span class="empuja"></span>
+  <!-- en el celular estos tres se ocultan; se editan por CONFIGURACIÓN → Moneda y decimales -->
+  <div class="campo solo-ancho"><label>Precisión:</label>
+    <select id="selPrecision">
+      <option value="0">0</option><option value="1">0.0</option>
+      <option value="2" selected>0.00</option><option value="3">0.000</option>
+      <option value="4">0.0000</option>
+    </select>
+  </div>
+  <div class="campo solo-ancho"><label>Moneda:</label>
+    <select id="selMoneda"><option value="Bs">Bs</option><option value="$US">$US</option></select>
+  </div>
+  <div class="campo solo-ancho"><label>T/C Bs/$US:</label>
+    <input type="number" id="inpTC" step="0.01" style="width:64px" value="6.96">
+  </div>
+</div>
+
+<main>
+  <!-- ---------- PRESUPUESTO ---------- -->
+  <section class="vista on" id="v-presupuesto">
+    <div class="bar">
+      <button class="btn" data-acc="nuevoItem">➕ Nuevo ítem</button>
+      <button class="btn sec" data-acc="irBase">🔎 Traer de la Base de Datos</button>
+      <button class="btn sec" data-acc="subirItem">▲</button>
+      <button class="btn sec" data-acc="bajarItem">▼</button>
+      <button class="btn sec" data-acc="dupItem">⧉ Duplicar</button>
+      <button class="btn sec" data-acc="delItem">🗑 Eliminar</button>
+      <input type="search" id="buscaPres" placeholder="Filtrar ítems del presupuesto…">
+    </div>
+    <div class="scroll"><table class="rej" id="tblPresupuesto"></table></div>
+    <div class="modulos" id="barraModulos"></div>
+  </section>
+
+  <!-- ---------- BASE DE DATOS ---------- -->
+  <section class="vista" id="v-base">
+    <div class="split">
+      <div class="izq">
+        <div class="bar">
+          <input type="search" id="buscaBase" placeholder="Buscar ítem / análisis… (Enter)">
+          <select id="selBaseFiltro" style="width:100%"></select>
+          <label class="mini"><input type="checkbox" id="chkTodasBases"> Buscar en toda la Base de Datos</label>
+        </div>
+        <div class="scroll"><ul class="lista" id="listaBase"></ul></div>
+        <div class="estado"><span id="lblBaseCuenta" class="mini">—</span></div>
+      </div>
+      <div class="der">
+        <div class="bar">
+          <b id="lblApuSel">Seleccione un ítem</b>
+          <span style="margin-left:auto"></span>
+          <button class="btn sec" data-acc="nuevaBasePropia" title="Armar una base de datos propia en este equipo">➕ Nueva base</button>
+          <button class="btn sec" data-acc="proyectoABase" title="Copiar ítems del presupuesto a una base de datos propia">⬇ Del presupuesto</button>
+          <button class="btn" data-acc="insertarApu">⬅ Traer al presupuesto</button>
+        </div>
+        <div class="scroll" id="detApu"><div class="vacio">Elija un ítem de la lista para ver su análisis de precio unitario.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- ANÁLISIS B-2 ---------- -->
+  <section class="vista" id="v-analisis">
+    <div class="bar">
+      <select id="selItemAnalisis" style="min-width:380px"></select>
+      <button class="btn sec" data-acc="addInsumo">➕ Agregar insumo</button>
+      <button class="btn sec" data-acc="paramsGlobal">⚙ Incidencias</button>
+      <span style="margin-left:auto"></span>
+      <button class="btn sec" data-acc="repAnalisisUno">🖨 Imprimir este análisis</button>
+    </div>
+    <div class="scroll"><div class="b2" id="cuerpoB2"></div></div>
+  </section>
+
+  <!-- ---------- INSUMOS B-3 ---------- -->
+  <section class="vista" id="v-insumos">
+    <div class="bar">
+      <input type="search" id="buscaInsumo" placeholder="Buscar insumo…">
+      <select id="filtroTipoInsumo">
+        <option value="">Todos</option><option value="M">Materiales</option>
+        <option value="O">Mano de obra</option><option value="E">Equipo y maquinaria</option>
+      </select>
+      <button class="btn sec" data-acc="nuevoInsumo">➕ Nuevo insumo</button>
+      <button class="btn sec" data-acc="depurarInsumos" title="Unir los insumos cargados dos veces">🔗 Depurar repetidos</button>
+      <label class="mini" id="lblSinUso" title="Los insumos que no entran en ningún análisis no aportan cantidad ni monto a la obra">
+        <input type="checkbox" id="verSinUso"> Ver los que no se usan</label>
+      <span class="mini" id="lblInsCuenta"></span>
+      <span class="mini">Acá solo se edita el precio. Doble clic en la descripción: en qué ítems se usa.</span>
+    </div>
+    <div class="scroll"><table class="rej" id="tblInsumos"></table></div>
+  </section>
+
+  <!-- ---------- INCIDENCIAS ---------- -->
+  <section class="vista" id="v-incidencias">
+    <div class="bar">
+      <b>Incidencias del proyecto</b>
+      <span class="mini">Se aplican a todos los ítems: al cambiarlas se recalcula el presupuesto completo.</span>
+      <span style="margin-left:auto"></span>
+      <button class="btn sec" data-acc="incidenciasDef">↺ Valores por defecto</button>
+    </div>
+    <div class="scroll"><div class="panel" id="cuerpoIncidencias"></div></div>
+  </section>
+
+  <!-- ---------- CÓMPUTOS ---------- -->
+  <section class="vista" id="v-computos">
+    <div class="bar">
+      <select id="selItemComputo" style="min-width:380px"></select>
+      <button class="btn sec" data-acc="addComputo">➕ Agregar fila</button>
+      <button class="btn" data-acc="aplicarComputo">✔ Llevar total a la cantidad del ítem</button>
+    </div>
+    <div class="scroll"><div class="panel" id="cuerpoComputos"></div></div>
+  </section>
+
+  <!-- ---------- CRONOGRAMA ---------- -->
+  <section class="vista" id="v-cronograma">
+    <div class="subtabs" id="subCrono">
+      <button data-s="programacion" class="on">PROGRAMACIÓN</button>
+      <button data-s="recursos">RECURSOS</button>
+    </div>
+
+    <div class="sub on" id="s-programacion">
+      <div class="bar">
+        <label>Inicio de obra:</label><input type="date" id="inpInicioObra">
+        <label title="Horas efectivas de trabajo por día">Jornada (h):</label>
+        <input type="number" step="0.5" id="inpJornada" style="width:56px">
+        <label title="Días trabajados por semana; el resto estira el plazo">Días/semana:</label>
+        <input type="number" step="1" id="inpDiasSemana" style="width:56px">
+        <button class="btn" data-acc="generarCrono" title="Duraciones desde la mano de obra y encadenado por tren de trabajo">⚙ Generar cronograma</button>
+        <button class="btn sec" data-acc="recalcularCrono" title="Respeta duraciones y predecesoras editadas">↻ Recalcular fechas</button>
+        <input type="hidden" id="inpPlazo"><input type="hidden" id="inpCuadrillas">
+        <span class="mini" id="lblPlazo">—</span>
+      </div>
+      <!-- la tabla tiene su propio scroll (arriba) y la curva S el suyo (abajo):
+           así la barra horizontal del Gantt queda siempre a la vista -->
+      <div class="scroll" id="scrollCrono"><div id="cuerpoCrono"></div></div>
+      <div class="pie-crono" id="pieCrono"></div>
+    </div>
+
+    <div class="sub" id="s-recursos">
+      <div class="bar">
+        <b>Trenes de trabajo</b>
+        <button class="btn sec" data-acc="nuevoTren">➕ Nuevo tren</button>
+        <label title="Ninguna actividad debería pasar de estos días en el análisis inicial">Tope por actividad (días):</label>
+        <input type="number" step="1" id="inpTope" style="width:64px">
+        <button class="btn sec" data-acc="ajustarRecursos" title="Sube el % de las actividades del TREN 0 que pasan del tope">⚖ Ajustar al tope</button>
+        <span style="margin-left:auto"></span>
+        <button class="btn" data-acc="aplicarRecursos" title="Recalcula duraciones y fechas con estos recursos">↻ Aplicar y recalcular</button>
+      </div>
+      <div class="scroll"><div class="panel" id="cuerpoRecursos"></div></div>
+    </div>
+  </section>
+
+  <!-- ---------- REPORTES ---------- -->
+  <section class="vista" id="v-reportes">
+    <div class="panel">
+      <h2 style="color:var(--rojo-txt);margin-top:0">Reportes y formularios</h2>
+      <p class="mini">Se abren en una ventana nueva lista para imprimir o guardar como PDF (Ctrl+P).</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;max-width:1000px">
+        <button class="btn" data-acc="repPresupuesto">📄 Formulario B-1 · Presupuesto general</button>
+        <button class="btn" data-acc="repAnalisis">📄 Formulario B-2 · Análisis de precios unitarios</button>
+        <button class="btn" data-acc="repElementales">📄 Formulario B-3 · Precios elementales</button>
+        <button class="btn" data-acc="repInsumos">📄 Requerimiento total de insumos</button>
+        <button class="btn" data-acc="repComputos">📄 Planilla de cómputos métricos</button>
+        <button class="btn" data-acc="repCrono">📄 Cronograma y curva S</button>
+        <button class="btn" data-acc="repResumen">📄 Resumen por módulos</button>
+        <button class="btn sec" data-acc="exportarXls">📊 Exportar presupuesto a Excel</button>
+        <button class="btn sec" data-acc="exportarCsvIns">📊 Exportar insumos a CSV</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===================== BARRA DE ESTADO ===================== -->
+<div class="estado">
+  <span>Ítems: <b id="stItems">0</b></span>
+  <span>Insumos: <b id="stInsumos">0</b></span>
+  <span>Módulo: <b id="stModulo">—</b></span>
+  <span id="stGuardado" class="mini">—</span>
+  <!-- quién está usando la aplicación: el correo de la cuenta, o «Invitado».
+       Se hace clic para entrar, salir o guardar la biblioteca. -->
+  <span id="stCuenta" class="cuenta-est" data-acc="cuenta" title="Mi cuenta">👤 Invitado</span>
+  <!-- Google exige que la politica de privacidad este enlazada desde la pagina
+       principal para aprobar el permiso de Drive, y su rastreador NO ejecuta
+       JavaScript: por eso el enlace va en el HTML estatico y en la barra de
+       estado, que es lo unico visible siempre. No moverlo a un modal. -->
+  <a id="stPriv" class="mini" href="privacidad.html" target="_blank" rel="noopener">Privacidad</a>
+  <!-- estado de la conexión con el servidor; oculto en la versión sin control -->
+  <span id="stAcceso" class="mini" style="display:none">—</span>
+  <!-- solo visible mientras haya cambios en prueba sin confirmar -->
+  <span id="accEnsayo" class="acc-ensayo" style="display:none">
+    <button class="btn" data-acc="guardarCambios" title="Aplicar al proyecto lo que está probando">✔ Guardar cambios</button>
+    <button class="btn sec" data-acc="descartarCambios" title="Volver a como estaba antes de estos cambios">↺ Descartar</button>
+    <span class="mini">en <b id="lblEnsayo">—</b></span>
+  </span>
+  <span class="total">TOTAL <b id="stTotal">0,00</b> <span id="stMoneda">Bs</span></span>
+</div>
+
+</div><!-- /.col -->
+</div><!-- /.app -->
+
+<!-- ===================== PANTALLA DE INICIO =====================
+     Sale al abrir, con la sesión anterior arriba: continuar donde se dejó,
+     empezar en blanco, abrir un .boq o traer un proyecto de PRESCOM. Se
+     cierra con Esc y se vuelve a abrir con ARCHIVO → Pantalla de inicio.
+
+     En pantalla ancha van dos columnas —de qué se parte a la izquierda, la
+     cuenta y los proyectos guardados a la derecha— y una sola debajo de
+     900 px. La importación de archivos sueltos (.PRE .IND .DAT) no está acá:
+     es el camino de rescate para un proyecto sin .ddp y vive en ARCHIVO.
+
+     El botón del tema lleva data-ini-queda: cambia el color sin cerrar la
+     pantalla, al revés que cualquier otra opción. -->
+<div class="inicio" id="inicio">
+  <div class="ini-caja">
+    <header class="ini-top">
+      <div class="ini-marca">Open <b>BOQ</b>
+        <span class="mini">Presupuestos, cómputos métricos y cronograma</span></div>
+      <div class="ini-top-bts">
+        <button class="ini-tema" id="btnTema" data-acc="tema" data-ini-queda
+          aria-pressed="false" title="Cambiar entre el tema claro y el oscuro">
+          <span class="i" id="btnTemaIcono">🌙</span><span id="btnTemaTexto">Modo oscuro</span></button>
+        <button class="ini-x" data-ini-cerrar title="Cerrar (Esc)" aria-label="Cerrar">✕</button>
+      </div>
+    </header>
+    <div class="ini-cuerpo">
+      <div class="ini-col">
+        <!-- la primera vez: ¿ya usó PRESCOM? (pintarPerfilInicio en ui.js) -->
+        <div id="iniPerfil"></div>
+        <div id="iniSesion"></div>
+        <div class="ini-acc">
+          <button class="ini-op" data-acc="nuevo"><span>📄</span>
+            <b>Empezar en blanco</b><em>Un presupuesto nuevo, sin ítems</em></button>
+          <button class="ini-op" data-acc="abrir"><span>📂</span>
+            <b>Abrir un proyecto</b><em>Un archivo <code>.boq</code> guardado antes</em></button>
+          <button class="ini-op" data-acc="importarDDP"><span>📥</span>
+            <b>Traer de PRESCOM</b><em>Un archivo <code>.ddp</code></em></button>
+        </div>
+      </div>
+      <!-- Entrar a la cuenta y los proyectos guardados en ella. Se llena desde
+           ui.js: sin servidor no aparece nada. -->
+      <div class="ini-col"><div id="iniNube"></div></div>
+    </div>
+    <p class="mini" id="iniPie"></p>
+    <p class="mini ini-legal">
+      OpenBOQ es gratuito y su trabajo queda en su equipo.
+      <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>
+    </p>
+  </div>
+</div>
+
+<!-- ===================== MODAL GENÉRICO ===================== -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modalTitulo">Título</h3>
+    <div class="cuerpo" id="modalCuerpo"></div>
+    <div class="pie" id="modalPie"></div>
+  </div>
+</div>
+
+<!-- unidades de uso corriente; se llena desde MOTOR.UNIDADES al arrancar -->
+<datalist id="lUnidades"></datalist>
+
+<input type="file" id="fileAbrir" accept=".boq,.json" style="display:none">
+<!-- campo aparte del de abrir: lo que se elige acá se compara, nunca reemplaza
+     el proyecto que se está trabajando -->
+<input type="file" id="fileComparar" accept=".boq,.json" style="display:none">
+<input type="file" id="fileDDP" accept=".ddp,.DDP" style="display:none">
+<input type="file" id="fileSueltos" multiple style="display:none">
+
+<!-- ===================== LA BASE DE DATOS DE PRECIOS =====================
+     Se publica CIFRADA (data/catalogo.obq.js). No es un candado: la clave va
+     dentro de la aplicación y quien lea el JavaScript la encuentra. Lo que
+     evita es que el catálogo entero se descargue pidiendo la dirección, que
+     es como estaba hasta la v2.5 — 1,7 MB de JSON en claro, servidos a
+     cualquiera. Ver js/cifrado.js.
+
+     En desarrollo existe data/catalogo.js en claro y se usa ese, sin
+     descifrar nada: es la misma fuente de la que salen las pruebas y las
+     herramientas de curaduria. Al publicar NO se sube (ver docs/ARQUITECTURA.md).
+
+     Si ninguno de los dos está, o el descifrado falla, la aplicación arranca
+     igual y el usuario trabaja con sus propias bases. El catálogo es
+     opcional y siempre lo fue.                                              -->
+<script src="js/cifrado.js?v=70" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.obq.js?v=70" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.js?v=70" onerror="window.__sinCatalogo=1"></script>
+<!-- Cuenta, respaldo de la biblioteca, aportes anónimos y reportes.
+     nube-config.js lleva la dirección del servidor y la clave pública; si
+     falta, la aplicación funciona igual, solo sin cuenta. -->
+<script src="js/nube-config.js?v=70" onerror="window.__sinNube=1"></script>
+<script src="js/nube.js?v=70"></script>
+<script src="js/drive.js?v=70"></script>
+<!-- Pone al día la Base de Datos con lo que cambió en el repositorio
+     central desde que se generó el catálogo. Si no está o falla, la
+     aplicación funciona igual con el catálogo que trae. -->
+<script src="js/sync.js?v=70" onerror="window.__sinSincro=1"></script>
+<script src="js/acceso.js?v=70"></script>
+<script>
+  /* ---------- arranque ----------
+     El resto de la aplicación se carga DESPUÉS de que `window.OPENBOQ_DB`
+     esté puesto, porque motor.js lo lee apenas se evalúa. Descifrar es
+     asincrónico, así que los <script> van por código y en orden, uno tras
+     otro —igual que los escribiría el navegador— y no en paralelo, que
+     rompería las dependencias entre ellos.
+
+     Si ya hay catálogo en claro (desarrollo), no se descifra nada: se sigue
+     de largo. Cualquier falla deja `OPENBOQ_DB` sin definir, que es
+     exactamente el caso «no hay archivo de catálogo» que la aplicación ya
+     sabía manejar desde siempre. */
+  (function () {
+    /* el mismo número que los ?v= de arriba: estuvo fijo en '62' desde la v2.6
+       y motor.js, ui.js y los demás se pedían siempre con ?v=62 */
+    var V = '70';
+    var RESTO = ['js/motor.js', 'js/importador.js', 'js/exportador.js', 'js/xlsx.js',
+                 'js/reportes.js', 'js/ui.js', 'js/ui2.js'];
+
+    function cargar(i) {
+      if (i >= RESTO.length) {
+        /* ui.js se engancha a DOMContentLoaded, que para este punto ya pasó;
+           su propio arranque contempla ese caso y no hace falta avisarle. */
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = RESTO[i] + '?v=' + V;
+      s.onload = function () { cargar(i + 1); };
+      s.onerror = function () {
+        /* el módulo de PRESCOM es opcional: sin él la aplicación oculta sus opciones */
+        if (/importador|exportador/.test(RESTO[i])) console.info('OpenBOQ: sin ' + RESTO[i] + ' (módulo de PRESCOM no incluido)');
+        else console.error('OpenBOQ: no se pudo cargar ' + RESTO[i]);
+        cargar(i + 1);
+      };
+      document.body.appendChild(s);
+    }
+
+    function seguir() { cargar(0); }
+
+    if (window.OPENBOQ_DB || typeof CIFRADO === 'undefined') { seguir(); return; }
+    CIFRADO.abrirDeLaApp()
+      .then(function (db) { if (db) window.OPENBOQ_DB = db; })
+      .catch(function () { /* ya avisa abrirDeLaApp; se arranca sin catálogo */ })
+      .then(seguir);
+  })();
+</script>
+<script>
+  /* En la aplicación de escritorio NO se registra el service worker: los
+     archivos ya son locales y el paquete ni siquiera lleva sw.js. Registrarlo
+     ahí solo reviviría la trampa de la caché con la versión vieja del ?v=N.
+     La marca la pone escritorio/preload.js antes de que corra esto. */
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !window.OPENBOQ_ESCRITORIO)
+    navigator.serviceWorker.register('sw.js').catch(() => { });
+</script>
+</body>
+</html>

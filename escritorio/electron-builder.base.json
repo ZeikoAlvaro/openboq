@@ -1,0 +1,89 @@
+{
+  "$comentario": [
+    "Configuración base de electron-builder para OpenBOQ escritorio.",
+    "hacer.js la lee, le agrega lo propio de cada canal (versión de Electron,",
+    "arquitectura, nombres de archivo) y escribe el resultado en",
+    "salida/config-<canal>.json. Este archivo no se usa directo: sirve para",
+    "que todo lo compartido esté en un solo lugar y se lea de un vistazo.",
+    "",
+    "La aplicación web NO va adentro del asar: viaja en resources/openboq",
+    "por extraResources, porque el servidor interno la lee con fs normal.",
+    "",
+    "La carpeta NO se llama app: Electron ya usa resources/app como una de",
+    "las ubicaciones donde busca la aplicación, y tener las dos cosas deja la",
+    "resolución a merced del orden interno de Electron.",
+    "",
+    "sw.js queda deliberadamente afuera. En escritorio los archivos ya son",
+    "locales y el service worker solo reviviría la trampa de la caché vieja."
+  ],
+
+  "appId": "com.openboq.escritorio",
+  "productName": "OpenBOQ",
+  "copyright": "OpenBOQ — licencia MIT",
+
+  "directories": {
+    "output": "salida",
+    "buildResources": "recursos"
+  },
+
+  "asar": true,
+  "compression": "normal",
+  "npmRebuild": false,
+  "forceCodeSigning": false,
+
+  "$files": [
+    "No se declara `files`. Se deja el filtro por omisión de electron-builder,",
+    "que mete el código y las dependencias de producción (electron-updater) y",
+    "deja afuera las de desarrollo (electron, electron-builder). Declarando una",
+    "lista propia es fácil quedarse sin node_modules y que el actualizador no",
+    "exista dentro del paquete."
+  ],
+
+  "files": [
+    "**/*",
+    "!salida${/*}",
+    "!pruebas${/*}",
+    "!hacer.js",
+    "!recursos/hacer-icono.ps1",
+    "!LEEME-INSTALACION.md",
+    "!electron-builder.base.json",
+    "!.gitignore"
+  ],
+
+  "extraResources": [
+    { "from": "../index.html", "to": "openboq/index.html" },
+    { "from": "../css", "to": "openboq/css" },
+    { "from": "../js", "to": "openboq/js" },
+    { "from": "../data/catalogo.js", "to": "openboq/data/catalogo.js" },
+    { "from": "../acceso.json", "to": "openboq/acceso.json" },
+    { "from": "../manifest.webmanifest", "to": "openboq/manifest.webmanifest" },
+    { "from": "../icono.svg", "to": "openboq/icono.svg" },
+    { "from": "../404.html", "to": "openboq/404.html" },
+    { "from": "../ejemplos/demo-aula-escolar.boq", "to": "openboq/ejemplos/demo-aula-escolar.boq" }
+  ],
+
+  "win": {
+    "icon": "recursos/icono.ico",
+    "requestedExecutionLevel": "asInvoker",
+    "legalTrademarks": ""
+  },
+
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowElevation": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "OpenBOQ",
+    "menuCategory": false,
+    "runAfterFinish": true,
+    "deleteAppDataOnUninstall": false,
+    "language": "3082"
+  },
+
+  "portable": {
+    "requestExecutionLevel": "user",
+    "unicode": true
+  }
+}

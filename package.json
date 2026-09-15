@@ -1,0 +1,21 @@
+{
+  "name": "openboq",
+  "version": "2.6.0",
+  "private": true,
+  "description": "Presupuestos de obra en el navegador: análisis de precios unitarios, cómputos métricos, formularios B-1, B-2 y B-3, cronograma y curva S. Las dependencias son solo para pruebas y herramientas.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "probar": "node herramientas/probar.js",
+    "test": "node herramientas/probar.js",
+    "empaquetar": "node herramientas/empaquetar.js",
+    "servir": "node herramientas/servir.js"
+  },
+  "devDependencies": {
+    "javascript-obfuscator": "^4.2.2",
+    "jsdom": "^30.0.1",
+    "pg": "^8.13.1"
+  }
+}

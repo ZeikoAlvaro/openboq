@@ -1,0 +1,29 @@
+{
+  "name": "openboq-escritorio",
+  "productName": "OpenBOQ",
+  "version": "2.3.0",
+  "private": true,
+  "description": "OpenBOQ como aplicación de escritorio para Windows: presupuestos de obra, análisis de precios unitarios, cómputos métricos y cronograma.",
+  "license": "MIT",
+  "author": {
+    "name": "Alvaro Oczachoque"
+  },
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "probar": "node pruebas/version.test.js && node pruebas/servidor.test.js",
+    "probar:servidor": "node pruebas/servidor.test.js",
+    "icono": "powershell -ExecutionPolicy Bypass -File recursos/hacer-icono.ps1",
+    "armar": "node hacer.js todos",
+    "armar:universal": "node hacer.js universal",
+    "armar:x64": "node hacer.js x64",
+    "armar:arm64": "node hacer.js arm64"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "^24.13.3"
+  }
+}
