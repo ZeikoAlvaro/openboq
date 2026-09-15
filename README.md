@@ -5,7 +5,6 @@ formularios B-1, B-2 y B-3, cronograma y curva S. Gratis, sin instalar y pensado
 
 **Probarlo:** <https://openboq.pages.dev>
 
-> BOQ = *Bill of Quantities*, el presupuesto por ítems y cantidades.
 
 ---
 
