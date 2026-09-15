@@ -104,10 +104,10 @@
 
 <!-- ?v=N en cada archivo propio: sin eso el navegador puede seguir usando el
      .css o .js viejo de su caché. Al publicar, subir N acá y en sw.js. -->
-<link rel="stylesheet" href="css/estilo.css?v=70">
+<link rel="stylesheet" href="css/estilo.css?v=71">
 <!-- Capa v2: solo armazón y color, cargada después para pisar lo anterior.
      Los identificadores no cambian, así que ui.js sigue igual. -->
-<link rel="stylesheet" href="css/ui2.css?v=70">
+<link rel="stylesheet" href="css/ui2.css?v=71">
 </head>
 <body>
 
@@ -458,20 +458,20 @@
      Si ninguno de los dos está, o el descifrado falla, la aplicación arranca
      igual y el usuario trabaja con sus propias bases. El catálogo es
      opcional y siempre lo fue.                                              -->
-<script src="js/cifrado.js?v=70" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.obq.js?v=70" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.js?v=70" onerror="window.__sinCatalogo=1"></script>
+<script src="js/cifrado.js?v=71" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.obq.js?v=71" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.js?v=71" onerror="window.__sinCatalogo=1"></script>
 <!-- Cuenta, respaldo de la biblioteca, aportes anónimos y reportes.
      nube-config.js lleva la dirección del servidor y la clave pública; si
      falta, la aplicación funciona igual, solo sin cuenta. -->
-<script src="js/nube-config.js?v=70" onerror="window.__sinNube=1"></script>
-<script src="js/nube.js?v=70"></script>
-<script src="js/drive.js?v=70"></script>
+<script src="js/nube-config.js?v=71" onerror="window.__sinNube=1"></script>
+<script src="js/nube.js?v=71"></script>
+<script src="js/drive.js?v=71"></script>
 <!-- Pone al día la Base de Datos con lo que cambió en el repositorio
      central desde que se generó el catálogo. Si no está o falla, la
      aplicación funciona igual con el catálogo que trae. -->
-<script src="js/sync.js?v=70" onerror="window.__sinSincro=1"></script>
-<script src="js/acceso.js?v=70"></script>
+<script src="js/sync.js?v=71" onerror="window.__sinSincro=1"></script>
+<script src="js/acceso.js?v=71"></script>
 <script>
   /* ---------- arranque ----------
      El resto de la aplicación se carga DESPUÉS de que `window.OPENBOQ_DB`
@@ -487,7 +487,7 @@
   (function () {
     /* el mismo número que los ?v= de arriba: estuvo fijo en '62' desde la v2.6
        y motor.js, ui.js y los demás se pedían siempre con ?v=62 */
-    var V = '70';
+    var V = '71';
     var RESTO = ['js/motor.js', 'js/importador.js', 'js/exportador.js', 'js/xlsx.js',
                  'js/reportes.js', 'js/ui.js', 'js/ui2.js'];
 
