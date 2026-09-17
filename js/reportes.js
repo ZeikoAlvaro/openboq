@@ -39,8 +39,18 @@ const REP = (() => {
     w.document.close();
   }
 
+  /* Escapa TODO lo que puede romper el HTML, no solo los signos de mayor y
+     menor. Las comillas importan tanto como ellos: esta misma funcion se usa
+     dentro de atributos —`value="${esc(x)}"`— y un texto con una comilla
+     doble cierra el atributo y deja poner otro, por ejemplo un `onmouseover`.
+     El texto llega de un .boq que puede haber armado cualquiera y mandarlo
+     por correo, asi que se trata como dato ajeno.
+
+     La comilla simple va como `&#39;` y no como `&apos;`: es la unica de las
+     cinco que el HTML antiguo no conoce por nombre. */
+  const MAPA_ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   const esc = s => String(s === undefined || s === null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    .replace(/[&<>"']/g, c => MAPA_ESC[c]);
 
   function encabezado(sub) {
     const P = MOTOR.proyecto();
@@ -68,18 +78,20 @@ const REP = (() => {
     h += '<table><thead><tr><th style="width:34px">N°</th><th>DESCRIPCIÓN DE LA ACTIVIDAD</th>' +
       '<th style="width:46px">UND.</th><th style="width:70px">CANTIDAD</th>' +
       '<th style="width:82px">PRECIO UNIT.</th><th style="width:92px">PRECIO TOTAL</th></tr></thead><tbody>';
-    let n = 0, gran = 0;
+    /* total y subtotales como PRESCOM: MOTOR.totalGeneral */
+    let n = 0;
+    const gran = MOTOR.totalGeneral();
     P.modulos.forEach(m => {
       if (P.modulos.length > 1) h += '<tr class="g"><td colspan="6">' + esc(m.n) + '</td></tr>';
       m.items.forEach(it => {
-        const a = MOTOR.analisis(it); n++; gran += a.total;
+        const a = MOTOR.analisis(it); n++;
         h += '<tr><td class="c">' + n + '</td><td>' + esc(it.desc) + '</td><td class="c">' + esc(it.und) +
           '</td><td class="n">' + MOTOR.fmt(it.cant, 2) + '</td><td class="n">' + f(a.pu) +
-          '</td><td class="n">' + f(a.total) + '</td></tr>';
+          '</td><td class="n">' + f(MOTOR.parcialGeneral(it)) + '</td></tr>';
       });
       if (P.modulos.length > 1)
         h += '<tr><td colspan="5" class="n">Subtotal ' + esc(m.n) + '</td><td class="n">' +
-          f(MOTOR.totalModulo(m)) + '</td></tr>';
+          f(MOTOR.subtotalGeneral(m)) + '</td></tr>';
     });
     h += '</tbody><tfoot><tr class="tot"><td colspan="5" class="n">TOTAL PRESUPUESTO (' + P.moneda + ')</td>' +
       '<td class="n">' + f(gran) + '</td></tr></tfoot></table>';
@@ -252,12 +264,13 @@ const REP = (() => {
   /* ---------------- RESUMEN POR MÓDULOS ---------------- */
   function resumen() {
     const P = MOTOR.proyecto();
-    const tot = MOTOR.totalProyecto();
+    /* los mismos subtotales y total que el B-1 (MOTOR.totalGeneral) */
+    const tot = MOTOR.totalGeneral();
     let h = encabezado('RESUMEN DEL PRESUPUESTO POR MÓDULOS');
     h += '<table><thead><tr><th style="width:40px">N°</th><th>MÓDULO</th><th style="width:60px">ÍTEMS</th>' +
       '<th style="width:120px">MONTO (' + P.moneda + ')</th><th style="width:70px">%</th></tr></thead><tbody>';
     P.modulos.forEach((m, k) => {
-      const t = MOTOR.totalModulo(m);
+      const t = MOTOR.subtotalGeneral(m);
       h += '<tr><td class="c">' + (k + 1) + '</td><td>' + esc(m.n) + '</td><td class="c">' + m.items.length +
         '</td><td class="n">' + f(t) + '</td><td class="n">' + (tot ? (t / tot * 100).toFixed(2) : '0.00') + '</td></tr>';
     });
@@ -395,28 +408,30 @@ const REP = (() => {
       m.items.forEach(it => {
         const a = MOTOR.analisis(it); n++;
         h.fila([num(n, EST.ctr), cel(it.desc), cel(it.und, EST.ctr),
-          num(it.cant, EST.num), xn(a.pu), xn(a.total)]);
+          num(it.cant, EST.num), xn(a.pu), xn(MOTOR.parcialGeneral(it))]);
       });
       if (P.modulos.length > 1)
-        h.fila([cel('Subtotal ' + m.n, EST.subT, 5), xn(MOTOR.totalModulo(m), EST.subN)]);
+        h.fila([cel('Subtotal ' + m.n, EST.subT, 5), xn(MOTOR.subtotalGeneral(m), EST.subN)]);
     });
-    h.fila([cel('Total presupuesto:', EST.totT, 5), xn(MOTOR.totalProyecto(), EST.totN)]);
+    /* total y subtotales como PRESCOM: MOTOR.totalGeneral */
+    h.fila([cel('Total presupuesto:', EST.totT, 5), xn(MOTOR.totalGeneral(), EST.totN)]);
     h.blanco();
-    h.fila([cel('Son: ' + literal(MOTOR.conv(MOTOR.totalProyecto())) + ' ' +
+    h.fila([cel('Son: ' + literal(MOTOR.conv(MOTOR.totalGeneral())) + ' ' +
       (P.moneda === 'Bs' ? 'bolivianos' : 'dólares americanos'), EST.nota, 6)]);
     return h;
   }
 
   /* --- 2. Presupuesto por módulo --- */
   function hModulos() {
-    const P = MOTOR.proyecto(), tot = MOTOR.totalProyecto() || 1;
+    /* los mismos subtotales y total que el Presupuesto general */
+    const P = MOTOR.proyecto(), tot = MOTOR.totalGeneral() || 1;
     const h = nuevaHoja('Presupuesto por módulo', 'Presupuesto por módulo', [6, 50, 10, 18, 14]);
     encabezados(h, ['Nº', 'Módulo', 'Ítems', 'Monto', 'Incidencia %']);
     P.modulos.forEach((m, k) => {
-      const v = MOTOR.totalModulo(m);
+      const v = MOTOR.subtotalGeneral(m);
       h.fila([num(k + 1, EST.ctr), cel(m.n), num(m.items.length, EST.ctr), xn(v), num(v / tot * 100)]);
     });
-    h.fila([cel('Total presupuesto:', EST.totT, 3), xn(MOTOR.totalProyecto(), EST.totN), num(100, EST.totN)]);
+    h.fila([cel('Total presupuesto:', EST.totT, 3), xn(MOTOR.totalGeneral(), EST.totN), num(100, EST.totN)]);
     return h;
   }
 

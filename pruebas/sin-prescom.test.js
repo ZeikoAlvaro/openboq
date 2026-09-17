@@ -63,8 +63,12 @@ const tarjetaVisible = w => {
   if (archivo !== null) {
     ok(!/Importar proyecto|archivos sueltos|Exportar a PRESCOM/.test(archivo),
       'ARCHIVO no muestra importar ni exportar a PRESCOM');
-    ok(/Nuevo proyecto/.test(archivo) && /Exportar a Excel/.test(archivo),
+    /* Exportar a Excel ya no vive en ARCHIVO: estaba repetido en ARCHIVO y en
+       REPORTES, y quedo solo en REPORTES junto con el CSV de insumos. */
+    ok(/Nuevo proyecto/.test(archivo) && /Datos generales/.test(archivo),
       'y conserva el resto de sus opciones');
+    ok(!/Exportar a Excel|insumos a CSV/.test(archivo),
+      'ARCHIVO ya no repite lo que se exporta: eso vive en REPORTES');
   }
   const herr = textoMenu(w, 'herramientas');
   if (herr !== null) ok(!/archivo importado/.test(herr), 'HERRAMIENTAS no ofrece recalcular los precios del archivo importado');

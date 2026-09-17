@@ -14,8 +14,8 @@
    como PWA y para borrar los cachés que dejaron las versiones anteriores.
 
    Al publicar una versión nueva, subir el número de CACHE.                */
-const CACHE = 'openboq-v71';
-const V = '71';                       // mismo número que el ?v= de index.html
+const CACHE = 'openboq-v75';
+const V = '75';                       // mismo número que el ?v= de index.html
 
 self.addEventListener('install', e => {
   /* nada que precargar: se instala y pasa a activo enseguida */

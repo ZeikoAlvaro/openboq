@@ -29,6 +29,15 @@ function arrancar(almacen, nube) {
 }
 const dormir = ms => new Promise(r => setTimeout(r, ms));
 const clic = (w, el) => el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+/* El cambio de interfaz se hace por CONFIGURACION → «Interfaz simple /
+   completa». Estaba tambien como boton ⇄ en la barra lateral y se saco: se
+   apretaba sin querer y hacia lo mismo que la opcion del menu. */
+function cambiarInterfaz(w) {
+  clic(w, w.document.querySelector('.menubar .m[data-menu="config"]'));
+  const op = w.document.querySelector('.menu-pop div[data-acc="cambiarModo"]');
+  if (!op) { errores.push('no esta la opcion de cambiar interfaz en CONFIGURACION'); return; }
+  clic(w, op);
+}
 const visible = (w, sel) => { const e = w.document.querySelector(sel); return !!e && w.getComputedStyle(e).display !== 'none'; };
 
 (async () => {
@@ -50,7 +59,7 @@ const visible = (w, sel) => { const e = w.document.querySelector(sel); return !!
   ok(!$('#iniPerfil [data-perfil]'), 'la pregunta no se repite');
   ok(/Buscar ítems/.test($('#tabs button[data-v="base"]').textContent), 'el paso ① se llama «Buscar ítems»');
   ok(/Mi presupuesto/.test($('#tabs button[data-v="presupuesto"]').textContent), 'el paso ② se llama «Mi presupuesto»');
-  ok(/Interfaz completa/.test($('#btnModo').textContent), 'el botón ⇄ ofrece la interfaz completa');
+  ok(!$('#btnModo'), 'la barra lateral ya no lleva el botón ⇄');
   ok(!!$('#tblPresupuesto .guia-simple [data-acc="irBase"]'), 'el presupuesto vacío muestra la guía con «Buscar ítems»');
 
   console.log('== Recargar conserva el modo ==');
@@ -60,8 +69,8 @@ const visible = (w, sel) => { const e = w.document.querySelector(sel); return !!
   ok(w.document.body.classList.contains('modo-simple'), 'vuelve en modo simple');
   ok(!w.document.querySelector('#iniPerfil [data-perfil]'), 'sin volver a preguntar');
 
-  console.log('== El botón ⇄ vuelve a la completa ==');
-  clic(w, w.document.querySelector('#btnModo'));
+  console.log('== CONFIGURACION vuelve a la completa ==');
+  cambiarInterfaz(w);
   ok(!w.document.body.classList.contains('modo-simple'), 'sale del modo simple');
   ok(w.document.querySelector('#tabs button[data-v="base"]').textContent.trim() === 'BASE DE DATOS', 'las pestañas recuperan su nombre');
   ok(JSON.parse(w.localStorage.getItem('openboq_perfil')).modo === 'completo', 'y lo recuerda');
@@ -69,7 +78,7 @@ const visible = (w, sel) => { const e = w.document.querySelector(sel); return !!
 
   console.log('== Con una pestaña oculta abierta, el modo simple lleva al presupuesto ==');
   clic(w, w.document.querySelector('#tabs button[data-v="cronograma"]'));
-  clic(w, w.document.querySelector('#btnModo'));
+  cambiarInterfaz(w);
   ok(w.document.querySelector('#v-presupuesto').classList.contains('on'), 'queda en el presupuesto, no en una vista escondida');
 
   console.log('== Otro equipo (o caché borrada): la cuenta ya contestó ==');

@@ -749,9 +749,15 @@ const NUBE = (() => {
   /* ===================================================================
      REPORTES — identificados
      =================================================================== */
+  /* El largo lo decide la base de datos (supabase/14_reportes_endurecido.sql:
+     de 10 a 2000 caracteres) y aca se respeta el mismo numero. Si el cliente
+     cortara mas largo que el servidor, el reporte se perderia con un error
+     feo justo despues de que la persona se tomo el trabajo de escribirlo. */
+  const REP_MIN = 10, REP_MAX = 2000;
+
   async function reportar(mensaje, version, contexto) {
     const t = String(mensaje || '').trim();
-    if (!t) throw new Error('MENSAJE_VACIO');
+    if (t.length < REP_MIN) throw new Error('MENSAJE_CORTO');
     const u = usuario();
     await pedir('/rest/v1/reportes', {
       method: 'POST',
@@ -759,7 +765,7 @@ const NUBE = (() => {
       body: {
         user_id: u ? u.id : null,
         email: u ? u.email : null,
-        mensaje: t.slice(0, 4900),
+        mensaje: t.slice(0, REP_MAX),
         version: version || '',
         estado: 'nuevo',
         contexto: Object.assign({

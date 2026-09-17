@@ -255,8 +255,10 @@
      La primera vez, la pantalla de inicio pregunta si ya usó PRESCOM. Si dice
      que no, la aplicación queda en cuatro pasos: buscar ítems con precio,
      ponerles cantidad, ver el detalle del precio e imprimir. Lo demás no se
-     borra ni se desactiva: se oculta con body.modo-simple, y el botón ⇄ del
-     menú lateral vuelve a la completa en cualquier momento.
+     borra ni se desactiva: se oculta con body.modo-simple, y la opción
+     «Interfaz simple / completa» de CONFIGURACIÓN vuelve a la completa en
+     cualquier momento. Estuvo también como botón ⇄ en la barra lateral y se
+     sacó: hacía lo mismo y se apretaba sin querer.
 
      Es del equipo, igual que el tema: no viaja en el .boq. Sin respuesta, la
      interfaz es la completa de siempre. */
@@ -314,7 +316,7 @@
         <button class="btn sec" data-ini-queda data-perfil="prescom">Sí, ya lo usé</button>
       </div>
       <span class="mini">Si es su primera vez, OpenBOQ arranca en <b>cuatro pasos simples</b>.
-        Puede cambiar de interfaz cuando quiera con el botón <b>⇄</b> del menú.</span>`;
+        Puede cambiar de interfaz cuando quiera desde <b>CONFIGURACIÓN → Interfaz simple / completa</b>.</span>`;
   }
 
   /* ===================== PANTALLA DE INICIO =====================
@@ -332,7 +334,7 @@
     $('#iniSesion').innerHTML = hay
       ? `<h4>Continuar donde lo dejó</h4>
          <div class="proy"><b>${esc(P.nombre)}</b> — ${n} ítem(s), total
-           ${M.fmt(M.conv(M.totalProyecto()))} ${P.moneda}</div>
+           ${M.fmt(M.conv(M.totalGeneral()))} ${P.moneda}</div>
          <div class="ini-bts">
            <button class="btn" data-ini-cerrar>Continuar</button>
            <button class="btn sec" data-acc="guardarComo">Guardar una copia…</button></div>`
@@ -963,7 +965,7 @@
     const distinto = base && M.norm(base) !== M.norm(P.nombre);
     modal('Proyecto abierto', `
       <p><b>${esc(P.nombre)}</b> — ${n} ítem(s), ${Object.keys(P.insumos).length} insumo(s),
-      total ${M.fmt(M.conv(M.totalProyecto()))} ${P.moneda}.</p>
+      total ${M.fmt(M.conv(M.totalGeneral()))} ${P.moneda}.</p>
       ${distinto ? `<p class="mini">El archivo se llama <code>${esc(archivo)}</code> y el proyecto que
         tiene adentro, <b>${esc(P.nombre)}</b>. El nombre del archivo no afecta en nada: puede
         renombrarlo o cambiarlo de carpeta y abre igual.</p>
@@ -1130,9 +1132,9 @@
     $('#stItems').textContent = n;
     $('#stInsumos').textContent = Object.keys(P.insumos).length;
     $('#stModulo').textContent = M.modulo().n;
-    $('#stTotal').textContent = M.fmt(M.conv(M.totalProyecto()));
+    $('#stTotal').textContent = M.fmt(M.conv(M.totalGeneral()));
     $('#stMoneda').textContent = P.moneda;
-    $('#lblCuenta').textContent = `${n} ítem(s) · ${M.fmt(M.conv(M.totalProyecto()))} ${P.moneda}`;
+    $('#lblCuenta').textContent = `${n} ítem(s) · ${M.fmt(M.conv(M.totalGeneral()))} ${P.moneda}`;
     estadoEnsayo();
   }
 
@@ -1152,7 +1154,7 @@
       `<div class="mtab ${k === P.moduloActivo ? 'on' : ''}" data-mod="${k}" title="${esc(m.n)}">
         <span class="mn">${esc(m.n)}</span><span class="mini">(${m.items.length})</span></div>`)
       .join('') + '<div class="mtab nueva" data-mod="nuevo" title="Agregar un módulo">＋</div></div>' +
-      `<span class="mini tot-mod">Total módulo: <b>${M.fmt(M.conv(M.totalModulo(M.modulo())))} ${P.moneda}</b></span>`;
+      `<span class="mini tot-mod">Total módulo: <b>${M.fmt(M.conv(M.subtotalGeneral(M.modulo())))} ${P.moneda}</b></span>`;
   }
 
   /* ===================== VISTA PRESUPUESTO ===================== */
@@ -1172,7 +1174,10 @@
        que en el B-1 impreso y en el Excel. Así el número que se ve en pantalla
        es el mismo con el que el ítem sale en el documento que se presenta. */
     const desde = M.itemsAntesDelModulo();
-    let sm = 0, so = 0, se = 0, st = 0;
+    /* los totales que se MUESTRAN usan M.totalGeneral / subtotalGeneral: en un
+       proyecto importado de PRESCOM coinciden con su B-1; el cálculo interno
+       (porcentajes, recálculo) sigue con totalProyecto */
+    let sm = 0, so = 0, se = 0;
     if (!L.length && modoSimple()) {
       h += `<tr><td colspan="11" class="vacio guia-simple">
         <b>¿Por dónde empiezo?</b>
@@ -1189,7 +1194,7 @@
     }
     L.forEach((it, k) => {
       const a = M.analisis(it);
-      sm += a.mat * it.cant; so += a.totalMO * it.cant; se += a.totalEQ * it.cant; st += a.total;
+      sm += a.mat * it.cant; so += a.totalMO * it.cant; se += a.totalEQ * it.cant;
       if (filtro && M.norm(it.desc).indexOf(filtro) < 0) return;
       h += `<tr data-item="${it.id}" class="${P.itemSel === it.id ? 'sel' : ''}">
         <td class="ctr">${desde + k + 1}</td>
@@ -1197,7 +1202,7 @@
         <td><input class="txt" data-campo="und" list="lUnidades" value="${esc(it.und)}" style="text-align:center"></td>
         <td><input type="number" step="any" data-campo="cant" value="${it.cant}"></td>
         <td class="num">${M.fmt(M.conv(a.pu))}</td>
-        <td class="num"><b>${M.fmt(M.conv(a.total))}</b></td>
+        <td class="num"><b>${M.fmt(M.conv(M.parcialGeneral(it)))}</b></td>
         <td class="num">${M.fmt(M.conv(a.mat * it.cant))}</td>
         <td class="num">${M.fmt(M.conv(a.totalMO * it.cant))}</td>
         <td class="num">${M.fmt(M.conv(a.totalEQ * it.cant))}</td>
@@ -1206,7 +1211,7 @@
     });
     h += `</tbody><tfoot><tr>
       <td colspan="5" class="num">TOTAL ${esc(M.modulo().n)} (${P.moneda})</td>
-      <td class="num">${M.fmt(M.conv(st))}</td>
+      <td class="num">${M.fmt(M.conv(M.subtotalGeneral(M.modulo())))}</td>
       <td class="num">${M.fmt(M.conv(sm))}</td>
       <td class="num">${M.fmt(M.conv(so))}</td>
       <td class="num">${M.fmt(M.conv(se))}</td><td colspan="2"></td></tr></tfoot>`;
@@ -1296,7 +1301,7 @@
       <div><label>Unidad</label><input data-b2="und" list="lUnidades" value="${esc(it.und)}" style="width:100%"></div>
       <div><label>Cantidad</label><input data-b2="cant" type="number" step="any" value="${it.cant}" style="width:100%"></div>
       <div><label>Código</label><input data-b2="cod" value="${esc(it.cod || '')}" style="width:100%"></div>
-      <div><label>Moneda</label><input value="${P.moneda}" disabled style="width:100%"></div>
+      <div><label>Moneda</label><input value="${esc(P.moneda)}" disabled style="width:100%"></div>
       </div></div>`;
 
     ['M', 'O', 'E'].forEach(t => {
@@ -1357,7 +1362,7 @@
       ${a.ajuste ? `<div class="fila" title="El archivo de PRESCOM guarda los subtotales con 3 decimales y el precio unitario con 2: los dígitos que descarta deciden el centavo y no se pueden recuperar. Se conserva el precio del archivo para que el presupuesto cierre igual que el original; al editar este análisis vuelve el calculado (${M.fmt(M.conv(a.puCalculado))}).">
         <span>Redondeo del archivo de origen</span><span class="val">${M.fmt(M.conv(a.ajuste))}</span></div>` : ''}
       <div class="fila tot"><span>TOTAL PRECIO UNITARIO (${P.moneda})</span><span class="val">${M.fmt(M.conv(a.pu))}</span></div>
-      <div class="fila sub"><span>PRECIO TOTAL DEL ÍTEM (${M.fmt(it.cant, 2)} ${esc(it.und)})</span><span class="val">${M.fmt(M.conv(a.total))}</span></div>
+      <div class="fila sub"><span>PRECIO TOTAL DEL ÍTEM (${M.fmt(it.cant, 2)} ${esc(it.und)})</span><span class="val">${M.fmt(M.conv(M.parcialGeneral(it)))}</span></div>
     </div>
     <p class="mini" style="margin-top:8px">La cadena de recargos es del <b>proyecto</b>
     —formato <b>${esc(M.formato().n)}</b>—: vale para todos los ítems y se cambia en la pestaña
@@ -1621,7 +1626,7 @@
       const sobre = esEnt ? '<span class="mini">materiales · mano de obra · equipo</span>'
         : (oficial
           ? `<span class="mini">${esc(f.ayuda || baseEnPalabras(f, filas))}</span>`
-          : `<input class="txt mono" data-fmt="${nro}" data-f="sobre" value="${(f.sobre || []).join(', ')}"
+          : `<input class="txt mono" data-fmt="${nro}" data-f="sobre" value="${esc((f.sobre || []).join(', '))}"
                placeholder="2, 4" title="Números de fila, separados por coma. Solo filas anteriores a esta.">`);
       const pct = (f.k === 'pct')
         ? `<input type="number" step="0.01" inputmode="decimal" data-fmt="${nro}" data-f="pct" value="${f.pct}">`
@@ -1649,7 +1654,7 @@
 
     h += `<div class="res">
         <div class="fila sub"><span>TOTAL DEL PRESUPUESTO con esta cadena (${P.moneda})</span>
-        <span class="val">${M.fmt(M.conv(M.totalProyecto()))}</span></div>
+        <span class="val">${M.fmt(M.conv(M.totalGeneral()))}</span></div>
       </div>`;
 
     if (!oficial) h += `<p class="mini" style="max-width:70ch">
@@ -1890,10 +1895,10 @@
       ['Importar proyecto (.ddp)…', 'importarDDP'],
       ['Importar archivos sueltos (.PRE .IND .DAT)…', 'importarSueltos'],
       ['Exportar a PRESCOM (.ddp)…', 'exportarPrescom'], ['—'],
-      ['Datos generales del proyecto…', 'datosProyecto'], ['—'],
-      ['Exportar a Excel (libro completo)', 'exportarXls'],
-      ['Exportar a Excel (elegir reportes)…', 'exportarXlsSel'],
-      ['Exportar insumos a CSV', 'exportarCsvIns'],
+      ['Datos generales del proyecto…', 'datosProyecto'],
+      /* Lo que sale del proyecto —Excel e insumos en CSV— vive en REPORTES y
+         solo ahi: estaba repetido en los dos menus y el mismo usuario no
+         sabia por cual entrar. */
       ['—'], ['Borrar todo y empezar de cero', 'borrarTodo']
     ],
     edicion: [
@@ -1911,7 +1916,8 @@
       ['Requerimiento total de insumos', 'repInsumos'], ['Planilla de cómputos métricos', 'repComputos'],
       ['Cronograma y curva S', 'repCrono'], ['Resumen por módulos', 'repResumen'], ['—'],
       ['Exportar a Excel (libro completo)', 'exportarXls'],
-      ['Exportar a Excel (elegir reportes)…', 'exportarXlsSel']
+      ['Exportar a Excel (elegir reportes)…', 'exportarXlsSel'],
+      ['Exportar insumos a CSV', 'exportarCsvIns']
     ],
     herramientas: [
       ['Actualizar precios desde la Base de Datos…', 'actualizarPrecios'],
@@ -1919,9 +1925,7 @@
       ['Distribuir cronograma por incidencia económica', 'autoCrono'],
       ['Depurar insumos repetidos…', 'depurarInsumos'],
       ['Recalcular los precios unitarios del archivo importado…', 'recalcularPU'],
-      ['—'], ['Matriz análisis × insumo…', 'matrizApu'],
-      ['Factor de rendimiento…', 'factorRend'],
-      ['Fusionar análisis…', 'fusionarApus'],
+      ['—'], ['Fusionar análisis…', 'fusionarApus'],
       ['Crear ítems en lote…', 'itemsEnLote'],
       ['—'], ['Verificar consistencia del proyecto', 'verificar'],
       ['Comparar con otro proyecto (.boq)…', 'compararProyecto'],
@@ -2117,7 +2121,7 @@
 
     return `<table class="rej comp cta"><tbody>
       <tr><td class="et">Proyecto abierto</td><td><b>${esc(P.nombre)}</b>
-        <span class="mini">${nItems} ítem(s) · ${M.fmt(M.totalProyecto(), 2)} Bs</span></td></tr>
+        <span class="mini">${nItems} ítem(s) · ${M.fmt(M.totalGeneral(), 2)} Bs</span></td></tr>
       <tr><td class="et">Último cambio guardado acá</td>
         <td>${ultLocal ? fechaHora(ultLocal) : 'todavía no se guardó en este navegador'}${pendiente}</td></tr>
       <tr><td class="et">Archivo del proyecto</td>
@@ -2927,7 +2931,7 @@
           setTimeout(() => modal('Insumos unificados', `<p><b>${grupos}</b> insumo(s) quedaron en una
             sola línea: se quitaron <b>${quitados}</b> repetidos y se corrigieron
             <b>${items}</b> análisis.</p>
-            <p>Total del presupuesto: <b>${M.fmt(M.conv(M.totalProyecto()))} ${M.proyecto().moneda}</b>.</p>`), 80);
+            <p>Total del presupuesto: <b>${M.fmt(M.conv(M.totalGeneral()))} ${M.proyecto().moneda}</b>.</p>`), 80);
         }]]);
     },
     /** Qué guardó el usuario en la Base de Datos de este equipo, y cómo deshacerlo. */
@@ -3478,7 +3482,7 @@
         ${aplicado ? `<div class="aviso-caja"><b>Es el formato que está aplicado.</b>
           <p class="mini" style="margin:4px 0 0">El presupuesto vuelve al <b>formato oficial</b> y
           los precios unitarios van a cambiar si esta cadena no daba el mismo resultado.
-          Total ahora: <b>${M.fmt(M.conv(M.totalProyecto()))} ${M.proyecto().moneda}</b>.</p></div>`
+          Total ahora: <b>${M.fmt(M.conv(M.totalGeneral()))} ${M.proyecto().moneda}</b>.</p></div>`
         : '<p class="mini">No es el que está aplicado, así que el presupuesto no cambia.</p>'}
         <p class="mini">Esto no se puede deshacer desde el listado; si todavía no guardó, el botón
         <b>Descartar</b> de la barra inferior devuelve todo como estaba.</p>`,
@@ -4125,10 +4129,31 @@
         <p class="mini">${u
           ? 'Se manda con su correo <b>' + esc(u.email) + '</b>, para poder responderle.'
           : 'Se manda sin identificar. Si entra con su cuenta, se puede responder.'}</p>
-        <p class="mini">Se incluyen el navegador y el tamaño de pantalla. Nada del proyecto.</p>`,
+        <p class="mini">Se incluyen el navegador y el tamaño de pantalla. Nada del proyecto.</p>
+        <p class="mini" id="rpAviso" style="color:var(--err)"></p>`,
         [['Cancelar', null, 'sec'], ['Enviar', () => {
           const t = ($('#rpM').value || '').trim();
-          if (!t) { $('#rpM').focus(); return false; }
+          /* Un reporte tiene que servir para algo: con el mensaje vacio, o con
+             unas letras apretadas al azar, no se puede averiguar nada y solo
+             ensucia la cola de revision. Dos varas, las dos baratas: largo
+             minimo y variedad de caracteres —«2211111…» tiene 50 caracteres
+             y dos distintos—. El mismo numero lo repiten js/nube.js y la base
+             de datos, que es la que manda. */
+          const distintos = new Set(t.toLowerCase().replace(/\s/g, '')).size;
+          /* La tercera vara salió del reporte que provoco todo esto:
+             «2211111…(50 veces)…falta validar weon». Tiene largo de sobra y
+             caracteres distintos de sobra, porque la frase del final los
+             aporta. Lo que no tiene ningún mensaje de verdad es una tecla
+             apretada ocho veces seguidas. */
+          const machaca = /(.)\1{7,}/.test(t);
+          const flojo = t.length < 10 ? 'Falta contar qué pasó: escriba al menos una frase.'
+            : distintos < 5 ? 'Eso no dice nada: cuente qué estaba haciendo y qué vio.'
+            : machaca ? 'Saque las letras o los números repetidos y cuente qué pasó.' : '';
+          if (flojo) {
+            const av = $('#rpAviso'); if (av) av.textContent = flojo;
+            $('#rpM').focus();
+            return false;
+          }
           $('#modalPie').innerHTML = '<span class="mini">Enviando…</span>';
           NUBE.reportar(t, VERSION, { vista })
             .then(() => { cerrarModal(); marcarGuardado('Reporte enviado — gracias'); })
@@ -4207,7 +4232,10 @@
     manejo = null; sinGuardar = false; sinArchivo = true;   // todavía no hay .boq propio
     M.guardarLocal(); render(); irVista('presupuesto');
     marcarGuardado('Importado ' + hora());
-    const dif = Math.abs(s.totalOrigen - s.totalRecalculado);
+    /* se muestran los totales como el B-1 de PRESCOM; el control usa los otros */
+    const tOrig = s.totalOrigenB1 !== undefined ? s.totalOrigenB1 : s.totalOrigen;
+    const tRecal = s.totalRecalculadoB1 !== undefined ? s.totalRecalculadoB1 : s.totalRecalculado;
+    const dif = Math.abs(tOrig - tRecal);
     /* Un ítem que conserva el precio unitario del archivo NO es un problema:
        es la decisión de respetar el documento original. Lo que sí lo es: que
        el archivo declare un subtotal que sus propios insumos no dan (s.difs). */
@@ -4222,8 +4250,8 @@
         <tr><td>Tipo de cambio</td><td>${s.tc}</td></tr>
         <tr><td>Recargos leídos del archivo</td><td>cargas ${s.params.cargas}% · IVA M.O. ${s.params.ivaMO}% ·
             herramientas ${s.params.herr}% · G.G. ${s.params.gg}% · utilidad ${s.params.util}% · IT ${s.params.it}%</td></tr>
-        <tr><td>Total según el archivo importado</td><td class="num"><b>${M.fmt(s.totalOrigen, 2)} Bs</b></td></tr>
-        <tr><td>Total recalculado por OpenBOQ</td><td class="num"><b>${M.fmt(s.totalRecalculado, 2)} Bs</b></td></tr>
+        <tr><td>Total según el archivo importado</td><td class="num"><b>${M.fmt(tOrig, 2)} Bs</b></td></tr>
+        <tr><td>Total recalculado por OpenBOQ</td><td class="num"><b>${M.fmt(tRecal, 2)} Bs</b></td></tr>
         <tr><td>Diferencia</td><td class="num" style="color:${dif < 1 ? 'var(--ok)' : 'var(--err)'}"><b>${M.fmt(dif, 2)} Bs</b></td></tr>
       </tbody></table>
       <p style="color:${ok ? 'var(--ok)' : 'var(--err)'}"><b>${ok
@@ -4458,8 +4486,8 @@
         fijarModo(nuevo ? 'simple' : 'completo', !nuevo);
         const caja = $('#iniPerfil');
         caja.innerHTML = nuevo
-          ? '<b>Listo: interfaz simple.</b> <span class="mini">Empiece con «Empezar en blanco» y después busque los ítems. El botón ⇄ del menú muestra la interfaz completa.</span>'
-          : '<b>Listo: interfaz completa.</b> <span class="mini">La misma organización de PRESCOM. El botón ⇄ del menú la simplifica.</span>';
+          ? '<b>Listo: interfaz simple.</b> <span class="mini">Empiece con «Empezar en blanco» y después busque los ítems. CONFIGURACIÓN → «Interfaz simple / completa» muestra la interfaz completa.</span>'
+          : '<b>Listo: interfaz completa.</b> <span class="mini">La misma organización de PRESCOM. CONFIGURACIÓN → «Interfaz simple / completa» la simplifica.</span>';
         return;
       }
       if (e.target.closest('[data-ini-queda]')) return;
@@ -4900,7 +4928,7 @@
     const a = M.analisis(it);
     const tds = tr.querySelectorAll('td');
     tds[4].textContent = M.fmt(M.conv(a.pu));
-    tds[5].innerHTML = '<b>' + M.fmt(M.conv(a.total)) + '</b>';
+    tds[5].innerHTML = '<b>' + M.fmt(M.conv(M.parcialGeneral(it))) + '</b>';
     tds[6].textContent = M.fmt(M.conv(a.mat * it.cant));
     tds[7].textContent = M.fmt(M.conv(a.totalMO * it.cant));
     tds[8].textContent = M.fmt(M.conv(a.totalEQ * it.cant));

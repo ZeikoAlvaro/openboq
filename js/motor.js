@@ -910,6 +910,39 @@ const MOTOR = (() => {
   function totalProyecto() {
     return r2(P.modulos.reduce((s, m) => s + totalModulo(m), 0));
   }
+  /* LOS TOTALES QUE SE MUESTRAN E IMPRIMEN en un proyecto importado de
+     PRESCOM (`P.redondeoPrescom`, lo marca el importador).
+
+     PRESCOM redondea el parcial de cada ítem (P.U. × cantidad) «al par»
+     —redondeo bancario, el `Round` de Visual Basic—: cuando cae justo en
+     medio centavo va al centavo par. 71,58 × 27.880,75 = 1.995.704,085 da
+     ,08 y no ,09. Módulos y total son la suma de esos parciales. Con eso
+     cierran al centavo los totales que muestra PRESCOM.
+
+     El cálculo interno (analisis().total, totalModulo, totalProyecto) no
+     cambia; un proyecto hecho en OpenBOQ tampoco. `totalPorModulo` era la
+     marca de la v73/v74 y se sigue aceptando. */
+  function r2par(v) {
+    const s = v < 0 ? -1 : 1;
+    const x = Math.round(Math.abs(Number(v) || 0) * 10000);   // P.U. y cantidad traen 2 decimales: 4 alcanzan
+    let c = Math.floor(x / 100);
+    const resto = x - c * 100;
+    if (resto > 50 || (resto === 50 && c % 2 === 1)) c++;
+    return s * c / 100;
+  }
+  const redondeoPrescom = () => P.redondeoPrescom === true || P.totalPorModulo === true;
+  function parcialGeneral(it) {
+    const a = analisis(it);
+    return redondeoPrescom() ? r2par(a.pu * (Number(it.cant) || 0)) : a.total;
+  }
+  function subtotalGeneral(m) {
+    if (!redondeoPrescom()) return totalModulo(m);
+    return r2(m.items.reduce((s, it) => s + parcialGeneral(it), 0));
+  }
+  function totalGeneral() {
+    if (!redondeoPrescom()) return totalProyecto();
+    return r2(P.modulos.reduce((s, m) => s + subtotalGeneral(m), 0));
+  }
   function conv(v) { return P.moneda === '$US' ? v / (P.tc || 1) : v; }
   function fmt(v, d) {
     d = (d === undefined) ? P.precision : d;
@@ -1071,6 +1104,180 @@ const MOTOR = (() => {
     return BD;
   }
 
+  /* =====================================================================
+     SANEADO DE LO QUE ENTRA DE AFUERA
+     ---------------------------------------------------------------------
+     Un `.boq` es un JSON que pudo armar cualquiera y llegar por correo o por
+     chat, igual que un archivo de bases propias. Hasta aca se cargaba tal
+     cual: `deserializar` se lo creia entero.
+
+     El escape de `esc()` ya cubre el texto que se imprime, pero hay dos
+     clases de dato que llegan CRUDAS a la pantalla, adentro de un atributo
+     (`data-tarea` con el id, `value` con la cantidad) y son sesenta lugares
+     distintos. Se limpian aca, en la puerta, que es un lugar y no sesenta.
+
+     Que hace, y nada mas que eso:
+       - identificadores: solo letras, numeros, guion y guion bajo. Los que
+         genera la aplicacion (`nid()`) ya son asi, asi que un archivo sano
+         no cambia en nada. Si uno trae algo raro se le da un identificador
+         nuevo y se reemplazan TODAS sus menciones, para no dejar colgada
+         una referencia (el tren de una actividad, el formato activo).
+       - numeros: lo que tiene que ser numero queda numero.
+       - fechas: 'AAAA-MM-DD' o vacio.
+       - textos: se les quitan los caracteres de control, que no se ven y
+         ensucian los impresos.
+
+     Que NO hace: recortar, redondear ni traducir. Nada que pueda mover un
+     precio o una cantidad. Un archivo que abria bien antes abre igual.
+     ===================================================================== */
+  const RE_ID_SANO = /^[A-Za-z0-9_-]{1,40}$/;
+
+  /** Texto de afuera: sin caracteres de control. No se recorta. */
+  const sTxt = v => String(v === undefined || v === null ? '' : v)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+
+  /** Numero de afuera; si no lo es, el que se pase por defecto. */
+  const sNum = (v, def) => { const n = Number(v); return Number.isFinite(n) ? n : def; };
+
+  /** Fecha de afuera: 'AAAA-MM-DD' o vacio. */
+  const sFecha = v => {
+    const t = String(v === undefined || v === null ? '' : v).slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : '';
+  };
+
+  /** Reemplaza, en todo el objeto, las cadenas que son un id cambiado. */
+  function sRefs(o, mapa, hondo) {
+    if (!o || typeof o !== 'object' || (hondo || 0) > 12) return;
+    const claves = Array.isArray(o) ? o.map((_, i) => i) : Object.keys(o);
+    claves.forEach(k => {
+      const v = o[k];
+      if (typeof v === 'string') { if (mapa.has(v)) o[k] = mapa.get(v); }
+      else if (v && typeof v === 'object') sRefs(v, mapa, (hondo || 0) + 1);
+    });
+  }
+
+  /** Saneado de un proyecto recien leido de un archivo. Devuelve el mismo. */
+  function sanearProyecto(p) {
+    if (!p || typeof p !== 'object') return p;
+    const mapa = new Map();                       // id de afuera -> id limpio
+    const sId = v => {
+      const t = String(v === undefined || v === null ? '' : v);
+      if (RE_ID_SANO.test(t)) return t;
+      if (!mapa.has(t)) mapa.set(t, nid());
+      return mapa.get(t);
+    };
+
+    /* --- 1 - identificadores y estructura --- */
+    p.modulos = (Array.isArray(p.modulos) ? p.modulos : []).filter(m => m && typeof m === 'object');
+    p.modulos.forEach(m => {
+      m.id = sId(m.id);
+      m.n = sTxt(m.n);
+      m.items = (Array.isArray(m.items) ? m.items : []).filter(it => it && typeof it === 'object');
+      m.items.forEach(it => { it.id = sId(it.id); });
+    });
+    p.trenes = (Array.isArray(p.trenes) ? p.trenes : []).filter(t => t && typeof t === 'object');
+    p.trenes.forEach(t => { t.id = sId(t.id); });
+    p.formatos = (Array.isArray(p.formatos) ? p.formatos : []).filter(f => f && typeof f === 'object');
+    p.formatos.forEach(f => { f.id = sId(f.id); });
+    if (p.insumos && typeof p.insumos === 'object' && !Array.isArray(p.insumos)) {
+      const ins = {};
+      Object.keys(p.insumos).forEach(k => {
+        const x = p.insumos[k];
+        if (!x || typeof x !== 'object') return;
+        const id = sId(k);
+        x.id = id;
+        ins[id] = x;
+      });
+      p.insumos = ins;
+    } else { p.insumos = {}; }
+
+    /* --- 2 - referencias a los identificadores que cambiaron --- */
+    if (mapa.size) sRefs(p, mapa);
+
+    /* --- 3 - numeros, fechas y textos --- */
+    p.nombre = sTxt(p.nombre); p.entidad = sTxt(p.entidad); p.ubicacion = sTxt(p.ubicacion);
+    p.fecha = sFecha(p.fecha) || fechaHoy();
+    p.inicioObra = sFecha(p.inicioObra) || p.fecha;
+    p.plazo = sNum(p.plazo, 180);
+    p.tc = sNum(p.tc, 6.96) || 6.96;
+    p.precision = Math.min(6, Math.max(0, Math.round(sNum(p.precision, 2))));
+    /* La moneda va cruda a un atributo y se imprime en cada cabecera: se
+       queda con letras, simbolos de moneda y punto, que es todo lo que un
+       nombre de moneda necesita. */
+    p.moneda = sTxt(p.moneda).replace(/[^\p{L}\p{Sc}.\/ -]/gu, '').slice(0, 10) || 'Bs';
+    p.moduloActivo = Math.max(0, Math.round(sNum(p.moduloActivo, 0)));
+
+    p.modulos.forEach(m => m.items.forEach(it => {
+      it.cod = sTxt(it.cod); it.desc = sTxt(it.desc); it.und = sTxt(it.und) || 'glb';
+      it.origen = sTxt(it.origen); it.pred = sTxt(it.pred); it.tren = sTxt(it.tren);
+      it.cant = sNum(it.cant, 0);
+      it.dias = Math.max(0, Math.round(sNum(it.dias, 0)));
+      it.inicio = Math.max(0, Math.round(sNum(it.inicio, 0)));
+      it.rec = (it.rec === null || it.rec === undefined || it.rec === '') ? null : sNum(it.rec, null);
+      it.comp = (Array.isArray(it.comp) ? it.comp : []).filter(c => c && typeof c === 'object');
+      it.comp.forEach(c => { c.ins = sTxt(c.ins); c.rend = sNum(c.rend, 0); });
+      it.computos = (Array.isArray(it.computos) ? it.computos : []).filter(c => c && typeof c === 'object');
+      it.computos.forEach(c => {
+        c.d = sTxt(c.d);
+        ['n', 'l', 'a', 'h'].forEach(k => {
+          if (c[k] === '' || c[k] === null || c[k] === undefined) { c[k] = ''; return; }
+          c[k] = sNum(c[k], '');
+        });
+      });
+    }));
+    p.trenes.forEach(t => { t.n = sTxt(t.n); t.rec = sNum(t.rec, REC_DEF); });
+    p.formatos.forEach(f => {
+      f.n = sTxt(f.n);
+      f.filas = (Array.isArray(f.filas) ? f.filas : []).filter(x => x && typeof x === 'object');
+      f.filas.forEach(x => {
+        x.n = sTxt(x.n);
+        x.k = (x.k === 'pct' || x.k === 'sum' || x.k === 'ent') ? x.k : 'pct';
+        x.pct = sNum(x.pct, 0);
+        x.sobre = (Array.isArray(x.sobre) ? x.sobre : []).map(sTxt);
+      });
+    });
+    Object.keys(p.insumos).forEach(k => {
+      const x = p.insumos[k];
+      x.t = sTxt(x.t).slice(0, 2) || 'M';
+      x.d = sTxt(x.d); x.u = sTxt(x.u) || 'pza';
+      x.p = sNum(x.p, 0);
+      if (x.f !== undefined) { const f = sFecha(x.f); if (f) x.f = f; else delete x.f; }
+    });
+    return p;
+  }
+
+  /** Saneado de un archivo de bases propias (el `.boq` de las bases). */
+  function sanearBDU(o) {
+    const pago = pay => {
+      if (!pay || typeof pay !== 'object') return null;
+      pay.cod = sTxt(pay.cod); pay.d = sTxt(pay.d); pay.u = sTxt(pay.u) || 'glb';
+      pay.c = (Array.isArray(pay.c) ? pay.c : []).filter(c => c && typeof c === 'object');
+      pay.c.forEach(c => {
+        c.t = sTxt(c.t).slice(0, 2) || 'M';
+        c.d = sTxt(c.d); c.u = sTxt(c.u) || 'pza';
+        c.p = sNum(c.p, 0); c.q = sNum(c.q, 0);
+        c.f = sFecha(c.f);
+      });
+      return pay;
+    };
+    o.bases = (Array.isArray(o.bases) ? o.bases : [])
+      .filter(b => b && typeof b === 'object' && Number.isFinite(Number(b.id)));
+    o.bases.forEach(b => {
+      b.id = Number(b.id);
+      b.n = sTxt(b.n);
+      b.apus = (Array.isArray(b.apus) ? b.apus : []).map(pago).filter(Boolean);
+    });
+    o.cambios = (Array.isArray(o.cambios) ? o.cambios : [])
+      .filter(ch => ch && typeof ch === 'object' && ch.pay);
+    o.cambios.forEach(ch => {
+      ch.baseId = sNum(ch.baseId, 0);
+      ch.seq = sNum(ch.seq, 0);
+      ch.pay = pago(ch.pay);
+    });
+    o.cambios = o.cambios.filter(ch => ch.pay);
+    return o;
+  }
+
   /* ---------------------------------------------------------------------
      BASES DE DATOS PROPIAS (se guardan en este navegador)
 
@@ -1092,12 +1299,12 @@ const MOTOR = (() => {
     try {
       const o = JSON.parse(localStorage.getItem(LS_BDU) || 'null');
       if (!o) return;
-      if (Array.isArray(o.bases)) BDU = { bases: o.bases, cambios: o.cambios || [] };
+      if (Array.isArray(o.bases)) BDU = sanearBDU({ bases: o.bases, cambios: o.cambios || [] });
       /* formato anterior: una sola lista de análisis propios */
-      else if (Array.isArray(o.propios)) BDU = {
+      else if (Array.isArray(o.propios)) BDU = sanearBDU({
         bases: o.propios.length ? [{ id: ID_PROPIA, n: N_PROPIA, apus: o.propios }] : [],
         cambios: o.cambios || []
-      };
+      });
     } catch (e) { /* sin localStorage la capa propia queda vacía */ }
   }
 
@@ -1115,7 +1322,9 @@ const MOTOR = (() => {
    */
   function importarBDU(o) {
     if (!o || !Array.isArray(o.bases)) return null;
-    BDU = { bases: o.bases, cambios: Array.isArray(o.cambios) ? o.cambios : [] };
+    /* Archivo de afuera: mismo trato que un .boq de proyecto. */
+    const limpio = sanearBDU({ bases: o.bases, cambios: o.cambios });
+    BDU = { bases: limpio.bases, cambios: limpio.cambios };
     guardarBDU(); aplicarBDU();
     return {
       bases: BDU.bases.length,
@@ -1690,6 +1899,9 @@ const MOTOR = (() => {
     const o = JSON.parse(txt);
     const p = o.P || o;
     if (!p || !p.modulos) throw new Error('El archivo no contiene un proyecto válido.');
+    /* Se mira sin abrirlo, pero se pinta en la pantalla igual que el abierto:
+       se sanea con la misma vara. */
+    sanearProyecto(p);
     p.params = Object.assign({}, PARAMS_DEF, p.params || {});
     p.crono = Object.assign({}, CRONO_DEF, p.crono || {});
     p.insumos = p.insumos || {};
@@ -1851,7 +2063,8 @@ const MOTOR = (() => {
     const o = JSON.parse(txt);
     const p = o.P || o;
     if (!p.modulos) throw new Error('El archivo no contiene un proyecto válido.');
-    P = p; _seq = o._seq || 1;
+    _seq = sNum(o._seq, 1) || 1;
+    P = sanearProyecto(p);
     P.params = Object.assign({}, PARAMS_DEF, P.params || {});
     P.crono = Object.assign({}, CRONO_DEF, P.crono || {});
     /* Los .boq anteriores a la v2.6 no traen formatos: quedan con el oficial,
@@ -2134,6 +2347,7 @@ const MOTOR = (() => {
     matrizApuInsumo, fijarRendimiento, factorRendimiento, fusionarApus,
     crearItemsEnLote, itemsDelAlcance,
     analisis, cadenaRecargos, correrCadena, totalModulo, totalProyecto,
+    subtotalGeneral, totalGeneral, parcialGeneral, r2par,
     formato, formatos, formatoPorId, formatoSABS, formatoEsOficial, ID_SABS, FILAS_ENTRADA,
     usarFormato, duplicarFormato, guardarFormato, renombrarFormato, eliminarFormato,
     validarFormato,

@@ -2,6 +2,44 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<!-- ===================== POLITICA DE CONTENIDO (CSP) =====================
+     Segunda linea de defensa, no la primera. La primera es que todo texto
+     ajeno sale escapado (`esc()` en js/reportes.js) y que lo que entra de un
+     archivo se sanea en la puerta (`sanearProyecto()` en js/motor.js).
+
+     Para que sirve esto entonces: si algun dia se escapa una inyeccion, el
+     token de la sesion de Supabase vive en el almacenamiento del navegador,
+     asi que lo que hay que impedir es que ese token SALGA. `connect-src`
+     deja hablar solo con el propio sitio, con Supabase y con Google Drive:
+     un `fetch` a cualquier otro servidor no sale, y una imagen a un servidor
+     ajeno tampoco (`img-src`).
+
+     Por que `'unsafe-inline'` en los scripts: la pagina tiene scripts en
+     linea a proposito —el tema antes del primer pintado, la vuelta del login
+     de escritorio— y atributos `onerror` en las etiquetas `<script>`. Sacar
+     eso es otra tarea; mientras siga, no se puede pedir mas.
+
+     Lo que SI queda cerrado de entrada: `object-src` (sin Flash ni plugins),
+     `base-uri` (nadie mueve la base de las direcciones relativas) y
+     `frame-ancestors` (la aplicacion no se puede meter en un marco ajeno,
+     que es como se roba un clic).
+
+     Al tocar la direccion de Supabase (js/nube-config.js) hay que tocar
+     `connect-src` tambien, o la aplicacion queda sin servidor sin decir por
+     que: el navegador lo avisa solo en la consola.
+     ====================================================================== -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob:;
+  font-src 'self' data:;
+  connect-src 'self' https://ejqcdkyyqekmoorrrady.supabase.co https://www.googleapis.com;
+  object-src 'none';
+  base-uri 'none';
+  form-action 'self';
+  frame-src 'none';
+  frame-ancestors 'none'">
 <!-- VERIFICACION DE PROPIEDAD (Google Search Console).
      Prueba que openboq.pages.dev es de Alvaro, que es lo que Google exige para
      aceptarla como pagina principal de la aplicacion al aprobar el permiso de
@@ -104,10 +142,10 @@
 
 <!-- ?v=N en cada archivo propio: sin eso el navegador puede seguir usando el
      .css o .js viejo de su caché. Al publicar, subir N acá y en sw.js. -->
-<link rel="stylesheet" href="css/estilo.css?v=71">
+<link rel="stylesheet" href="css/estilo.css?v=75">
 <!-- Capa v2: solo armazón y color, cargada después para pisar lo anterior.
      Los identificadores no cambian, así que ui.js sigue igual. -->
-<link rel="stylesheet" href="css/ui2.css?v=71">
+<link rel="stylesheet" href="css/ui2.css?v=75">
 </head>
 <body>
 
@@ -143,8 +181,10 @@
     <!-- El texto lo pinta pintarCuenta() en js/ui.js, igual que #stCuenta de la
          barra de estado: acá decía «Invitado» fijo y no cambiaba al entrar. -->
     <button class="quien" id="btnCuenta" data-acc="cuenta" title="Mi cuenta"><span class="i">👤</span><span class="txt">Invitado</span></button>
-    <!-- interfaz simple (4 pasos) o completa; el texto lo pinta aplicarModo() en ui.js -->
-    <button class="modo-bt" id="btnModo" data-acc="cambiarModo" title="Solo los cuatro pasos básicos"><span class="i">⇄</span><span class="txt">Interfaz simple</span></button>
+    <!-- El cambio de interfaz (simple de 4 pasos o completa) NO va aca: vive en
+         CONFIGURACION → «Interfaz simple / completa». Estaba en los dos lados y
+         en la barra se apretaba sin querer. `aplicarModo()` en ui.js sigue
+         tolerando que el boton no exista. -->
     <button class="tema-bt" data-acc="tema" title="Cambiar entre el tema claro y el oscuro">🌓</button>
   </div>
 </aside>
@@ -458,20 +498,20 @@
      Si ninguno de los dos está, o el descifrado falla, la aplicación arranca
      igual y el usuario trabaja con sus propias bases. El catálogo es
      opcional y siempre lo fue.                                              -->
-<script src="js/cifrado.js?v=71" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.obq.js?v=71" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.js?v=71" onerror="window.__sinCatalogo=1"></script>
+<script src="js/cifrado.js?v=75" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.obq.js?v=75" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.js?v=75" onerror="window.__sinCatalogo=1"></script>
 <!-- Cuenta, respaldo de la biblioteca, aportes anónimos y reportes.
      nube-config.js lleva la dirección del servidor y la clave pública; si
      falta, la aplicación funciona igual, solo sin cuenta. -->
-<script src="js/nube-config.js?v=71" onerror="window.__sinNube=1"></script>
-<script src="js/nube.js?v=71"></script>
-<script src="js/drive.js?v=71"></script>
+<script src="js/nube-config.js?v=75" onerror="window.__sinNube=1"></script>
+<script src="js/nube.js?v=75"></script>
+<script src="js/drive.js?v=75"></script>
 <!-- Pone al día la Base de Datos con lo que cambió en el repositorio
      central desde que se generó el catálogo. Si no está o falla, la
      aplicación funciona igual con el catálogo que trae. -->
-<script src="js/sync.js?v=71" onerror="window.__sinSincro=1"></script>
-<script src="js/acceso.js?v=71"></script>
+<script src="js/sync.js?v=75" onerror="window.__sinSincro=1"></script>
+<script src="js/acceso.js?v=75"></script>
 <script>
   /* ---------- arranque ----------
      El resto de la aplicación se carga DESPUÉS de que `window.OPENBOQ_DB`
@@ -487,7 +527,7 @@
   (function () {
     /* el mismo número que los ?v= de arriba: estuvo fijo en '62' desde la v2.6
        y motor.js, ui.js y los demás se pedían siempre con ?v=62 */
-    var V = '71';
+    var V = '75';
     var RESTO = ['js/motor.js', 'js/importador.js', 'js/exportador.js', 'js/xlsx.js',
                  'js/reportes.js', 'js/ui.js', 'js/ui2.js'];
 

@@ -91,7 +91,9 @@ const XLSX = (() => {
   const esc = s => String(s === undefined || s === null ? '' : s)
         .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    /* La comilla simple tambien: el XML de la hoja lleva atributos entre
+       comillas simples en algunos escritores, y cuesta nada. */
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
   function col(n) {                       // 1 -> A, 27 -> AA
     let s = '';

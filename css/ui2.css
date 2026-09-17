@@ -291,7 +291,7 @@ body.lat-cerrada .lat-pie .tema-bt{width:100%;text-align:center;padding:8px 0}
 
 /* ============ 4. INTERFAZ SIMPLE ============
    body.modo-simple lo pone aplicarModo() de js/ui.js. Solo OCULTA: todo lo
-   de abajo sigue en la página y vuelve con el botón ⇄ (Interfaz completa).
+   de abajo sigue en la página y vuelve desde CONFIGURACIÓN → Interfaz completa.
    Quedan cuatro pasos: buscar ítems, presupuesto, detalle del precio e
    imprimir. */
 .lat-pie{flex-wrap:wrap}
