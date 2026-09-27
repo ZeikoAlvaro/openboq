@@ -8,7 +8,7 @@
   "ubicacion": "Municipio de Oruro — Distrito 4",
   "fecha": "2026-07-27",
   "inicioObra": "2026-07-27",
-  "plazo": 120,
+  "plazo": 68,
   "moneda": "Bs",
   "tc": 6.96,
   "precision": 2,
@@ -378,7 +378,8 @@
       "computos": [],
       "dias": 51,
       "inicio": 0,
-      "origen": "ORURO"
+      "origen": "ORURO",
+      "pred": ""
      },
      {
       "id": "x12ve15",
@@ -410,8 +411,9 @@
       ],
       "computos": [],
       "dias": 1,
-      "inicio": 31,
-      "origen": "ORURO"
+      "inicio": 0,
+      "origen": "ORURO",
+      "pred": "1CC"
      },
      {
       "id": "x17ve15",
@@ -457,8 +459,9 @@
        }
       ],
       "dias": 6,
-      "inicio": 32,
-      "origen": "ORURO"
+      "inicio": 1,
+      "origen": "ORURO",
+      "pred": "2"
      },
      {
       "id": "x19ve15",
@@ -494,8 +497,9 @@
       ],
       "computos": [],
       "dias": 3,
-      "inicio": 36,
-      "origen": "ORURO"
+      "inicio": 7,
+      "origen": "ORURO",
+      "pred": "3"
      },
      {
       "id": "x24ve16",
@@ -555,8 +559,9 @@
       ],
       "computos": [],
       "dias": 9,
-      "inicio": 38,
-      "origen": "ORURO"
+      "inicio": 10,
+      "origen": "ORURO",
+      "pred": "4"
      },
      {
       "id": "x29ve16",
@@ -606,8 +611,9 @@
        }
       ],
       "dias": 1,
-      "inicio": 43,
-      "origen": "ORURO"
+      "inicio": 18,
+      "origen": "ORURO",
+      "pred": "5FC-1"
      },
      {
       "id": "x31ve18",
@@ -671,8 +677,9 @@
       ],
       "computos": [],
       "dias": 7,
-      "inicio": 44,
-      "origen": "ORURO"
+      "inicio": 19,
+      "origen": "ORURO",
+      "pred": "6"
      },
      {
       "id": "x37ve19",
@@ -708,8 +715,9 @@
       ],
       "computos": [],
       "dias": 13,
-      "inicio": 48,
-      "origen": "ORURO"
+      "inicio": 26,
+      "origen": "ORURO",
+      "pred": "7"
      }
     ]
    },
@@ -739,8 +747,9 @@
       ],
       "computos": [],
       "dias": 6,
-      "inicio": 56,
-      "origen": "ORURO"
+      "inicio": 39,
+      "origen": "ORURO",
+      "pred": "8"
      },
      {
       "id": "x43ve1a",
@@ -772,8 +781,9 @@
       ],
       "computos": [],
       "dias": 4,
-      "inicio": 60,
-      "origen": "ORURO"
+      "inicio": 45,
+      "origen": "ORURO",
+      "pred": "9"
      },
      {
       "id": "x44ve1b",
@@ -813,8 +823,9 @@
       ],
       "computos": [],
       "dias": 11,
-      "inicio": 62,
-      "origen": "ORURO"
+      "inicio": 49,
+      "origen": "ORURO",
+      "pred": "10"
      },
      {
       "id": "x47ve1b",
@@ -846,8 +857,9 @@
       ],
       "computos": [],
       "dias": 6,
-      "inicio": 69,
-      "origen": "ORURO"
+      "inicio": 60,
+      "origen": "ORURO",
+      "pred": "11"
      },
      {
       "id": "x51ve1b",
@@ -871,8 +883,9 @@
       ],
       "computos": [],
       "dias": 2,
-      "inicio": 73,
-      "origen": "ORURO"
+      "inicio": 66,
+      "origen": "ORURO",
+      "pred": "12"
      },
      {
       "id": "x54ve1c",
@@ -904,8 +917,9 @@
       ],
       "computos": [],
       "dias": 1,
-      "inicio": 74,
-      "origen": "ORURO"
+      "inicio": 67,
+      "origen": "ORURO",
+      "pred": "13FC-1"
      },
      {
       "id": "x57ve1c",
@@ -937,8 +951,9 @@
       ],
       "computos": [],
       "dias": 1,
-      "inicio": 75,
-      "origen": "ORURO"
+      "inicio": 67,
+      "origen": "ORURO",
+      "pred": "14FC-1"
      }
     ]
    }

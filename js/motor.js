@@ -2287,7 +2287,7 @@ const MOTOR = (() => {
   }
 
   /**
-   * Cuántas actividades tienen un comienzo que no respeta sus predecesoras.
+   * Cuántas actividades CON predecesora tienen un comienzo que no la respeta.
    * Pasa con proyectos guardados por versiones que distribuían las fechas por
    * incidencia: el archivo trae «Predecesora 1» pero un comienzo anterior al fin
    * de la 1. No toca el proyecto: calcula sobre una copia de los comienzos.
@@ -2317,7 +2317,12 @@ const MOTOR = (() => {
         if (ini[a.n] !== v) { ini[a.n] = v; cambio = true; }
       });
     }
-    return acts.filter(a => (Number(a.it.inicio) || 0) !== ini[a.n]).length;
+    /* Solo cuentan las que TIENEN predecesora: una actividad sin ella tiene
+       un comienzo puesto a mano o por el reparto viejo por incidencia, y eso
+       no es un error. (El «n-1» que se ve en la casilla vacía es solo la
+       sugerencia gris del placeholder, no un dato.) */
+    return acts.filter(a => leerPredecesoras(a.it.pred).length &&
+      (Number(a.it.inicio) || 0) !== ini[a.n]).length;
   }
 
   const hoyISO = () => new Date().toISOString().slice(0, 10);
