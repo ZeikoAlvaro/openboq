@@ -141,7 +141,12 @@ function sinComentarios(obj) {
    empaquetarlo lo dejaría congelado dentro del instalador. */
 function versionWeb(raiz) {
   const base = raiz || WEB;
-  const indice = fs.readFileSync(path.join(base, 'index.html'), 'utf8');
+  /* Sin comentarios HTML ni de bloque de JS: un comentario que cuenta la
+     historia de un número viejo (el `?v=62` fijo del cargador) no es una
+     marca y no tiene que cortar el armado. */
+  const indice = fs.readFileSync(path.join(base, 'index.html'), 'utf8')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
   const marcas = (indice.match(/\?v=\d+/g) || []).map(s => s.slice(3));
   const unicas = marcas.filter((v, i) => marcas.indexOf(v) === i);
 

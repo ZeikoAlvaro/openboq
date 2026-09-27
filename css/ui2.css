@@ -42,11 +42,13 @@
   --texto:#0b1c30;
   --texto-medio:#44474f;
   --texto-suave:#5a5f62;
-  --texto-tenue:#747780;
+  --texto-tenue:#62656e;     /* 5,6:1 sobre #f8f9ff; el #747780 daba 4,3:1 */
   --sel:#dce9ff;
   --amarillo:#fff4e2;
-  --sombra:rgba(3,34,77,.16);
-  --velo:rgba(3,34,77,.45);
+  /* sombras neutras: las teñidas de navy se leían como brillo de color */
+  --sombra:rgba(0,0,0,.14);
+  /* neutro: el navy sobre la barra lateral navy no oscurecía nada */
+  --velo:rgba(6,12,24,.55);
   /* barra lateral */
   --lat:#03224d;
   --lat-2:#0b2c5e;
@@ -56,8 +58,8 @@
   /* radios y sombras */
   --r:6px;
   --r-g:8px;
-  --sombra-1:0 1px 2px rgba(3,34,77,.06);
-  --sombra-2:0 4px 14px rgba(3,34,77,.12);
+  --sombra-1:0 1px 2px rgba(0,0,0,.06);
+  --sombra-2:0 4px 14px rgba(0,0,0,.12);
 }
 
 html[data-tema="oscuro"]{
@@ -103,7 +105,9 @@ html[data-tema="oscuro"]{
 /* ============ 2. ARMAZÓN ============
    .app abarca la barra lateral y la columna de trabajo; body sigue siendo
    una columna, así que .app tiene que poder encogerse (min-height:0). */
-body{font-family:Inter,"Segoe UI",Tahoma,Arial,sans-serif}
+/* Sin Inter: nunca se cargaba como fuente web, así que solo la veía quien la
+   tuviera instalada; el resto ya leía Segoe UI. Queda la del sistema. */
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Tahoma,Arial,sans-serif}
 .app{flex:1;display:flex;min-height:0}
 .col{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
 
@@ -124,7 +128,7 @@ body{font-family:Inter,"Segoe UI",Tahoma,Arial,sans-serif}
 }
 .lat-marca .txt{line-height:1.15}
 .lat-marca .txt b{font-size:15px;font-weight:700;letter-spacing:.2px}
-.lat-marca .txt small{display:block;font-size:10px;color:var(--lat-txt);letter-spacing:.6px}
+.lat-marca .txt small{display:block;font-size:11px;color:var(--lat-txt);letter-spacing:.6px}
 
 /* #tabs deja de ser una fila roja y pasa a ser la navegación vertical */
 .tabs{
@@ -153,7 +157,7 @@ body{font-family:Inter,"Segoe UI",Tahoma,Arial,sans-serif}
   box-shadow:inset 3px 0 0 var(--acento);
 }
 .tabs .cuenta{
-  margin:0;color:var(--lat-txt);font-size:11px;padding:8px 12px 0;display:block;
+  margin:0;color:var(--lat-txt);font-size:12px;padding:8px 12px 0;display:block;
 }
 
 /* botón de plegado, arriba a la derecha de la marca */
@@ -189,7 +193,7 @@ body{font-family:Inter,"Segoe UI",Tahoma,Arial,sans-serif}
   padding:0 6px;box-shadow:var(--sombra-1);
 }
 .menubar .m{
-  padding:8px 12px;font-size:11px;letter-spacing:.6px;color:var(--texto-medio);
+  padding:8px 12px;font-size:12px;letter-spacing:.6px;color:var(--texto-medio);
   border-radius:var(--r);margin:4px 1px;
 }
 .menubar .m:hover,.menubar .m.abierto{background:var(--azul-claro);color:var(--rojo-txt)}
@@ -222,7 +226,7 @@ table.rej{font-size:12.5px}
 table.rej th{
   background:var(--gris-barra);color:var(--rojo-txt);border:0;
   border-bottom:1px solid var(--gris-borde);padding:8px 8px;
-  font-size:11px;letter-spacing:.5px;
+  font-size:12px;letter-spacing:.5px;
 }
 table.rej td{border:0;border-bottom:1px solid var(--linea-suave);padding:7px 8px}
 table.rej tbody tr:nth-child(even){background:var(--papel-2)}
@@ -252,7 +256,7 @@ table.rej tfoot td{background:var(--papel-3);border:0;border-top:1px solid var(-
    ítem activo se sigue viendo (fondo más claro y filo ámbar). El texto no se
    borra del HTML —lo necesita ui.js— sino que se achica a 0 y el ícono, que
    es un ::before aparte, conserva su tamaño. */
-.lateral{transition:width .16s ease,flex-basis .16s ease}
+/* sin animar el ancho: repintaba toda la página en cada cuadro */
 body.lat-cerrada .lateral{width:56px;flex:0 0 56px}
 body.lat-cerrada .lat-marca{flex-direction:column;gap:6px;padding:10px 0}
 body.lat-cerrada .lat-marca .txt{display:none}
@@ -359,6 +363,69 @@ body.modo-simple .estado > span:nth-child(-n+3){display:none}
 .guia-simple .btn{font-size:14px;padding:8px 16px}
 
 /* la pregunta de la pantalla de inicio */
-.ini-perfil{border:1px solid var(--gris-borde);border-left:4px solid var(--acento);
+.ini-perfil{border:1px solid var(--acento);background:var(--amarillo);
   border-radius:var(--r);padding:12px 14px;margin-bottom:12px;display:grid;gap:8px}
 .ini-perfil .ini-bts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ============ 5. REVISIÓN DE INTERFAZ (26/09/2026) ============
+   Hallazgos del detector de impeccable y del recorrido con playwright-cli. */
+
+/* textos de ayuda: renglones de ~170 caracteres no se leen */
+p.mini,.vista .panel>p,#iniPie,.ini-legal{max-width:75ch}
+
+
+/* diálogos: el texto corta en ~70 caracteres; una tabla ancha sigue pudiendo
+   ensanchar el diálogo. «Proyecto abierto» salía de 1.100 px para dos líneas. */
+.modal .cuerpo p,.modal .cuerpo .mini{max-width:72ch}
+/* aparte: un navegador sin :has() descarta la regla entera, no solo esta parte */
+.modal .cuerpo>div:not([style*="overflow"]):not(:has(table)){max-width:72ch}
+
+/* aviso del cronograma cuando las fechas no cumplen las predecesoras */
+.aviso-crono{display:inline-flex;align-items:center;gap:8px;margin-left:10px;
+  padding:3px 4px 3px 10px;border:1px solid var(--acento);border-radius:var(--r);
+  background:var(--amarillo);color:var(--texto)}
+.aviso-crono .btn{padding:3px 10px}
+
+/* reportes: tres grupos, los formularios oficiales primero */
+.rep-grupo{margin:18px 0 8px;font-size:13px;color:var(--texto-medio);
+  letter-spacing:.4px;text-transform:uppercase}
+.rep-bts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;max-width:1000px}
+body.modo-simple #repOtros,body.modo-simple #repOtros+.rep-bts{display:none}
+
+/* barras que se desplazan a lo ancho: el borde se desvanece mientras quede
+   algo a la derecha (clase .hay-mas, la pone ui2.js) */
+.hay-mas{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 36px),transparent);
+  mask-image:linear-gradient(to right,#000 calc(100% - 36px),transparent)}
+
+/* pestañas de módulo: con «1 · OBRA GRUESA» el rótulo ya dice algo, pero en
+   93 px quedaba «1 · OB…». Siguen todas del mismo ancho. */
+.modulos .mtab{width:150px}
+
+@media (max-width:640px){
+  .modulos .mtab{width:118px}
+  /* B-1 en el celular: sin el desglose material/obrero/equipo/% entran el
+     unitario y el parcial, que son los que se miran */
+  #tblPresupuesto{min-width:620px}
+  #tblPresupuesto th:nth-child(n+7):nth-child(-n+10),
+  #tblPresupuesto tbody td:nth-child(n+7):nth-child(-n+10),
+  #tblPresupuesto tfoot td:nth-child(n+3):nth-child(-n+5){display:none}
+
+  /* pie compacto: en 664 px de alto se comía 150 y quedaban 5 filas.
+     Queda el total, el guardado en prueba y el enlace de privacidad
+     (Google lo exige visible). Ítems, insumos y módulo ya están arriba. */
+  .col>.estado{gap:4px 10px;padding:3px 8px}
+  /* la cuenta queda: en el celular la barra lateral no la muestra */
+  .col>.estado>span:nth-child(-n+3),#stGuardado{display:none}
+  .col>.estado .total{width:auto;margin-left:auto;font-size:14px}
+  .modulos .mtab{height:32px}
+  .modulos .mtab.nueva{width:32px}
+}
+
+/* dedo, no puntero: nada por debajo de 44 px de alto */
+@media (pointer:coarse){
+  .btn,.tabs button,.menubar .m,.modulos .mtab,.ini-op,.ini-tema,.ini-x,
+  select,input[type=text],input[type=number],input[type=date],input[type=search],
+  input[type=email],input[type=password]{min-height:44px}
+  .b-del{min-width:44px;min-height:44px}
+  table.rej td input{min-height:40px}
+}

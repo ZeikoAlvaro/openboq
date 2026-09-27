@@ -2286,6 +2286,40 @@ const MOTOR = (() => {
     return { tareas: acts.length, plazo: P.plazo, ciclo: cambio };
   }
 
+  /**
+   * Cuántas actividades tienen un comienzo que no respeta sus predecesoras.
+   * Pasa con proyectos guardados por versiones que distribuían las fechas por
+   * incidencia: el archivo trae «Predecesora 1» pero un comienzo anterior al fin
+   * de la 1. No toca el proyecto: calcula sobre una copia de los comienzos.
+   * @returns {number}
+   */
+  function fechasDesfasadas() {
+    const acts = actividades();
+    const ini = {}, porN = {};
+    acts.forEach(a => { porN[a.n] = a; ini[a.n] = Number(a.it.inicio) || 0; });
+    let cambio = true, vueltas = 0;
+    while (cambio && vueltas++ <= acts.length + 2) {
+      cambio = false;
+      acts.forEach(a => {
+        const dur = Math.max(1, Number(a.it.dias) || 1);
+        let v = 0;
+        leerPredecesoras(a.it.pred).forEach(p => {
+          const q = porN[p.n];
+          if (!q || q === a) return;
+          const iq = ini[q.n], dq = Math.max(1, Number(q.it.dias) || 1);
+          const base = p.tipo === 'CC' ? iq
+            : p.tipo === 'FF' ? iq + dq - dur
+              : p.tipo === 'CF' ? iq - dur
+                : iq + dq;
+          v = Math.max(v, base + p.desf);
+        });
+        v = Math.max(0, v);
+        if (ini[a.n] !== v) { ini[a.n] = v; cambio = true; }
+      });
+    }
+    return acts.filter(a => (Number(a.it.inicio) || 0) !== ini[a.n]).length;
+  }
+
   const hoyISO = () => new Date().toISOString().slice(0, 10);
 
   /** Fecha calendario de un día relativo al inicio de obra. */
@@ -2363,7 +2397,7 @@ const MOTOR = (() => {
     conProyecto, compararProyectos,
     distribuirCronograma, curvaS,
     horasManoObra, duracionItem, leerPredecesoras, actividades, estructuraCrono,
-    programar, fechaDia, fechasDe, fmtFecha, hoyISO,
+    programar, fechasDesfasadas, fechaDia, fechasDe, fmtFecha, hoyISO,
     REC_DEF, trenes, esTrenBase, trenDe, recursoDe, nuevoTren, eliminarTren, ajustarRecursos
   };
 })();

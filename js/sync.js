@@ -40,6 +40,17 @@ const SINCRO = (() => {
   const PAGINA = 1000;              // filas por pedido
   const ESPERA = 12000;             // ms antes de dar la red por perdida
 
+  /* EL UMBRAL. Cada fila del delta pesa unos 150 bytes: 20.000 filas son
+     ~3 MB por usuario, y con mil usuarios una curaduría grande se come en un
+     día los 5 GB de salida que el plan gratis de Supabase da por mes. Pasado
+     este número no se baja nada de Supabase: se espera el catálogo nuevo, que
+     se regenera después de cada curaduría grande y sale de Cloudflare Pages,
+     donde la salida es gratis. Lo ya bajado se sigue aplicando igual. */
+  const UMBRAL = 2000;
+
+  /** 'bajar' si el cambio es chico, 'esperar' si conviene el catálogo nuevo. */
+  const decidir = cuantos => (Number(cuantos) || 0) > UMBRAL ? 'esperar' : 'bajar';
+
   const hay = () => !!(CFG && CFG.url && CFG.anon && typeof indexedDB !== 'undefined');
 
   /* ------------------------- IndexedDB, mínima ------------------------- */
@@ -165,6 +176,7 @@ const SINCRO = (() => {
     }).then(r => {
       const cuantos = Number(r.cambios) || 0;
       if (!cuantos) return { estado: 'al-dia', cambios: 0 };
+      if (decidir(cuantos) === 'esperar') return { estado: 'espera-catalogo', cambios: cuantos };
 
       return bajar(guardado.marca, cuantos).then(filas => {
         if (!filas.length) return { estado: 'al-dia', cambios: 0 };
@@ -198,5 +210,5 @@ const SINCRO = (() => {
     })).catch(() => ({ hay: false }));
   }
 
-  return { hay, arrancar, olvidar, estado, fusionar };
+  return { hay, arrancar, olvidar, estado, fusionar, decidir, UMBRAL };
 })();

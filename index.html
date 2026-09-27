@@ -20,9 +20,10 @@
      eso es otra tarea; mientras siga, no se puede pedir mas.
 
      Lo que SI queda cerrado de entrada: `object-src` (sin Flash ni plugins),
-     `base-uri` (nadie mueve la base de las direcciones relativas) y
+     `base-uri` (nadie mueve la base de las direcciones relativas).
      `frame-ancestors` (la aplicacion no se puede meter en un marco ajeno,
-     que es como se roba un clic).
+     que es como se roba un clic) NO va aca: dentro de un <meta> el navegador
+     lo ignora y lo avisa en la consola. Va en `_headers`, como cabecera.
 
      Al tocar la direccion de Supabase (js/nube-config.js) hay que tocar
      `connect-src` tambien, o la aplicacion queda sin servidor sin decir por
@@ -38,8 +39,7 @@
   object-src 'none';
   base-uri 'none';
   form-action 'self';
-  frame-src 'none';
-  frame-ancestors 'none'">
+  frame-src 'none'">
 <!-- VERIFICACION DE PROPIEDAD (Google Search Console).
      Prueba que openboq.pages.dev es de Alvaro, que es lo que Google exige para
      aceptarla como pagina principal de la aplicacion al aprobar el permiso de
@@ -142,10 +142,10 @@
 
 <!-- ?v=N en cada archivo propio: sin eso el navegador puede seguir usando el
      .css o .js viejo de su caché. Al publicar, subir N acá y en sw.js. -->
-<link rel="stylesheet" href="css/estilo.css?v=75">
+<link rel="stylesheet" href="css/estilo.css?v=78">
 <!-- Capa v2: solo armazón y color, cargada después para pisar lo anterior.
      Los identificadores no cambian, así que ui.js sigue igual. -->
-<link rel="stylesheet" href="css/ui2.css?v=75">
+<link rel="stylesheet" href="css/ui2.css?v=78">
 </head>
 <body>
 
@@ -293,7 +293,7 @@
   <section class="vista" id="v-insumos">
     <div class="bar">
       <input type="search" id="buscaInsumo" placeholder="Buscar insumo…">
-      <select id="filtroTipoInsumo">
+      <select id="filtroTipoInsumo" aria-label="Tipo de insumo">
         <option value="">Todos</option><option value="M">Materiales</option>
         <option value="O">Mano de obra</option><option value="E">Equipo y maquinaria</option>
       </select>
@@ -372,14 +372,24 @@
     <div class="panel">
       <h2 style="color:var(--rojo-txt);margin-top:0">Reportes y formularios</h2>
       <p class="mini">Se abren en una ventana nueva lista para imprimir o guardar como PDF (Ctrl+P).</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;max-width:1000px">
+      <!-- Tres grupos con peso distinto: los formularios oficiales (B-1, B-2,
+           B-3) son lo que se entrega y van resaltados; el resto, secundario.
+           Los data-acc no cambian: la interfaz simple oculta por ellos. -->
+      <h3 class="rep-grupo">Formularios oficiales</h3>
+      <div class="rep-bts">
         <button class="btn" data-acc="repPresupuesto">📄 Formulario B-1 · Presupuesto general</button>
         <button class="btn" data-acc="repAnalisis">📄 Formulario B-2 · Análisis de precios unitarios</button>
         <button class="btn" data-acc="repElementales">📄 Formulario B-3 · Precios elementales</button>
-        <button class="btn" data-acc="repInsumos">📄 Requerimiento total de insumos</button>
-        <button class="btn" data-acc="repComputos">📄 Planilla de cómputos métricos</button>
-        <button class="btn" data-acc="repCrono">📄 Cronograma y curva S</button>
-        <button class="btn" data-acc="repResumen">📄 Resumen por módulos</button>
+      </div>
+      <h3 class="rep-grupo" id="repOtros">Otros reportes</h3>
+      <div class="rep-bts">
+        <button class="btn sec" data-acc="repInsumos">📄 Requerimiento total de insumos</button>
+        <button class="btn sec" data-acc="repComputos">📄 Planilla de cómputos métricos</button>
+        <button class="btn sec" data-acc="repCrono">📄 Cronograma y curva S</button>
+        <button class="btn sec" data-acc="repResumen">📄 Resumen por módulos</button>
+      </div>
+      <h3 class="rep-grupo">Exportar</h3>
+      <div class="rep-bts">
         <button class="btn sec" data-acc="exportarXls">📊 Exportar presupuesto a Excel</button>
         <button class="btn sec" data-acc="exportarCsvIns">📊 Exportar insumos a CSV</button>
       </div>
@@ -498,20 +508,20 @@
      Si ninguno de los dos está, o el descifrado falla, la aplicación arranca
      igual y el usuario trabaja con sus propias bases. El catálogo es
      opcional y siempre lo fue.                                              -->
-<script src="js/cifrado.js?v=75" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.obq.js?v=75" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.js?v=75" onerror="window.__sinCatalogo=1"></script>
+<script src="js/cifrado.js?v=78" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.obq.js?v=78" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.js?v=78" onerror="window.__sinCatalogo=1"></script>
 <!-- Cuenta, respaldo de la biblioteca, aportes anónimos y reportes.
      nube-config.js lleva la dirección del servidor y la clave pública; si
      falta, la aplicación funciona igual, solo sin cuenta. -->
-<script src="js/nube-config.js?v=75" onerror="window.__sinNube=1"></script>
-<script src="js/nube.js?v=75"></script>
-<script src="js/drive.js?v=75"></script>
+<script src="js/nube-config.js?v=78" onerror="window.__sinNube=1"></script>
+<script src="js/nube.js?v=78"></script>
+<script src="js/drive.js?v=78"></script>
 <!-- Pone al día la Base de Datos con lo que cambió en el repositorio
      central desde que se generó el catálogo. Si no está o falla, la
      aplicación funciona igual con el catálogo que trae. -->
-<script src="js/sync.js?v=75" onerror="window.__sinSincro=1"></script>
-<script src="js/acceso.js?v=75"></script>
+<script src="js/sync.js?v=78" onerror="window.__sinSincro=1"></script>
+<script src="js/acceso.js?v=78"></script>
 <script>
   /* ---------- arranque ----------
      El resto de la aplicación se carga DESPUÉS de que `window.OPENBOQ_DB`
@@ -527,7 +537,7 @@
   (function () {
     /* el mismo número que los ?v= de arriba: estuvo fijo en '62' desde la v2.6
        y motor.js, ui.js y los demás se pedían siempre con ?v=62 */
-    var V = '75';
+    var V = '78';
     var RESTO = ['js/motor.js', 'js/importador.js', 'js/exportador.js', 'js/xlsx.js',
                  'js/reportes.js', 'js/ui.js', 'js/ui2.js'];
 

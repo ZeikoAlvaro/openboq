@@ -54,7 +54,7 @@
     { "from": "../index.html", "to": "openboq/index.html" },
     { "from": "../css", "to": "openboq/css" },
     { "from": "../js", "to": "openboq/js" },
-    { "from": "../data/catalogo.js", "to": "openboq/data/catalogo.js" },
+    { "from": "../data/catalogo.obq.js", "to": "openboq/data/catalogo.obq.js" },
     { "from": "../acceso.json", "to": "openboq/acceso.json" },
     { "from": "../manifest.webmanifest", "to": "openboq/manifest.webmanifest" },
     { "from": "../icono.svg", "to": "openboq/icono.svg" },

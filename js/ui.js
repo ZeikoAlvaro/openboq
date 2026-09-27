@@ -140,6 +140,9 @@
   const TEXTO_SINCRO = {
     'al-dia': ['ok', 'Al día. El repositorio no tiene nada nuevo desde la marca del catálogo.'],
     'actualizado': ['ok', 'Se bajaron precios nuevos y ya están aplicados.'],
+    'espera-catalogo': ['adv', 'El repositorio tiene una actualización grande de precios. En vez de ' +
+      'bajarla de a pedazos, llega completa con la próxima versión del catálogo; mientras tanto se ' +
+      'trabaja con el que trae la aplicación.'],
     'sin-nube': ['adv', 'Esta copia no tiene repositorio configurado: la Base de Datos es la que ' +
       'viaja con la aplicación y no se actualiza sola.'],
     'catalogo-sin-marca': ['adv', 'El catálogo no dice cuándo se generó, así que no hay desde ' +
@@ -196,7 +199,9 @@
             !r ? 'Esta copia no tiene repositorio configurado.'
               : (r.estado === 'actualizado'
                 ? 'Se bajaron ' + (r.insumos || 0) + ' precio(s).'
-                : (r.estado === 'al-dia' ? 'Ya estaba al día.' : ''))));
+                : (r.estado === 'al-dia' ? 'Ya estaba al día.'
+                  : (r.estado === 'espera-catalogo'
+                    ? r.cambios + ' precio(s) nuevos llegan con el próximo catálogo.' : '')))));
           return false;
         }]]);
     });
@@ -332,15 +337,15 @@
     const n = P.modulos.reduce((s, m) => s + m.items.length, 0);
     $('#iniSesion').className = 'ini-sesion' + (hay ? '' : ' vacia');
     $('#iniSesion').innerHTML = hay
-      ? `<h4>Continuar donde lo dejó</h4>
+      ? `<h3>Continuar donde lo dejó</h3>
          <div class="proy"><b>${esc(P.nombre)}</b> — ${n} ítem(s), total
            ${M.fmt(M.conv(M.totalGeneral()))} ${P.moneda}</div>
          <div class="ini-bts">
            <button class="btn" data-ini-cerrar>Continuar</button>
            <button class="btn sec" data-acc="guardarComo">Guardar una copia…</button></div>`
-      : `<h4>No hay ningún proyecto abierto</h4>
+      : `<h3>No hay ningún proyecto abierto</h3>
          <div class="mini">Este navegador no tiene trabajo guardado. Empiece por una de las
-           cuatro opciones de abajo.</div>`;
+           opciones de abajo.</div>`;
     $('#iniPie').innerHTML = hay
       ? `El avance queda guardado en este navegador aunque cierre la pestaña o apague el equipo.
          Solo se reemplaza cuando crea un proyecto nuevo, abre otro <code>.boq</code> o importa un
@@ -1139,6 +1144,36 @@
   }
 
   /* ===================== MÓDULOS ===================== */
+  /**
+   * El selector «Módulo» de arriba sigue al ítem abierto en el B-2 o en
+   * CÓMPUTOS. Antes la barra decía «MÓDULO 1» mientras la vista mostraba un
+   * ítem del módulo 2. Es estado de la vista: no pasa por el ensayo.
+   */
+  function moduloDelItem(it, vista) {
+    /* render() pinta el B-2 y CÓMPUTOS juntos: manda la vista que se ve. */
+    const vis = { b2: '#cuerpoB2', comp: '#cuerpoComputos' }[vista];
+    if (vis && !($(vis) && $(vis).offsetParent)) return;
+    /* Si el usuario eligió arriba un módulo vacío, no hay ítem de ese módulo
+       que mostrar: se respeta su elección en vez de devolverlo al del ítem. */
+    const P = M.proyecto(), ma = P.modulos[P.moduloActivo];
+    if (ma && !ma.items.length) return;
+    const k = P.modulos.findIndex(m => m.items.indexOf(it) >= 0);
+    if (k >= 0 && k !== P.moduloActivo) { P.moduloActivo = k; renderModulos(); barraEstado(); }
+  }
+
+  /**
+   * Rótulo de la pestaña del módulo. Las cajas son angostas y «MÓDULO 1 —
+   * OBRA GRUESA» quedaba en «MÓDU…», igual para todos. Se saca el prefijo
+   * «MÓDULO n —» y se antepone el número: «1 · OBRA GRUESA». El nombre
+   * completo sigue en el title y en el selector de arriba.
+   */
+  function nombreCortoModulo(n, k) {
+    const t = String(n || '').trim();
+    const m = /^(?:M[ÓO]DULO|MOD\.?|M)\s*[#N°º-]*\s*(\d+)\s*[—–:.\-]*\s*(.*)$/i.exec(t);
+    if (m) return m[2] ? m[1] + ' · ' + m[2] : 'M' + m[1];
+    return (k + 1) + ' · ' + t;
+  }
+
   function renderModulos() {
     const P = M.proyecto();
     $('#selModulo').innerHTML = P.modulos.map((m, k) =>
@@ -1152,7 +1187,7 @@
        quedar a la vista y no al final de la fila. */
     $('#barraModulos').innerHTML = '<div class="mtabs">' + P.modulos.map((m, k) =>
       `<div class="mtab ${k === P.moduloActivo ? 'on' : ''}" data-mod="${k}" title="${esc(m.n)}">
-        <span class="mn">${esc(m.n)}</span><span class="mini">(${m.items.length})</span></div>`)
+        <span class="mn">${esc(nombreCortoModulo(m.n, k))}</span><span class="mini">(${m.items.length})</span></div>`)
       .join('') + '<div class="mtab nueva" data-mod="nuevo" title="Agregar un módulo">＋</div></div>' +
       `<span class="mini tot-mod">Total módulo: <b>${M.fmt(M.conv(M.subtotalGeneral(M.modulo())))} ${P.moneda}</b></span>`;
   }
@@ -1272,6 +1307,31 @@
     $('#detApu').innerHTML = h;
   }
 
+  /**
+   * Lo que se escribe en la casilla de un precio o de una cantidad.
+   * Solo cambia lo que se VE: el valor guardado sigue entero. Los .ddp traen
+   * precios en coma flotante corta (57,950001) y la casilla los mostraba así;
+   * se recorta ese ruido y, en precios, se completa a 2 para que
+   * la columna quede pareja (82,00 / 13,33). La casilla que el usuario está
+   * escribiendo no se toca: repintar «13.» como «13.00» le movía el cursor.
+   * @param {number} v valor guardado
+   * @param {string} attr atributo de la casilla (data-precio, data-ins-p…)
+   * @param {string} id
+   * @param {boolean} [precio] completar a 2 decimales
+   */
+  function vCasilla(v, attr, id, precio) {
+    const a = document.activeElement;
+    if (a && a.getAttribute && a.getAttribute(attr) === String(id)) return esc(a.value);
+    const n = Number(v);
+    if (!isFinite(n)) return esc(v);
+    /* El ruido es el de coma flotante de 32 bits (~7 cifras): se quita solo
+       si redondear a 7 cifras cambia el número menos que ese error. Así
+       0,00125 o 103.932,93 quedan como están. */
+    const c = +n.toPrecision(7);
+    const r = Math.abs(c - n) <= Math.abs(n) * 2e-7 ? c : +n.toFixed(6);
+    return precio && +r.toFixed(2) === r ? r.toFixed(2) : String(r);
+  }
+
   /* ===================== VISTA ANÁLISIS (B-2) ===================== */
   function renderSelectItems() {
     const P = M.proyecto();
@@ -1294,6 +1354,7 @@
     const it = M.getItem(id);
     const cont = $('#cuerpoB2');
     if (!it) { cont.innerHTML = '<div class="vacio">No hay ítems para analizar. Cree uno o tráigalo de la Base de Datos.</div>'; return; }
+    moduloDelItem(it, 'b2');
     const P = M.proyecto(), a = M.analisis(it);
     const nom = { M: '1. MATERIALES', O: '2. MANO DE OBRA', E: '3. EQUIPO, MAQUINARIA Y HERRAMIENTAS' };
     const oficial = M.formatoEsOficial();
@@ -1317,8 +1378,8 @@
       a.grupos[t].forEach((x, k) => {
         h += `<tr><td class="ctr">${k + 1}</td>
           <td>${esc(x.ins.d)}</td><td class="ctr">${esc(x.ins.u)}</td>
-          <td><input type="number" step="any" data-rend="${x.ins.id}" value="${x.rend}"></td>
-          <td><input type="number" step="any" data-precio="${x.ins.id}" value="${x.ins.p}"></td>
+          <td><input type="number" step="any" data-rend="${x.ins.id}" value="${vCasilla(x.rend, 'data-rend', x.ins.id)}"></td>
+          <td><input type="number" step="any" data-precio="${x.ins.id}" value="${vCasilla(x.ins.p, 'data-precio', x.ins.id, true)}"></td>
           <td class="num">${M.fmt(M.conv(x.parcial))}</td>
           <td class="ctr"><button class="b-del" data-quita="${x.ins.id}">✕</button></td></tr>`;
       });
@@ -1415,13 +1476,18 @@
       (!ft || x.t === ft) && (!q || M.norm(x.d).indexOf(q) >= 0));
     const nom = { M: 'Material', O: 'Mano de obra', E: 'Equipo' };
     usosAbiertos.forEach(id => { if (!P.insumos[id]) usosAbiertos.delete(id); });
+    /* La fecha solo existe para precios fijados dentro de OpenBOQ. En un
+       proyecto importado o recién traído de la Base de Datos la columna salía
+       entera en «—»: se muestra recién cuando algún precio tiene fecha. */
+    const verFecha = todos.some(x => x.f);
+    const nCol = verFecha ? 9 : 8;
     let h = `<thead><tr><th style="width:40px">N°</th><th style="width:100px">TIPO</th>
       <th>DESCRIPCIÓN DEL INSUMO</th><th style="width:70px">UND.</th>
       <th style="width:110px">PRECIO (${P.moneda})</th>
-      <th style="width:104px" title="Día en que se fijó este precio dentro de OpenBOQ. En blanco: el precio vino de un archivo o del catálogo y no se sabe de cuándo es.">FECHA PRECIO</th>
+      ${verFecha ? '<th style="width:104px" title="Día en que se fijó este precio dentro de OpenBOQ. En blanco: el precio vino de un archivo o del catálogo y no se sabe de cuándo es.">FECHA PRECIO</th>' : ''}
       <th style="width:110px">CANT. OBRA</th>
       <th style="width:120px">MONTO OBRA</th><th style="width:70px">USOS</th></tr></thead><tbody>`;
-    if (!L.length) h += '<tr><td colspan="9" class="vacio">' + (sinUso && !verSinUso
+    if (!L.length) h += '<tr><td colspan="' + nCol + '" class="vacio">' + (sinUso && !verSinUso
       ? 'Ningún insumo entra en un análisis. Marque «Ver los que no se usan» para ver los ' + sinUso + ' que están cargados.'
       : 'Sin insumos. Se cargan solos al traer ítems de la Base de Datos o al importar un proyecto.') + '</td></tr>';
     L.forEach((x, k) => {
@@ -1432,8 +1498,8 @@
         <td class="ins-d" data-ins-d="${x.id}"
           title="Doble clic: en qué ítems se usa este insumo">${esc(x.d)}</td>
         <td class="ctr">${esc(x.u)}</td>
-        <td><input type="number" step="any" data-ins-p="${x.id}" value="${x.p}"></td>
-        <td class="ctr fecha-precio">${fechaPrecio(x.f)}</td>
+        <td><input type="number" step="any" data-ins-p="${x.id}" value="${vCasilla(x.p, 'data-ins-p', x.id, true)}"></td>
+        ${verFecha ? `<td class="ctr fecha-precio">${fechaPrecio(x.f)}</td>` : ''}
         <td class="num">${r ? M.fmt(r.cant, 3) : '—'}</td>
         <td class="num">${r ? M.fmt(M.conv(r.monto)) : '—'}</td>
         <td class="num${usos[x.id] ? '' : ' sin-uso'}">${usos[x.id] || 0}</td></tr>`;
@@ -1671,6 +1737,7 @@
     const it = M.getItem($('#selItemComputo').value);
     const c = $('#cuerpoComputos');
     if (!it) { c.innerHTML = '<div class="vacio">No hay ítems cargados.</div>'; return; }
+    moduloDelItem(it, 'comp');
     /* medidas de la fila: las tres dimensiones más el área y el volumen
        tomados directamente del plano. Las vacías no multiplican. */
     const MED = [['n', 'N° VECES', ''], ['l', 'LARGO', 'm'], ['a', 'ANCHO', 'm'],
@@ -1732,7 +1799,14 @@
     }
     const plazo = P.plazo || 1;
     const fFin = M.fechasDe(0, plazo);
-    $('#lblPlazo').innerHTML = `Plazo <b>${plazo}</b> días · termina el <b>${M.fmtFecha(fFin.fin)}</b>`;
+    /* Un proyecto guardado por una versión vieja puede traer comienzos que no
+       cumplen sus predecesoras («Predecesora 1» pero empieza antes de que la 1
+       termine). No se corrige solo: el cronograma guardado es del usuario. */
+    const desf = M.fechasDesfasadas();
+    $('#lblPlazo').innerHTML = `Plazo <b>${plazo}</b> días · termina el <b>${M.fmtFecha(fFin.fin)}</b>` +
+      (desf ? ` <span class="aviso-crono" role="status">⚠ ${desf} actividad${desf === 1 ? '' : 'es'} empieza${
+        desf === 1 ? '' : 'n'} antes de lo que marcan sus predecesoras.
+        <button class="btn sec" data-acc="recalcularCrono">↻ Recalcular fechas</button></span>` : '');
 
     /* La escala del Gantt va por semanas calendario: cada casilla de arriba es
        una semana, desde la 1 hasta la que haga falta. Las barras se posicionan
@@ -1751,7 +1825,7 @@
       <th rowspan="2" style="min-width:300px">ACTIVIDAD</th>
       <th rowspan="2" style="width:66px">DURACIÓN</th><th rowspan="2" style="width:86px">COMIENZO</th>
       <th rowspan="2" style="width:86px">FIN</th>
-      <th rowspan="2" style="width:108px">PREDECESORAS</th><th rowspan="2" style="width:96px">RECURSOS</th>
+      <th rowspan="2" style="width:108px" title="Número de la actividad anterior. «3» = empieza cuando termina la 3; «3CC» = empieza con la 3; «3+2» = dos días después">PREDECESORAS</th><th rowspan="2" style="width:96px" title="Tren de trabajo (cuadrilla). TREN 0 = sin cuadrilla propia">TREN</th>
       <th rowspan="2" style="width:96px">MONTO</th>
       <th colspan="${semanas}" style="min-width:${anchoGantt}px">PROGRAMACIÓN · ${semanas} semanas ·
         ${M.fmtFecha(M.fechaDia(0))} a ${M.fmtFecha(fFin.fin)}</th>
@@ -1785,7 +1859,9 @@
           <td><input type="number" step="1" min="1" inputmode="numeric" data-dur="${it.id}" value="${Math.max(1, Number(it.dias) || 1)}"></td>
           <td class="ctr">${M.fmtFecha(f.ini)}</td><td class="ctr">${M.fmtFecha(f.fin)}</td>
           <td><input class="txt" data-pred="${it.id}" value="${esc(it.pred || '')}" placeholder="${a.n > 1 ? a.n - 1 : '—'}"></td>
-          <td class="ctr mini">${esc(M.trenDe(it).n)}</td>
+          <td class="ctr mini" title="${M.esTrenBase(M.trenDe(it))
+            ? 'Tren base: esta actividad no está en ninguna cuadrilla propia y lleva su propio % de recursos (pestaña RECURSOS)'
+            : 'Cuadrilla que hace esta actividad; sus recursos se definen en la pestaña RECURSOS'}">${esc(M.trenDe(it).n)}</td>
           <td class="num">${M.fmt(M.conv(M.analisis(it).total))}</td>
           <td class="celda" colspan="${semanas}" style="${rejilla}">${barraCrono(it.inicio, it.dias, diasEscala)}</td></tr>`;
       });
@@ -2563,7 +2639,7 @@
           ? 'se conservan (membrete, formatos y rótulos de <b>' + esc(s.origen || 'el .ddp importado') + '</b>)'
           : 'no hay: se escriben los de fábrica'}</td></tr>
         </tbody></table>
-        ${r.avisos.length ? '<ul style="font-size:11px;color:var(--aviso);padding-left:16px">' +
+        ${r.avisos.length ? '<ul style="font-size:12px;color:var(--aviso);padding-left:16px">' +
           r.avisos.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul>' : ''}
         <div class="form-g"><label>Guardar como (nombre del archivo)</label>
           <input id="expNom" value="${esc(arch)}" maxlength="60">
@@ -4271,11 +4347,11 @@
         PRESCOM guardó el análisis y algo cambió después sin recalcularlo. No se puede reproducir —
         faltaría un insumo que no está en el archivo—, así que conviene revisar esos análisis en el
         original.</p>
-        <ul style="font-size:11px;padding-left:16px">${s.incoherentes.slice(0, 6).map(x =>
+        <ul style="font-size:12px;padding-left:16px">${s.incoherentes.slice(0, 6).map(x =>
         `<li>«${esc(x.desc)}»: declara ${M.fmt(x.arch.m + x.arch.o + x.arch.e, 2)} y sus insumos suman
            ${M.fmt(x.calc.m + x.calc.o + x.calc.e, 2)} — ${M.fmt(Math.abs(x.falta), 2)} Bs sin
            respaldo</li>`).join('')}</ul>` : ''}
-      ${ok ? '' : '<ul style="font-size:11px;padding-left:16px">' + s.avisos.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul>'}
+      ${ok ? '' : '<ul style="font-size:12px;padding-left:16px">' + s.avisos.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul>'}
       <p class="mini">El archivo original no se modificó. Guarde este proyecto con
       <b>ARCHIVO → Guardar</b> para conservarlo como <code>.boq</code>.</p>
       <p class="mini">Cuando termine de editarlo puede devolverlo a PRESCOM con
@@ -4422,6 +4498,12 @@
   function irVista(v) {
     vista = v;
     $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+    /* En el celular las pestañas son una fila que se desplaza: la activa podía
+       quedar fuera de la pantalla y arriba seguía viéndose PRESUPUESTO. */
+    const bOn = $('#tabs button.on');
+    if (bOn && bOn.scrollIntoView && window.matchMedia('(max-width:900px)').matches) {
+      try { bOn.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) { }
+    }
     $$('.vista').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
     if (v === 'base' && !resBase.length) buscarBase();
     if (v === 'analisis') renderAnalisis();
@@ -4508,7 +4590,21 @@
     });
 
     // cabecera
-    $('#selModulo').addEventListener('change', e => { M.proyecto().moduloActivo = +e.target.value; render(); });
+    $('#selModulo').addEventListener('change', e => {
+      const P = M.proyecto(), k = +e.target.value;
+      P.moduloActivo = k;
+      /* En el B-2 y en CÓMPUTOS el módulo manda sobre el ítem abierto: si no,
+         moduloDelItem() devolvía la barra al módulo del ítem. El cambio de
+         ítem pasa por el mismo evento que la lista, con su control de ensayo. */
+      const m = P.modulos[k], it1 = m && m.items[0];
+      if (it1) ['#selItemAnalisis', '#selItemComputo'].forEach(sel => {
+        const el = $(sel), act = M.getItem(el.value);
+        if (!act || m.items.indexOf(act) < 0) {
+          el.value = it1.id; el.dispatchEvent(new Event('change'));
+        }
+      });
+      render();
+    });
     $('#selPrecision').addEventListener('change', e => { M.proyecto().precision = +e.target.value; tocar(); render(); });
     $('#selMoneda').addEventListener('change', e => { M.proyecto().moneda = e.target.value; tocar(); render(); });
     $('#inpTC').addEventListener('change', e => { M.proyecto().tc = +e.target.value || 6.96; tocar(); render(); });
