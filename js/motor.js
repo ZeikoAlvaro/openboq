@@ -43,8 +43,8 @@ const MOTOR = (() => {
 
      El formato oficial (`sabs`) queda como estaba y no se le puede cambiar la
      estructura: es el que reproduce exactamente el B-2 del DS 0181 y el que
-     sabe escribir el .ddp de vuelta a PRESCOM. Sus porcentajes sí se editan,
-     como siempre. Para otra estructura se duplica, y la copia se edita entera.
+     sabe escribir el .ddp. Sus porcentajes sí se editan, como siempre. Para
+     otra estructura se duplica, y la copia se edita entera.
      ===================================================================== */
 
   const ID_SABS = 'sabs';
@@ -60,7 +60,7 @@ const MOTOR = (() => {
   /* El formato oficial, fila por fila. `p` enlaza el porcentaje con la clave
      de `P.params`, que sigue siendo donde viven los seis números de siempre:
      así un .boq viejo abre igual, la pestaña INCIDENCIAS sigue editándolos y
-     el exportador a PRESCOM los encuentra donde siempre estuvieron. */
+     el exportador a .ddp los encuentra donde siempre estuvieron. */
   const FILAS_SABS = [
     { id: 's4', k: 'pct', n: 'Cargas sociales', p: 'cargas', sobre: [2], ref: 'cargas', ayuda: 'sobre el total de mano de obra' },
     { id: 's5', k: 'pct', n: 'IVA mano de obra', p: 'ivaMO', sobre: [2, 4], ref: 'ivaMO', ayuda: 'sobre (mano de obra + cargas sociales)' },
