@@ -1,9 +1,9 @@
-/* La aplicación sin el módulo de PRESCOM.
+/* La aplicación sin el módulo de .ddp.
 
-   Importar y exportar a PRESCOM viven en dos archivos aparte que no viajan en
+   Importar y exportar formato .ddp viven en dos archivos aparte que no viajan en
    el repositorio público. Sin ellos la aplicación tiene que arrancar igual,
    sin errores, y sin ofrecer opciones que no puede cumplir: ni la tarjeta
-   «Traer de PRESCOM» de la pantalla de inicio ni las entradas del menú.
+   «Traer de .ddp» de la pantalla de inicio ni las entradas del menú.
 
    Con los módulos presentes, todo tiene que seguir apareciendo.
 
@@ -61,8 +61,8 @@ const tarjetaVisible = w => {
   const archivo = textoMenu(w, 'archivo');
   ok(archivo !== null, 'el menú ARCHIVO se abre');
   if (archivo !== null) {
-    ok(!/Importar proyecto|archivos sueltos|Exportar a PRESCOM/.test(archivo),
-      'ARCHIVO no muestra importar ni exportar a PRESCOM');
+    ok(!/Importar proyecto|archivos sueltos|Exportar a formato \.ddp/.test(archivo),
+      'ARCHIVO no muestra importar ni exportar a .ddp');
     /* Exportar a Excel ya no vive en ARCHIVO: estaba repetido en ARCHIVO y en
        REPORTES, y quedo solo en REPORTES junto con el CSV de insumos. */
     ok(/Nuevo proyecto/.test(archivo) && /Datos generales/.test(archivo),
@@ -76,15 +76,15 @@ const tarjetaVisible = w => {
 
   const hay = [MOD_IMP, MOD_EXP].every(f => fs.existsSync(path.join(dir, f)));
   if (hay) {
-    console.log('== Con el módulo de PRESCOM ==');
+    console.log('== Con el módulo de .ddp ==');
     w = arrancar(true);
     await dormir(400);
-    ok(tarjetaVisible(w), 'la pantalla de inicio ofrece «Traer de PRESCOM»');
+    ok(tarjetaVisible(w), 'la pantalla de inicio ofrece «Traer de .ddp»');
     const a2 = textoMenu(w, 'archivo');
-    ok(/Importar proyecto/.test(a2 || '') && /Exportar a PRESCOM/.test(a2 || ''),
-      'ARCHIVO muestra importar y exportar a PRESCOM');
+    ok(/Importar proyecto/.test(a2 || '') && /Exportar a formato \.ddp/.test(a2 || ''),
+      'ARCHIVO muestra importar y exportar a .ddp');
   } else {
-    console.log('  · el módulo de PRESCOM no está en esta copia: se omite la segunda mitad');
+    console.log('  · el módulo de .ddp no está en esta copia: se omite la segunda mitad');
   }
 
   const reales = errores.filter(e => !/^ALERT: /.test(e));

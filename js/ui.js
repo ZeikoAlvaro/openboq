@@ -1970,7 +1970,7 @@
       ['Guardar como… (elegir carpeta)', 'guardarComo', 'Ctrl+Mayús+S'], ['—'],
       ['Importar proyecto (.ddp)…', 'importarDDP'],
       ['Importar archivos sueltos (.PRE .IND .DAT)…', 'importarSueltos'],
-      ['Exportar a PRESCOM (.ddp)…', 'exportarPrescom'], ['—'],
+      ['Exportar a formato .ddp…', 'exportarPrescom'], ['—'],
       ['Datos generales del proyecto…', 'datosProyecto'],
       /* Lo que sale del proyecto —Excel e insumos en CSV— vive en REPORTES y
          solo ahi: estaba repetido en los dos menus y el mismo usuario no
@@ -2029,7 +2029,7 @@
     ['—'], ['Reportar un error o una observación…', 'reportar']]
   };
 
-  /* Importar y exportar a PRESCOM (js/importador.js y js/exportador.js) son
+  /* Importar y exportar formato .ddp (js/importador.js y js/exportador.js) son
      módulos aparte, que no viajan en el repositorio público. Sin ellos la
      aplicación funciona igual y sus opciones simplemente no aparecen. */
   (() => {
@@ -4391,9 +4391,9 @@
         REP.descargar(r.nombre + '.ddp', r.datos, 'application/octet-stream');
       }
       M.guardarLocal();            // queda anotado el nombre con que se exportó
-      marcarGuardado('Exportado a PRESCOM como ' + r.nombre + '.ddp · ' + hora());
+      marcarGuardado('Exportado a formato .ddp como ' + r.nombre + '.ddp · ' + hora());
     } catch (e) {
-      alert('No se pudo exportar a PRESCOM:\n' + e.message);
+      alert('No se pudo exportar a formato .ddp:\n' + e.message);
       marcarGuardado('');
     }
   }
