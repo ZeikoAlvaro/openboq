@@ -59,9 +59,9 @@
      el guardado viven en ui.js (TEMA). -->
 <script>
   try {
-    var t = localStorage.getItem('openboq_tema');
+    var t = localStorage.getItem('openboq_tema') || 'oscuro';
     if (t === 'oscuro' || t === 'claro') document.documentElement.dataset.tema = t;
-  } catch (e) { /* navegador sin almacenamiento: queda el tema claro */ }
+  } catch (e) { document.documentElement.dataset.tema = 'oscuro'; /* navegador sin almacenamiento: tema oscuro */ }
 </script>
 <!-- ===================== VUELTA DEL LOGIN =====================
      Solo corre en la pestaña que el NAVEGADOR abrió para entrar con Google
@@ -508,6 +508,8 @@
      Si ninguno de los dos está, o el descifrado falla, la aplicación arranca
      igual y el usuario trabaja con sus propias bases. El catálogo es
      opcional y siempre lo fue.                                              -->
+<!-- Tauri bridge — emula window.OPENBOQ_ESCRITORIO si está en Tauri. Carga ANTES de cualquier otro script. -->
+<script src="tauri-bridge.js" onerror="console.log('tauri-bridge.js: no en Tauri o error')"></script>
 <script src="js/cifrado.js?v=79" onerror="window.__sinCifrado=1"></script>
 <script src="data/catalogo.obq.js?v=79" onerror="window.__sinCifrado=1"></script>
 <script src="data/catalogo.js?v=79" onerror="window.__sinCatalogo=1"></script>

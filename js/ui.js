@@ -1724,7 +1724,7 @@
       </div>`;
 
     if (!oficial) h += `<p class="mini" style="max-width:70ch">
-      <b>Exportar a PRESCOM:</b> el archivo <code>.ddp</code> solo sabe guardar los seis recargos
+      <b>Formato .DDP:</b> el archivo <code>.ddp</code> solo sabe guardar los seis recargos
       del formato oficial. Con un formato propio la exportación avisa antes y escribe los seis que
       pueda; el resto de la cadena no viaja en ese formato.</p>`;
 
@@ -2608,7 +2608,7 @@
       catch (e) { alert('No se pudo preparar la exportación:\n' + e.message); return; }
       const s = r.resumen;
       if (r.errores.length) {
-        modal('Exportar a PRESCOM', `
+        modal('Exportar (.ddp)', `
           <p>El proyecto no entra en el formato de PRESCOM tal como está:</p>
           <ul style="font-size:12px;color:var(--err)">${r.errores.map(e => '<li>' + esc(e) + '</li>').join('')}</ul>
           <p class="mini">Un análisis de PRESCOM admite hasta 30 materiales, 10 renglones de mano de
@@ -2628,7 +2628,7 @@
         <code>.ddp</code>: PRESCOM guarda solo los seis recargos del DS 0181. El archivo se escribe
         con esos seis y con los precios unitarios que calculó OpenBOQ, así que el presupuesto
         cierra igual; pero si en PRESCOM se recalcula un análisis, el resultado va a diferir.</p></div>`;
-      modal('Exportar a PRESCOM — Guardar como', `
+      modal('Exportar (.ddp) — Guardar como', `
         ${avisoFormato}
         <p>Se arma un contenedor <code>.ddp</code> con el presupuesto, los análisis, los insumos,
         los módulos y los recargos del proyecto.</p>
@@ -4293,7 +4293,7 @@
             <b>«redondeo del archivo de origen»</b>. Al editar el análisis de un ítem vuelve el precio
             calculado, y con <b>HERRAMIENTAS → Recalcular los precios unitarios del archivo
             importado</b> se sueltan todos de una vez.</li>
-        <li><b>ARCHIVO → Exportar a PRESCOM (.ddp)</b>: el camino de vuelta. Se puede abrir un
+        <li><b>ARCHIVO → Exportar (.ddp)</b>: el camino de vuelta. Se puede abrir un
             <code>.ddp</code>, trabajarlo acá y devolverlo a PRESCOM con los cambios; el membrete y
             los formatos del archivo original se conservan. <b>Al revés que el .boq, este archivo no
             se puede renombrar desde Windows</b>: PRESCOM busca los archivos por el nombre del
@@ -4355,7 +4355,7 @@
       <p class="mini">El archivo original no se modificó. Guarde este proyecto con
       <b>ARCHIVO → Guardar</b> para conservarlo como <code>.boq</code>.</p>
       <p class="mini">Cuando termine de editarlo puede devolverlo a PRESCOM con
-      <b>ARCHIVO → Exportar a PRESCOM (.ddp)</b>: el membrete, los rótulos y los formatos de este
+      <b>ARCHIVO → Exportar (.ddp)</b>: el membrete, los rótulos y los formatos de este
       archivo se guardan y vuelven intactos.</p>
       <p class="mini">Los ítems de un PRESCOM sirven para los proyectos que vengan: puede guardarlos
       como base de datos propia. Se propone una base nueva con el nombre del archivo —cada origen en

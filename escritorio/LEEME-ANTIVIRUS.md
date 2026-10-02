@@ -61,7 +61,24 @@ antes de comprar):
 | **OV clásico (Sectigo, DigiCert…)** | 200–400 US$/año | verificación de organización + token USB | El token hay que tenerlo puesto para armar |
 | **EV** | 400+ US$/año | verificación reforzada + token | Único que da reputación de SmartScreen **desde la primera descarga** |
 
-**Cómo firmar con este proyecto, una vez que haya certificado:**
+**Recomendado para OpenBOQ: Azure Trusted Signing.** Es el único camino que
+firma en la nube (sin token físico) y **sin obligar a hacer público el
+código** —SignPath Foundation exige repositorio abierto, y el escritorio
+empaqueta el módulo de PRESCOM—. Cuesta ~10 US$/mes y hace que Avast y
+Defender dejen de protestar de raíz. El proyecto ya trae el enganche listo
+(`firma-azure.js`): se activa solo cuando existen las variables de entorno.
+
+```powershell
+# Azure Trusted Signing (recomendado): sin .pfx, sin token físico
+$env:AZURE_TS_DLIB     = "C:\ruta\Azure.CodeSigning.Dlib.dll"
+$env:AZURE_TS_METADATA = "C:\ruta\metadata.json"   # Endpoint + cuenta + perfil
+$env:AZURE_TENANT_ID   = "..."
+$env:AZURE_CLIENT_ID   = "..."
+$env:AZURE_CLIENT_SECRET = "..."
+npm run armar
+```
+
+**Cómo firmar con un certificado clásico (`.pfx`/token), si se prefiere:**
 
 ```powershell
 $env:CSC_LINK = "C:\ruta\al\certificado.pfx"   # o su contenido en base64

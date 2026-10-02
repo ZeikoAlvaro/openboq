@@ -56,10 +56,22 @@ const SALIDA = path.join(AQUI, 'salida');
 const BASE = path.join(AQUI, 'electron-builder.base.json');
 const ICONO = path.join(AQUI, 'recursos', 'icono.ico');
 
-/* Dónde se publican los instaladores y su `latest.yml`. Cada canal cuelga de
-   su propia carpeta: un equipo con el paquete de 32 bits NO puede recibir el
-   de 64, así que los feeds no se mezclan nunca. */
-const PUBLICACION = 'https://openboq.pages.dev/descargas/';
+/* Dónde se publican los instaladores y sus `*.yml`. El feed vive en las
+   RELEASES de GitHub del repositorio público, no en Cloudflare Pages: Pages
+   rechaza archivos de más de 25 MiB y cada instalador pesa ~110 MB.
+
+   Los tres canales van en la MISMA release, sin chocar, porque cada uno
+   estampa su propio archivo de feed (un `channel` distinto → `latest.yml`,
+   `universal.yml`, `arm64.yml`). Un equipo con el paquete de 32 bits lee
+   `universal.yml` y nunca ve el de 64: los feeds no se mezclan. */
+const GH_OWNER = 'ZeikoAlvaro';
+const GH_REPO = 'openboq';
+
+/* Cada canal a su archivo de feed. electron-updater arma el nombre del `.yml`
+   a partir del `channel`, así que basta con darle uno distinto a cada canal
+   para que convivan en una sola release. El `x64` se queda con `latest` para
+   que sea el nombre canónico. */
+const CANAL_FEED = { x64: 'latest', universal: 'universal', arm64: 'arm64' };
 
 /* FIRMA DEL EJECUTABLE
    ---------------------
@@ -78,13 +90,23 @@ const PUBLICACION = 'https://openboq.pages.dev/descargas/';
    Con esas dos variables puestas, `npm run armar` sale firmado sin cambiar
    nada más. Sin ellas sale sin firma y se avisa al final del armado.
    Detalles y de dónde sacar un certificado: LEEME-ANTIVIRUS.md */
-const FIRMADO = !!(process.env.CSC_LINK || process.env.WIN_CSC_LINK);
+/* Certificado propio en firma-local/: si el usuario lo creó (con
+   firma-local/1-crear-certificado.ps1) y no puso CSC_LINK a mano, se usa
+   solo. Así `npm run armar` sale firmado sin tener que setear variables.
+   La carpeta firma-local/ está fuera del repo (lleva la clave privada). */
+(function detectarPfxLocal() {
+  if (process.env.CSC_LINK || process.env.WIN_CSC_LINK) return;
+  const pfx = path.join(AQUI, 'firma-local', 'openboq-firma.pfx');
+  const clave = path.join(AQUI, 'firma-local', 'clave.txt');
+  if (fs.existsSync(pfx) && fs.existsSync(clave)) {
+    process.env.CSC_LINK = pfx;
+    process.env.CSC_KEY_PASSWORD = fs.readFileSync(clave, 'utf8').trim();
+    console.log('   (usando el certificado propio de firma-local/)');
+  }
+})();
 
-/* Tope de tamaño por archivo de Cloudflare Pages: 25 MiB. Los instaladores
-   pesan del orden de 90 MB, así que NO entran ahí. Es la razón por la que el
-   feed de actualizaciones no puede vivir en openboq.pages.dev y hay que
-   apuntarlo a un lugar que acepte archivos grandes. Se avisa al armar. */
-const TOPE_PAGES = 25 * 1024 * 1024;
+const AZURE = !!(process.env.AZURE_TS_DLIB && process.env.AZURE_TS_METADATA);
+const FIRMADO = !!(process.env.CSC_LINK || process.env.WIN_CSC_LINK || AZURE);
 
 /* Electron 22.3.27: última con Windows 7/8.1. No subir sin perder Windows 7. */
 const ELECTRON_LEGADO = '22.3.27';
@@ -201,7 +223,13 @@ function configurar(canal) {
      de uno pisaría al del otro y un equipo de 32 bits terminaría recibiendo
      el instalador de 64. */
   base.directories = Object.assign({}, base.directories, { output: 'salida/' + canal });
-  base.publish = [{ provider: 'generic', url: PUBLICACION + canal + '/' }];
+  base.publish = [{
+    provider: 'github',
+    owner: GH_OWNER,
+    repo: GH_REPO,
+    channel: CANAL_FEED[canal] || canal,
+    releaseType: 'release'
+  }];
 
   base.win = Object.assign({}, base.win, {
     target: [
@@ -209,6 +237,21 @@ function configurar(canal) {
       { target: 'portable', arch: [c.arch] }
     ]
   });
+
+  /* Ofuscar PRESCOM dentro del paquete SIEMPRE. El escritorio empaqueta la
+     web como archivos sueltos en resources/openboq/js; sin esto, importador.js
+     y exportador.js viajarían en claro dentro del .exe y una release pública
+     los dejaría a la vista. Ruta con `/` para que electron-builder la resuelva
+     igual en Windows. */
+  base.afterPack = path.join(AQUI, 'ofuscar-prescom.js').replace(/\\/g, '/');
+
+  /* Firma en la nube con Azure Trusted Signing cuando hay credenciales. No
+     necesita token físico ni hacer público el código (lo que sí exige
+     SignPath). Si además está CSC_LINK, electron-builder firma solo y no hace
+     falta este gancho. */
+  if (AZURE) {
+    base.win.sign = path.join(AQUI, 'firma-azure.js').replace(/\\/g, '/');
+  }
   base.nsis = Object.assign({}, base.nsis, {
     artifactName: 'OpenBOQ-${version}-' + canal + '-instalador.${ext}',
     uninstallDisplayName: 'OpenBOQ ${version} (' + canal + ')'
@@ -299,13 +342,13 @@ function main() {
   console.log('OpenBOQ escritorio — armando ' + canales.join(', '));
   console.log('   programa:        ' + propia + '   (escritorio/package.json)');
   console.log('   aplicación web:  ' + web + '   (?v= de index.html, igual en sw.js)');
-  console.log('   firma:           ' + (FIRMADO ? 'sí (CSC_LINK)' : 'NO — el antivirus va a protestar'));
+  console.log('   firma:           ' + (AZURE ? 'sí (Azure Trusted Signing)'
+    : FIRMADO ? 'sí (CSC_LINK)' : 'NO — el antivirus va a protestar'));
 
   asegurarIcono();
   canales.forEach(armar);
 
   console.log('\nListo. En ' + SALIDA + ':');
-  let grandes = 0;
   canales.forEach(canal => {
     const dir = path.join(SALIDA, canal);
     if (!fs.existsSync(dir)) return;
@@ -314,28 +357,17 @@ function main() {
       .filter(f => /\.(exe|yml|blockmap)$/i.test(f) && f.indexOf('builder-debug') !== 0)
       .forEach(f => {
         const bytes = fs.statSync(path.join(dir, f)).size;
-        if (/\.exe$/i.test(f) && bytes > TOPE_PAGES) grandes++;
         console.log('      ' + f.padEnd(42) + (bytes / 1048576).toFixed(1) + ' MB');
       });
     huellas(dir);
   });
 
-  console.log('\nPara que la actualización automática funcione, subir el contenido de');
-  console.log('cada carpeta a  ' + PUBLICACION + '<canal>/');
-  console.log('Los tres archivos, incluido el .blockmap: sin él la actualización se');
-  console.log('baja entera en vez de solo los pedazos que cambiaron.');
-
-  if (grandes) {
-    console.log('');
-    console.log('OJO: Cloudflare Pages no acepta archivos de más de 25 MiB y hay ' + grandes);
-    console.log('     instalador(es) por encima de ese tope. El sitio de OpenBOQ está en');
-    console.log('     Pages, así que los .exe NO se pueden subir ahí: mientras el feed');
-    console.log('     apunte a ' + PUBLICACION);
-    console.log('     «Buscar actualizaciones» va a decir siempre que no hay nada');
-    console.log('     publicado. Hay que poner los instaladores en un lugar que acepte');
-    console.log('     archivos grandes —R2 o las Releases de un repositorio— y apuntar');
-    console.log('     PUBLICACION ahí. Ver LEEME-INSTALACION.md.');
-  }
+  console.log('\nPara publicar la actualización automática, subir TODO a una release de');
+  console.log('GitHub en ' + GH_OWNER + '/' + GH_REPO + ' con la etiqueta v' + propia + ':');
+  console.log('   node publicar_release.js');
+  console.log('Sube los .exe, cada *.yml de canal y los .blockmap a la misma release.');
+  console.log('El .blockmap importa: sin él la actualización se baja entera en vez de');
+  console.log('solo los pedazos que cambiaron.');
 
   if (!FIRMADO) {
     console.log('');

@@ -40,7 +40,7 @@ const VERSION = app.getVersion();
 /* Dónde mirar cuando la actualización automática no puede resolverse sola.
    Es la misma página de siempre, no un feed: sirve para mandar a alguien a
    bajar el instalador a mano. */
-const WEB_DESCARGAS = 'https://openboq.pages.dev/descargas/';
+const WEB_DESCARGAS = 'https://github.com/ZeikoAlvaro/openboq/releases/latest';
 
 /* El canal (universal / x64 / arm64) lo escribe hacer.js dentro del
    package.json del paquete, con extraMetadata. Sirve para el «Acerca de» y

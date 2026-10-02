@@ -1,6 +1,6 @@
 {
   "name": "openboq",
-  "version": "2.6.0",
+  "version": "2.7",
   "private": true,
   "description": "Presupuestos de obra en el navegador: análisis de precios unitarios, cómputos métricos, formularios B-1, B-2 y B-3, cronograma y curva S. Las dependencias son solo para pruebas y herramientas.",
   "license": "MIT",
