@@ -290,7 +290,7 @@
     const bt = $('#btnModo');
     if (bt) {
       bt.querySelector('.txt').textContent = simple ? 'Interfaz completa' : 'Interfaz simple';
-      bt.title = simple ? 'Ver todas las pestañas y menús (como PRESCOM)' : 'Solo los cuatro pasos básicos';
+      bt.title = simple ? 'Ver todas las pestañas y menús' : 'Solo los cuatro pasos básicos';
     }
     /* quien empieza no sabe qué base elegir: se busca en todas */
     const todas = $('#chkTodasBases');
@@ -315,7 +315,7 @@
     if (p && p.modo) { caja.innerHTML = ''; caja.className = ''; return; }
     caja.className = 'ini-perfil';
     caja.innerHTML = `
-      <b>¿Ya usó PRESCOM u otro programa de presupuestos de obra?</b>
+      <b>¿Ya trabajó con archivos .ddp u otro programa de presupuestos de obra?</b>
       <div class="ini-bts">
         <button class="btn" data-ini-queda data-perfil="nuevo">No, es mi primera vez</button>
         <button class="btn sec" data-ini-queda data-perfil="prescom">Sí, ya lo usé</button>
@@ -730,7 +730,7 @@
      de precios común. Eso va ANÓNIMO —la tabla no guarda quién lo mandó— y
      desfasado en el tiempo, para que no se pueda cruzar con el respaldo.
      ===================================================================== */
-  const VERSION = '2.6';
+  const VERSION = '2.7';
   const hayNube = () => typeof NUBE !== 'undefined' && NUBE.hay();
 
   /* Al entrar con la cuenta: versión y perfil para el panel de administración
@@ -1202,7 +1202,7 @@
       <th style="width:70px">UND.</th><th style="width:95px">CANTIDAD</th>
       <th style="width:105px">UNITARIO</th><th style="width:115px">PARCIAL</th>
       <th style="width:95px">MATERIAL</th><th style="width:95px">OBRERO</th>
-      <th style="width:95px">EQUIPO</th><th style="width:60px">%</th><th style="width:34px"></th>
+      <th style="width:95px">EQUIPO</th><th style="width:60px">%</th>
     </tr></thead><tbody>`;
     const tot = M.totalProyecto() || 1;
     /* El N° no reinicia en cada módulo: sigue la cuenta del presupuesto, igual
@@ -1214,7 +1214,7 @@
        (porcentajes, recálculo) sigue con totalProyecto */
     let sm = 0, so = 0, se = 0;
     if (!L.length && modoSimple()) {
-      h += `<tr><td colspan="11" class="vacio guia-simple">
+      h += `<tr><td colspan="10" class="vacio guia-simple">
         <b>¿Por dónde empiezo?</b>
         <ol>
           <li><b>Busque un ítem con precio</b> — por ejemplo «muro de ladrillo» o «excavación».
@@ -1224,7 +1224,7 @@
         </ol>
         <button class="btn" data-acc="irBase">🔎 Buscar ítems</button></td></tr>`;
     } else if (!L.length) {
-      h += `<tr><td colspan="11" class="vacio">Módulo vacío. Use <b>➕ Nuevo ítem</b> o traiga ítems desde la
+      h += `<tr><td colspan="10" class="vacio">Módulo vacío. Use <b>➕ Nuevo ítem</b> o traiga ítems desde la
             pestaña <b>BASE DE DATOS</b> (${(M.BD.stats.apus || 0).toLocaleString('es-BO')} análisis disponibles).</td></tr>`;
     }
     L.forEach((it, k) => {
@@ -1233,7 +1233,8 @@
       if (filtro && M.norm(it.desc).indexOf(filtro) < 0) return;
       h += `<tr data-item="${it.id}" class="${P.itemSel === it.id ? 'sel' : ''}">
         <td class="ctr">${desde + k + 1}</td>
-        <td><input class="txt" data-campo="desc" value="${esc(it.desc)}"></td>
+        <td class="c-desc"><input class="txt" data-campo="desc" readonly tabindex="-1" title="${esc(it.desc)}" value="${esc(it.desc)}"><button
+          class="b-itm" type="button" data-itm="${it.id}" title="Opciones del ítem" aria-label="Opciones del ítem" aria-haspopup="menu">▾</button></td>
         <td><input class="txt" data-campo="und" list="lUnidades" value="${esc(it.und)}" style="text-align:center"></td>
         <td><input type="number" step="any" data-campo="cant" value="${it.cant}"></td>
         <td class="num">${M.fmt(M.conv(a.pu))}</td>
@@ -1241,15 +1242,14 @@
         <td class="num">${M.fmt(M.conv(a.mat * it.cant))}</td>
         <td class="num">${M.fmt(M.conv(a.totalMO * it.cant))}</td>
         <td class="num">${M.fmt(M.conv(a.totalEQ * it.cant))}</td>
-        <td class="num">${(a.total / tot * 100).toFixed(1)}</td>
-        <td class="ctr"><button class="b-del" data-del="${it.id}" title="Eliminar">✕</button></td></tr>`;
+        <td class="num">${(a.total / tot * 100).toFixed(1)}</td></tr>`;
     });
     h += `</tbody><tfoot><tr>
       <td colspan="5" class="num">TOTAL ${esc(M.modulo().n)} (${P.moneda})</td>
       <td class="num">${M.fmt(M.conv(M.subtotalGeneral(M.modulo())))}</td>
       <td class="num">${M.fmt(M.conv(sm))}</td>
       <td class="num">${M.fmt(M.conv(so))}</td>
-      <td class="num">${M.fmt(M.conv(se))}</td><td colspan="2"></td></tr></tfoot>`;
+      <td class="num">${M.fmt(M.conv(se))}</td><td></td></tr></tfoot>`;
     $('#tblPresupuesto').innerHTML = h;
   }
 
@@ -1420,7 +1420,7 @@
 
     h += `<div class="res" style="margin-top:18px">
       ${oficial ? cierreOficial : cierrePropio}
-      ${a.ajuste ? `<div class="fila" title="El archivo de PRESCOM guarda los subtotales con 3 decimales y el precio unitario con 2: los dígitos que descarta deciden el centavo y no se pueden recuperar. Se conserva el precio del archivo para que el presupuesto cierre igual que el original; al editar este análisis vuelve el calculado (${M.fmt(M.conv(a.puCalculado))}).">
+      ${a.ajuste ? `<div class="fila" title="El archivo .ddp guarda los subtotales con 3 decimales y el precio unitario con 2: los dígitos que descarta deciden el centavo y no se pueden recuperar. Se conserva el precio del archivo para que el presupuesto cierre igual que el original; al editar este análisis vuelve el calculado (${M.fmt(M.conv(a.puCalculado))}).">
         <span>Redondeo del archivo de origen</span><span class="val">${M.fmt(M.conv(a.ajuste))}</span></div>` : ''}
       <div class="fila tot"><span>TOTAL PRECIO UNITARIO (${P.moneda})</span><span class="val">${M.fmt(M.conv(a.pu))}</span></div>
       <div class="fila sub"><span>PRECIO TOTAL DEL ÍTEM (${M.fmt(it.cant, 2)} ${esc(it.und)})</span><span class="val">${M.fmt(M.conv(M.parcialGeneral(it)))}</span></div>
@@ -2117,8 +2117,101 @@
     document.body.appendChild(d);
   }
   function cerrarMenus() {
+    clearTimeout(tMenuItem);
     $$('.menu-pop').forEach(x => x.remove());
     $$('.menubar .m').forEach(x => x.classList.remove('abierto'));
+    $$('.b-itm.abierto').forEach(x => x.classList.remove('abierto'));
+  }
+
+  /* ===================== MENÚ ▾ DE CADA ÍTEM DEL PRESUPUESTO =====================
+     Aparece al pasar el mouse por la descripción y se abre al acercarse al
+     botón ▾ (o con un clic, en pantalla táctil o con teclado). No se abre
+     sobre el texto mismo: ahí se escribe, y un menú que salta solo taparía
+     lo que se está corrigiendo. Las opciones usan el mismo data-acc que los
+     menús de arriba, con el id del ítem en data-acc-arg. */
+  let tMenuItem = 0;
+  function itemArg(arg) {
+    return (typeof arg === 'string' && M.getItem(arg)) ? arg : M.proyecto().itemSel;
+  }
+  function abrirMenuItem(bt) {
+    if (bt.classList.contains('abierto')) return;
+    cerrarMenus();
+    const P = M.proyecto(), id = bt.dataset.itm;
+    const L = M.items(), k = L.findIndex(x => x.id === id);
+    const otros = P.modulos.map((m, i) => ({ m, i })).filter(x => x.i !== P.moduloActivo);
+    const op = (txt, acc, arg, off) => off
+      ? `<div class="off" aria-disabled="true">${esc(txt)}</div>`
+      : `<div data-acc="${acc}" data-acc-arg="${esc(arg)}" role="menuitem">${esc(txt)}</div>`;
+    const sub = acc => `<section class="submenu" role="menu">` +
+      otros.map(x => op(x.m.n, acc, id + '|' + x.i)).join('') +
+      (otros.length ? '<div class="sep"></div>' : '') +
+      op('＋ Módulo nuevo…', acc, id + '|nuevo') + '</section>';
+    const d = document.createElement('div');
+    d.className = 'menu-pop menu-itm';
+    d.setAttribute('role', 'menu');
+    d.innerHTML =
+      op('Cambiar nombre…', 'renItem', id) +
+      op('Duplicar', 'dupItem', id) +
+      op('Mover arriba', 'subirItem', id, k <= 0) +
+      op('Mover abajo', 'bajarItem', id, k < 0 || k >= L.length - 1) +
+      '<div class="sep"></div>' +
+      op('Copiar a la base de datos…', 'itemABase', id) +
+      `<div class="padre" tabindex="0">Mover a otro módulo<span>▸</span>${sub('moverItemModulo')}</div>` +
+      '<div class="sep"></div>' +
+      op('Eliminar', 'delItem', id);
+    const r = bt.getBoundingClientRect();
+    d.style.left = Math.max(4, Math.min(r.right - 230, window.innerWidth - 234)) + 'px';
+    d.style.top = r.bottom + 'px';
+    document.body.appendChild(d);
+    /* que no se salga por abajo ni el submenú por la derecha */
+    const rd = d.getBoundingClientRect();
+    if (rd.bottom > window.innerHeight - 4) d.style.top = Math.max(4, r.top - rd.height) + 'px';
+    if (rd.right + 220 > window.innerWidth) d.classList.add('sub-izq');
+    bt.classList.add('abierto');
+    /* se cierra solo al alejar el mouse del botón y del menú */
+    const quedar = () => clearTimeout(tMenuItem);
+    const irse = () => { clearTimeout(tMenuItem); tMenuItem = setTimeout(cerrarMenus, 350); };
+    [bt, d].forEach(el => { el.addEventListener('mouseenter', quedar); el.addEventListener('mouseleave', irse); });
+  }
+  /* Lista de módulos destino debajo de un botón de la barra del presupuesto,
+     para el ítem seleccionado. */
+  function menuModulosBarra(accBoton, acc) {
+    const P = M.proyecto(), id = P.itemSel;
+    if (!id || !M.getItem(id)) return alert('Seleccione un ítem en el presupuesto.');
+    const bt = $('#v-presupuesto [data-acc="' + accBoton + '"]'); if (!bt) return;
+    const op = (txt, arg) => `<div data-acc="${acc}" data-acc-arg="${esc(arg)}" role="menuitem">${esc(txt)}</div>`;
+    const otros = P.modulos.map((m, i) => ({ m, i })).filter(x => x.i !== P.moduloActivo);
+    const d = document.createElement('div');
+    d.className = 'menu-pop menu-itm';
+    d.setAttribute('role', 'menu');
+    d.innerHTML = otros.map(x => op(x.m.n, id + '|' + x.i)).join('') +
+      (otros.length ? '<div class="sep"></div>' : '') + op('＋ Módulo nuevo…', id + '|nuevo');
+    const r = bt.getBoundingClientRect();
+    d.style.left = Math.min(r.left, window.innerWidth - 234) + 'px';
+    d.style.top = r.bottom + 'px';
+    document.body.appendChild(d);
+  }
+  function itemAOtroModulo(arg, mover) {
+    const [id, dest] = String(arg || '').split('|');
+    if (!M.getItem(id)) return;
+    const P = M.proyecto();
+    const hacer = k => {
+      probando('presupuesto');
+      const ok = mover ? M.moverItemAModulo(id, k) : M.copiarItemAModulo(id, k);
+      render();
+      if (ok) marcarGuardado((mover ? 'Ítem movido a «' : 'Ítem copiado a «') + P.modulos[k].n +
+        '» — todavía sin guardar', true);
+    };
+    if (dest !== 'nuevo') return hacer(Number(dest));
+    modal(mover ? 'Mover a un módulo nuevo' : 'Copiar a un módulo nuevo',
+      '<div class="form-g"><label>Nombre del módulo</label><input id="mIm" value="MÓDULO # ' +
+      (P.modulos.length + 1) + '"></div>',
+      [['Cancelar', null, 'sec'], [mover ? 'Mover' : 'Copiar', () => {
+        probando('presupuesto');
+        P.modulos.push({ id: M.nid(), n: $('#mIm').value.trim() || 'MÓDULO', items: [] });
+        hacer(P.modulos.length - 1);
+      }]]);
+    setTimeout(() => { const i = $('#mIm'); if (i) { i.focus(); i.select(); } }, 60);
   }
 
   /* ===================== MODAL ===================== */
@@ -2609,9 +2702,9 @@
       const s = r.resumen;
       if (r.errores.length) {
         modal('Exportar (.ddp)', `
-          <p>El proyecto no entra en el formato de PRESCOM tal como está:</p>
+          <p>El proyecto no entra en el formato .ddp tal como está:</p>
           <ul style="font-size:12px;color:var(--err)">${r.errores.map(e => '<li>' + esc(e) + '</li>').join('')}</ul>
-          <p class="mini">Un análisis de PRESCOM admite hasta 30 materiales, 10 renglones de mano de
+          <p class="mini">Un análisis del formato .ddp admite hasta 30 materiales, 10 renglones de mano de
           obra y 20 de equipo. Divida el ítem o junte insumos repetidos
           (<b>HERRAMIENTAS → Depurar insumos repetidos</b>) y vuelva a intentarlo.</p>`);
         return;
@@ -2625,9 +2718,9 @@
       const avisoFormato = M.formatoEsOficial() ? '' : `
         <div class="aviso-caja"><b>Este proyecto no usa el formato oficial.</b>
         <p class="mini" style="margin:4px 0 0">La cadena <b>${esc(M.formato().n)}</b> no cabe en un
-        <code>.ddp</code>: PRESCOM guarda solo los seis recargos del DS 0181. El archivo se escribe
+        <code>.ddp</code>: el formato guarda solo los seis recargos del DS 0181. El archivo se escribe
         con esos seis y con los precios unitarios que calculó OpenBOQ, así que el presupuesto
-        cierra igual; pero si en PRESCOM se recalcula un análisis, el resultado va a diferir.</p></div>`;
+        cierra igual; pero si el programa que abra el .ddp recalcula un análisis, el resultado va a diferir.</p></div>`;
       modal('Exportar (.ddp) — Guardar como', `
         ${avisoFormato}
         <p>Se arma un contenedor <code>.ddp</code> con el presupuesto, los análisis, los insumos,
@@ -2645,13 +2738,13 @@
           <input id="expNom" value="${esc(arch)}" maxlength="60">
           <span class="mini">Se guarda como <b id="expVista">${esc(arch)}.ddp</b> y ese mismo nombre
           llevan los trece archivos de adentro.</span></div>
-        <p class="mini"><b>No le cambie el nombre desde Windows.</b> PRESCOM descomprime el
+        <p class="mini"><b>No le cambie el nombre desde Windows.</b> El programa que lo abre descomprime el
         <code>.ddp</code> y después busca los archivos por el nombre del archivo: si se renombra
         afuera, adentro sigue el nombre viejo y deja de reconocer el proyecto. Para cambiarle el
         nombre, vuelva a exportarlo desde acá con el nombre nuevo.</p>
-        <p class="mini">Se abre en PRESCOM con <b>Archivo → Abrir proyecto</b> y el archivo
+        <p class="mini">Se abre con <b>Archivo → Abrir proyecto</b> y el archivo
         <code>.ddp</code>. El cronograma, los cómputos métricos y los códigos de ítem son de OpenBOQ
-        y no tienen dónde guardarse en PRESCOM: consérvelos en el <code>.boq</code>.</p>`,
+        y no tienen dónde guardarse en el .ddp: consérvelos en el <code>.boq</code>.</p>`,
         [['Cancelar', null, 'sec'],
         ['Guardar como…', () => {
           const n = ($('#expNom').value || arch).trim();
@@ -2703,16 +2796,70 @@
       revisarMientrasEscribe('niD', 'niAviso');
       setTimeout(() => { const i = $('#niD'); if (i) i.focus(); }, 60);
     },
-    delItem() {
-      const id = M.proyecto().itemSel;
+    /* Desde el menú ▾ de la fila llega el id del ítem; desde el menú de
+       arriba o el de Windows no llega nada y vale el seleccionado. */
+    delItem(arg) {
+      const id = itemArg(arg);
       if (!id) return alert('Seleccione un ítem en el presupuesto.');
       const it = M.getItem(id);
       modal('Eliminar ítem', '<p>¿Eliminar <b>' + esc(it.desc) + '</b> del presupuesto?</p>',
         [['Cancelar', null, 'sec'], ['Eliminar', () => { probando('presupuesto'); M.delItem(id); render(); }, 'rojo']]);
     },
-    dupItem() { const id = M.proyecto().itemSel; if (id) { probando('presupuesto'); M.duplicarItem(id); render(); } },
-    subirItem() { const id = M.proyecto().itemSel; if (id) { probando('presupuesto'); M.moverItem(id, -1); render(); } },
-    bajarItem() { const id = M.proyecto().itemSel; if (id) { probando('presupuesto'); M.moverItem(id, 1); render(); } },
+    dupItem(arg) { const id = itemArg(arg); if (id) { probando('presupuesto'); M.duplicarItem(id); render(); } },
+    subirItem(arg) { const id = itemArg(arg); if (id) { probando('presupuesto'); M.proyecto().itemSel = id; M.moverItem(id, -1); render(); } },
+    bajarItem(arg) { const id = itemArg(arg); if (id) { probando('presupuesto'); M.proyecto().itemSel = id; M.moverItem(id, 1); render(); } },
+    /** Copia el análisis del ítem a una base propia (el mismo diálogo que
+        «Guardar el presupuesto como base», con solo ese ítem marcado). */
+    itemABase(arg) {
+      const id = itemArg(arg); if (!id) return;
+      const it = M.getItem(id);
+      if (!it || !(it.comp && it.comp.length))
+        return alert('Este ítem no tiene análisis cargado: no hay nada que guardar en la base de datos.');
+      ACC.proyectoABase(null, null, [id]);
+    },
+    /* El nombre ya no se edita con solo tocar la fila: un roce del mouse o
+       una tecla de más lo cambiaba sin querer. «Cambiar nombre» abre la
+       edición en la misma fila: Enter o salir del campo guarda, Esc deja el
+       nombre como estaba. */
+    renItem(arg) {
+      const id = itemArg(arg);
+      const it = id && M.getItem(id);
+      if (!it) return alert('Seleccione un ítem en el presupuesto.');
+      const buscar = () => $('#tblPresupuesto tr[data-item="' + id + '"] input[data-campo="desc"]');
+      let inp = buscar();
+      if (!inp) { $('#buscaPres').value = ''; render(); inp = buscar(); }
+      if (!inp) return;
+      const antes = it.desc;
+      inp.readOnly = false; inp.tabIndex = 0;
+      inp.classList.add('editando');
+      inp.focus(); inp.select();
+      let hecho = false;
+      const terminar = guardar => {
+        if (hecho) return; hecho = true;
+        inp.removeEventListener('keydown', tecla); inp.removeEventListener('blur', alSalir);
+        const d = inp.value.trim();
+        if (guardar && d && d !== antes) {
+          probando('presupuesto');
+          it.desc = d;
+          const rev = M.revisarDescripcion(d);
+          if (rev.nivel === 'bloqueo')
+            marcarGuardado('La descripción ' + rev.motivo + ' — conviene dejarla genérica', true);
+        }
+        render(); renderSelectItems();
+      };
+      const tecla = e => {
+        if (e.key === 'Enter') { e.preventDefault(); terminar(true); }
+        else if (e.key === 'Escape') { e.preventDefault(); terminar(false); }
+        e.stopPropagation();   // Supr, Insert y compañía son de la celda, no del presupuesto
+      };
+      const alSalir = () => terminar(true);
+      inp.addEventListener('keydown', tecla);
+      inp.addEventListener('blur', alSalir);
+    },
+    /* arg = «idItem|índice del módulo» o «idItem|nuevo» */
+    moverItemModulo(arg) { itemAOtroModulo(arg, true); },
+    /* botones de la barra: la lista de módulos sale debajo del botón */
+    moverItemOtroModulo() { menuModulosBarra('moverItemOtroModulo', 'moverItemModulo'); },
     nuevoModulo() {
       modal('Nuevo módulo', '<div class="form-g"><label>Nombre del módulo</label><input id="mM" value="MÓDULO # ' + (M.proyecto().modulos.length + 1) + '"></div>',
         [['Cancelar', null, 'sec'], ['Crear', () => {
@@ -3660,10 +3807,13 @@
      *        .ddp llega el nombre del archivo, así cada PRESCOM queda en su
      *        propia base y no se mezcla con lo que ya había.
      * @param {number} [idDest] base destino preseleccionada
+     * @param {string[]} [soloIds] ítems que salen marcados (el resto, sin
+     *        marcar); sin esto salen todos marcados
      */
-    proyectoABase(sugerido, idDest) {
+    proyectoABase(sugerido, idDest, soloIds) {
       const P = M.proyecto();
       const L = M.itemsConAnalisis();
+      const marcar = Array.isArray(soloIds) ? new Set(soloIds) : null;
       if (!L.length) return alert('Ningún ítem del presupuesto tiene análisis cargado.');
       const propias = M.basesPropias();
       const nom = (typeof sugerido === 'string' && sugerido.trim()) || P.nombre || 'MI BASE';
@@ -3672,7 +3822,11 @@
       const nueva = !propias.length || (typeof sugerido === 'string' && !!sugerido.trim());
       const sel = id => (nueva ? false : Number(idDest) === id) ? 'selected' : '';
 
-      modal('Guardar el presupuesto como base de datos', `
+      /* los marcados primero: con un solo ítem pedido, que no quede perdido
+         a mitad de una lista de cientos */
+      if (marcar) L.sort((a, b) => marcar.has(b.it.id) - marcar.has(a.it.id));
+
+      modal(marcar ? 'Copiar a una base de datos' : 'Guardar el presupuesto como base de datos', `
         <p>Los ítems que elija se copian a una base de datos de este equipo, para poder traerlos a
         otros proyectos. El presupuesto abierto no se toca.</p>
         <div class="form-g"><label>Base destino</label>
@@ -3694,7 +3848,7 @@
             <th style="width:96px">COSTO DIR.</th></tr></thead><tbody>` +
         L.map(({ m, it }) => {
           const a = M.analisis(it);
-          return `<tr><td class="ctr"><input type="checkbox" data-pbitem="${it.id}" checked></td>
+          return `<tr><td class="ctr"><input type="checkbox" data-pbitem="${it.id}" ${!marcar || marcar.has(it.id) ? 'checked' : ''}></td>
             <td>${esc(it.desc)}<div class="mini">${esc(m.n)}</div></td>
             <td class="ctr">${esc(it.und)}</td>
             <td class="num">${M.fmt(a.mat + a.mo + a.eq, 2)}</td></tr>`;
@@ -4026,7 +4180,7 @@
       const r = M.conPuDeArchivo();
       if (!r.items)
         return modal('Precios unitarios', `
-          <p>Este proyecto no tiene precios unitarios heredados de un archivo de PRESCOM.</p>
+          <p>Este proyecto no tiene precios unitarios heredados de un archivo .ddp.</p>
           <p class="mini">Todos los precios los calcula OpenBOQ a partir de los análisis.</p>`);
       const P = M.proyecto();
       const antes = M.totalProyecto();
@@ -4036,7 +4190,7 @@
         origen.</p>
         <p>Al recalcular, OpenBOQ pasa a usar sus propios precios: desaparece el renglón
         «redondeo del archivo de origen» del B-2 y el total del presupuesto puede moverse unos
-        centavos respecto del documento de PRESCOM.</p>
+        centavos respecto del documento .ddp original.</p>
         <p class="mini">Total actual: <b>${M.fmt(M.conv(antes))} ${P.moneda}</b>. Queda como cambio
         en prueba: se deshace con <b>↺ Descartar</b> mientras no lo guarde. Una vez guardado, para
         volver atrás hay que importar el archivo de nuevo.</p>`,
@@ -4286,17 +4440,17 @@
             guardar: esos campos se cifran en su equipo y sin la frase no los abre nadie —usted
             tampoco, así que anótela. Para más de tres proyectos, los archivos <code>.boq</code>
             no tienen límite.</li>
-        <li><b>Proyectos traídos de PRESCOM</b>: el presupuesto importado imprime <b>exactamente el
-            mismo total</b> que el original. PRESCOM guarda los precios unitarios con dos decimales y
+        <li><b>Proyectos traídos de un .ddp</b>: el presupuesto importado imprime <b>exactamente el
+            mismo total</b> que el original. El .ddp guarda los precios unitarios con dos decimales y
             los subtotales con tres, así que en algunos ítems el centavo del redondeo no se puede
             recalcular; en esos, OpenBOQ conserva el precio del archivo y lo declara en el B-2 como
             <b>«redondeo del archivo de origen»</b>. Al editar el análisis de un ítem vuelve el precio
             calculado, y con <b>HERRAMIENTAS → Recalcular los precios unitarios del archivo
             importado</b> se sueltan todos de una vez.</li>
         <li><b>ARCHIVO → Exportar (.ddp)</b>: el camino de vuelta. Se puede abrir un
-            <code>.ddp</code>, trabajarlo acá y devolverlo a PRESCOM con los cambios; el membrete y
+            <code>.ddp</code>, trabajarlo acá y devolverlo como .ddp con los cambios; el membrete y
             los formatos del archivo original se conservan. <b>Al revés que el .boq, este archivo no
-            se puede renombrar desde Windows</b>: PRESCOM busca los archivos por el nombre del
+            se puede renombrar desde Windows</b>: adentro, los archivos se buscan por el nombre del
             <code>.ddp</code>. Para cambiarle el nombre, expórtelo de nuevo con el nombre nuevo.</li>
       </ol>`);
     }
@@ -4336,7 +4490,7 @@
           : 'Los ' + s.items + ' ítems se leyeron con costos y precios unitarios idénticos a los del archivo original.')
         : s.difs + ' ítem(s) del archivo declaran un costo directo que sus propios insumos no dan.'}</b></p>
       ${s.deArchivo ? `<p class="mini"><b>${s.deArchivo} ítem(s) conservan el precio unitario del archivo.</b>
-        PRESCOM guarda los subtotales con 3 decimales y el precio unitario con 2; en los ítems cuyo
+        El .ddp guarda los subtotales con 3 decimales y el precio unitario con 2; en los ítems cuyo
         precio cae al borde del medio centavo, los dígitos que descartó deciden el redondeo y no están
         en el archivo. Se respeta el precio del documento original —por eso el presupuesto cierra
         igual— y en el B-2 aparece como <b>«redondeo del archivo de origen»</b>. Al editar el análisis
@@ -4344,7 +4498,7 @@
       ${(s.incoherentes || []).length ? `<p class="mini" style="color:var(--err)"><b>${s.incoherentes.length}
         ítem(s) del archivo no cuadran consigo mismos:</b> el subtotal que declara el
         <code>.PRE</code> no es el que sale de sus propios insumos del <code>.DAT</code>. Pasa cuando
-        PRESCOM guardó el análisis y algo cambió después sin recalcularlo. No se puede reproducir —
+        se guardó el análisis y algo cambió después sin recalcularlo. No se puede reproducir —
         faltaría un insumo que no está en el archivo—, así que conviene revisar esos análisis en el
         original.</p>
         <ul style="font-size:12px;padding-left:16px">${s.incoherentes.slice(0, 6).map(x =>
@@ -4354,10 +4508,10 @@
       ${ok ? '' : '<ul style="font-size:12px;padding-left:16px">' + s.avisos.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul>'}
       <p class="mini">El archivo original no se modificó. Guarde este proyecto con
       <b>ARCHIVO → Guardar</b> para conservarlo como <code>.boq</code>.</p>
-      <p class="mini">Cuando termine de editarlo puede devolverlo a PRESCOM con
+      <p class="mini">Cuando termine de editarlo puede devolverlo como .ddp con
       <b>ARCHIVO → Exportar (.ddp)</b>: el membrete, los rótulos y los formatos de este
       archivo se guardan y vuelven intactos.</p>
-      <p class="mini">Los ítems de un PRESCOM sirven para los proyectos que vengan: puede guardarlos
+      <p class="mini">Los ítems de un .ddp sirven para los proyectos que vengan: puede guardarlos
       como base de datos propia. Se propone una base nueva con el nombre del archivo —cada origen en
       su base— para no mezclarlos con lo que ya tenga guardado.</p>`,
       [['Cerrar', null, 'sec'],
@@ -4375,13 +4529,13 @@
       if (typeof window.showSaveFilePicker === 'function') {
         destino = await window.showSaveFilePicker({
           suggestedName: base + '.ddp',
-          types: [{ description: 'Proyecto de PRESCOM', accept: { 'application/octet-stream': ['.ddp'] } }]
+          types: [{ description: 'Proyecto .ddp', accept: { 'application/octet-stream': ['.ddp'] } }]
         });
         base = EXPORTADOR.nombreInterno(destino.name);
       }
     } catch (e) { return; }        // el usuario canceló el diálogo
     try {
-      marcarGuardado('Armando el archivo de PRESCOM…');
+      marcarGuardado('Armando el archivo .ddp…');
       const r = await EXPORTADOR.ddp({ nombre: base });
       if (!r.datos) { alert('No se pudo exportar:\n' + r.errores.join('\n')); return; }
       if (destino) {
@@ -4400,7 +4554,7 @@
 
   /** Nombre de base propuesto para un archivo importado. */
   const baseDeArchivo = a =>
-    'PRESCOM — ' + String(a || 'importado').replace(/\.[^.]+$/, '').trim();
+    'DDP — ' + String(a || 'importado').replace(/\.[^.]+$/, '').trim();
 
   /* ---------------------------------------------------------------------
      GUARDAR EL PRESUPUESTO EN UNA BASE PROPIA
@@ -4528,7 +4682,11 @@
       const m = e.target.closest('.m');
       if (m) { m.classList.contains('abierto') ? cerrarMenus() : abrirMenu(m.dataset.menu, m); return; }
     });
+    /* el menú ▾ del ítem va en posición fija: si la rejilla se desplaza, queda flotando */
+    document.addEventListener('scroll', () => { if ($('.menu-itm')) cerrarMenus(); }, true);
     document.addEventListener('click', e => {
+      /* «Copiar a otro módulo ▸» solo despliega su lista: no cierra */
+      if (!e.target.closest('[data-acc]') && e.target.closest('.menu-itm .padre, .menu-itm .off')) return;
       if (!e.target.closest('.menubar')) cerrarMenus();
       const a = e.target.closest('[data-acc]');
       // data-acc-arg permite que un mismo botón sirva a varias secciones
@@ -4569,7 +4727,7 @@
         const caja = $('#iniPerfil');
         caja.innerHTML = nuevo
           ? '<b>Listo: interfaz simple.</b> <span class="mini">Empiece con «Empezar en blanco» y después busque los ítems. CONFIGURACIÓN → «Interfaz simple / completa» muestra la interfaz completa.</span>'
-          : '<b>Listo: interfaz completa.</b> <span class="mini">La misma organización de PRESCOM. CONFIGURACIÓN → «Interfaz simple / completa» la simplifica.</span>';
+          : '<b>Listo: interfaz completa.</b> <span class="mini">Todas las pestañas y menús. CONFIGURACIÓN → «Interfaz simple / completa» la simplifica.</span>';
         return;
       }
       if (e.target.closest('[data-ini-queda]')) return;
@@ -4616,7 +4774,8 @@
       const tr = e.target.closest('tr[data-item]'); if (!tr) return;
       const it = M.getItem(tr.dataset.item); if (!it) return;
       const c = e.target.dataset.campo;
-      if (!c) return;
+      /* el nombre se aplica al terminar la edición (ACC.renItem), no tecla a tecla */
+      if (!c || c === 'desc') return;
       probando('presupuesto');
       if (c === 'cant') it.cant = Number(e.target.value) || 0;
       else it[c] = e.target.value;
@@ -4635,9 +4794,14 @@
       if (rev.nivel === 'bloqueo')
         marcarGuardado('La descripción ' + rev.motivo + ' — conviene dejarla genérica', true);
     });
+    $('#tblPresupuesto').addEventListener('mouseover', e => {
+      const bt = e.target.closest('.b-itm');
+      if (bt) abrirMenuItem(bt);
+    });
     $('#tblPresupuesto').addEventListener('click', e => {
-      const del = e.target.closest('[data-del]');
-      if (del) { M.proyecto().itemSel = del.dataset.del; ACC.delItem(); return; }
+      const bt = e.target.closest('.b-itm');
+      /* sin cortar acá, el clic llega al documento y cierra el menú recién abierto */
+      if (bt) { e.stopPropagation(); bt.classList.contains('abierto') ? cerrarMenus() : abrirMenuItem(bt); return; }
       const tr = e.target.closest('tr[data-item]');
       if (tr) {
         M.proyecto().itemSel = tr.dataset.item;
@@ -4657,6 +4821,8 @@
       const tr = e.target.closest('tr[data-item]');
       if (!tr) return;
       if (e.target.matches('input') && e.target.dataset.campo !== 'desc') return;
+      /* editando el nombre, el doble clic selecciona una palabra */
+      if (e.target.classList.contains('editando')) return;
       /* abrir el análisis de un ítem es deliberado: lo que se estaba probando
          en el presupuesto se guarda y se sigue, sin cortar con un aviso */
       if (ensayo) guardarEnsayo();

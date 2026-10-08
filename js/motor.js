@@ -591,6 +591,29 @@ const MOTOR = (() => {
     P.itemSel = cp.id;
     return cp;
   }
+  /** Copia del ítem al final de otro módulo (índice k). La descripción no
+      lleva «(copia)»: en otro módulo el mismo nombre es lo esperable. */
+  function copiarItemAModulo(id, k) {
+    const it = getItem(id), m = P.modulos[k];
+    if (!it || !m) return null;
+    const cp = JSON.parse(JSON.stringify(it));
+    cp.id = nid();
+    m.items.push(cp);
+    return cp;
+  }
+  /** Saca el ítem de su módulo y lo pone al final del módulo k. */
+  function moverItemAModulo(id, k) {
+    const dest = P.modulos[k]; if (!dest) return false;
+    if (dest.items.some(x => x.id === id)) return false;
+    let it = null;
+    P.modulos.forEach(m => {
+      const j = m.items.findIndex(x => x.id === id);
+      if (j >= 0) it = m.items.splice(j, 1)[0];
+    });
+    if (!it) return false;
+    dest.items.push(it);
+    return true;
+  }
 
   /* =====================================================================
      ANÁLISIS DE PRECIO UNITARIO — Formulario B-2
@@ -2382,6 +2405,7 @@ const MOTOR = (() => {
     usosPorInsumo, insumosEnUso,
     cmpIns, cmpTexto, duplicadosInsumo, fusionarInsumos, conflictosInsumos,
     itemNuevo, addItem, getItem, delItem, moverItem, duplicarItem,
+    copiarItemAModulo, moverItemAModulo,
     itemsAntesDelModulo, numeroItem,
     matrizApuInsumo, fijarRendimiento, factorRendimiento, fusionarApus,
     crearItemsEnLote, itemsDelAlcance,

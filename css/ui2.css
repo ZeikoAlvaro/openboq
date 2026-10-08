@@ -331,6 +331,7 @@ body.modo-simple .cabecera #pillStats{display:none}
 body.modo-simple #v-presupuesto [data-acc="subirItem"],
 body.modo-simple #v-presupuesto [data-acc="bajarItem"],
 body.modo-simple #v-presupuesto [data-acc="dupItem"],
+body.modo-simple #v-presupuesto [data-acc="moverItemOtroModulo"],
 body.modo-simple #barraModulos{display:none}
 body.modo-simple #v-presupuesto [data-acc="irBase"]{order:-1}
 body.modo-simple #tblPresupuesto th:nth-child(n+7):nth-child(-n+10),

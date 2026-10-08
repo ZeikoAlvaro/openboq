@@ -142,10 +142,10 @@
 
 <!-- ?v=N en cada archivo propio: sin eso el navegador puede seguir usando el
      .css o .js viejo de su caché. Al publicar, subir N acá y en sw.js. -->
-<link rel="stylesheet" href="css/estilo.css?v=79">
+<link rel="stylesheet" href="css/estilo.css?v=84">
 <!-- Capa v2: solo armazón y color, cargada después para pisar lo anterior.
      Los identificadores no cambian, así que ui.js sigue igual. -->
-<link rel="stylesheet" href="css/ui2.css?v=79">
+<link rel="stylesheet" href="css/ui2.css?v=84">
 </head>
 <body>
 
@@ -156,7 +156,7 @@
 <aside class="lateral">
   <div class="lat-marca">
     <div class="logo">BQ</div>
-    <div class="txt"><b>Open BOQ</b><small>v2.6</small></div>
+    <div class="txt"><b>Open BOQ</b><small>v2.7</small></div>
     <!-- pliega la barra a una tira de íconos; lo maneja js/ui2.js -->
     <button class="lat-plegar" id="btnLateral" aria-expanded="true"
       aria-controls="tabs" title="Plegar el menú">☰</button>
@@ -200,7 +200,7 @@
   <div class="m" data-menu="herramientas">HERRAMIENTAS</div>
   <div class="m" data-menu="config">CONFIGURACIÓN</div>
   <div class="m" data-menu="ayuda">AYUDA</div>
-  <div class="marca">Open<span class="bq">BOQ</span> <small>v2.6</small></div>
+  <div class="marca">Open<span class="bq">BOQ</span> <small>v2.7</small></div>
 </div>
 
 <!-- ===================== CABECERA DE PROYECTO =====================
@@ -242,10 +242,12 @@
     <div class="bar">
       <button class="btn" data-acc="nuevoItem">➕ Nuevo ítem</button>
       <button class="btn sec" data-acc="irBase">🔎 Traer de la Base de Datos</button>
-      <button class="btn sec" data-acc="subirItem">▲</button>
-      <button class="btn sec" data-acc="bajarItem">▼</button>
-      <button class="btn sec" data-acc="dupItem">⧉ Duplicar</button>
-      <button class="btn sec" data-acc="delItem">🗑 Eliminar</button>
+      <button class="btn sec ico" data-acc="subirItem" data-tip="Mover arriba" aria-label="Mover arriba">▲</button>
+      <button class="btn sec ico" data-acc="bajarItem" data-tip="Mover abajo" aria-label="Mover abajo">▼</button>
+      <button class="btn sec ico" data-acc="dupItem" data-tip="Duplicar" aria-label="Duplicar">⧉</button>
+      <button class="btn sec ico" data-acc="moverItemOtroModulo" data-tip="Mover a otro módulo" aria-label="Mover a otro módulo">⇄</button>
+      <button class="btn sec ico" data-acc="renItem" data-tip="Cambiar nombre" aria-label="Cambiar nombre">✎</button>
+      <button class="btn sec ico" data-acc="delItem" data-tip="Eliminar" aria-label="Eliminar">🗑</button>
       <input type="search" id="buscaPres" placeholder="Filtrar ítems del presupuesto…">
     </div>
     <div class="scroll"><table class="rej" id="tblPresupuesto"></table></div>
@@ -460,7 +462,7 @@
           <button class="ini-op" data-acc="abrir"><span>📂</span>
             <b>Abrir un proyecto</b><em>Un archivo <code>.boq</code> guardado antes</em></button>
           <button class="ini-op" data-acc="importarDDP"><span>📥</span>
-            <b>Traer de PRESCOM</b><em>Un archivo <code>.ddp</code></em></button>
+            <b>Abrir un .ddp</b><em>Un archivo <code>.ddp</code></em></button>
         </div>
       </div>
       <!-- Entrar a la cuenta y los proyectos guardados en ella. Se llena desde
@@ -510,20 +512,20 @@
      opcional y siempre lo fue.                                              -->
 <!-- Tauri bridge — emula window.OPENBOQ_ESCRITORIO si está en Tauri. Carga ANTES de cualquier otro script. -->
 <script src="tauri-bridge.js" onerror="console.log('tauri-bridge.js: no en Tauri o error')"></script>
-<script src="js/cifrado.js?v=79" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.obq.js?v=79" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.js?v=79" onerror="window.__sinCatalogo=1"></script>
+<script src="js/cifrado.js?v=84" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.obq.js?v=84" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.js?v=84" onerror="window.__sinCatalogo=1"></script>
 <!-- Cuenta, respaldo de la biblioteca, aportes anónimos y reportes.
      nube-config.js lleva la dirección del servidor y la clave pública; si
      falta, la aplicación funciona igual, solo sin cuenta. -->
-<script src="js/nube-config.js?v=79" onerror="window.__sinNube=1"></script>
-<script src="js/nube.js?v=79"></script>
-<script src="js/drive.js?v=79"></script>
+<script src="js/nube-config.js?v=84" onerror="window.__sinNube=1"></script>
+<script src="js/nube.js?v=84"></script>
+<script src="js/drive.js?v=84"></script>
 <!-- Pone al día la Base de Datos con lo que cambió en el repositorio
      central desde que se generó el catálogo. Si no está o falla, la
      aplicación funciona igual con el catálogo que trae. -->
-<script src="js/sync.js?v=79" onerror="window.__sinSincro=1"></script>
-<script src="js/acceso.js?v=79"></script>
+<script src="js/sync.js?v=84" onerror="window.__sinSincro=1"></script>
+<script src="js/acceso.js?v=84"></script>
 <script>
   /* ---------- arranque ----------
      El resto de la aplicación se carga DESPUÉS de que `window.OPENBOQ_DB`
@@ -539,7 +541,7 @@
   (function () {
     /* el mismo número que los ?v= de arriba: estuvo fijo en '62' desde la v2.6
        y motor.js, ui.js y los demás se pedían siempre con ?v=62 */
-    var V = '79';
+    var V = '84';
     var RESTO = ['js/motor.js', 'js/importador.js', 'js/exportador.js', 'js/xlsx.js',
                  'js/reportes.js', 'js/ui.js', 'js/ui2.js'];
 
@@ -554,7 +556,7 @@
       s.onload = function () { cargar(i + 1); };
       s.onerror = function () {
         /* el módulo de PRESCOM es opcional: sin él la aplicación oculta sus opciones */
-        if (/importador|exportador/.test(RESTO[i])) console.info('OpenBOQ: sin ' + RESTO[i] + ' (módulo de PRESCOM no incluido)');
+        if (/importador|exportador/.test(RESTO[i])) console.info('OpenBOQ: sin ' + RESTO[i] + ' (módulo .ddp no incluido)');
         else console.error('OpenBOQ: no se pudo cargar ' + RESTO[i]);
         cargar(i + 1);
       };
