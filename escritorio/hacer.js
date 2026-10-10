@@ -235,7 +235,14 @@ function configurar(canal) {
     target: [
       { target: 'nsis', arch: [c.arch] },
       { target: 'portable', arch: [c.arch] }
-    ]
+    ],
+    /* VERSIÓN PUENTE (2.7.1). electron-updater solo instala una
+       actualización si quien la firmó figura en esta lista, y la lista
+       viaja dentro de la copia instalada (app-update.yml). Hoy firma el
+       certificado propio; cuando SignPath apruebe, firmará «SignPath
+       Foundation». Las dos tienen que estar desde YA, o las copias
+       instaladas rechazarían la primera versión firmada por SignPath. */
+    publisherName: ['OpenBOQ - Alvaro Oczachoque', 'SignPath Foundation']
   });
 
   /* Hasta el 10/10/2026 aquí se enganchaba `ofuscar-ddp.js` (afterPack) para

@@ -1,7 +1,7 @@
 {
   "name": "openboq-escritorio",
   "productName": "OpenBOQ",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "private": true,
   "description": "OpenBOQ como aplicación de escritorio para Windows: presupuestos de obra, análisis de precios unitarios, cómputos métricos y cronograma.",
   "license": "MIT",
@@ -11,7 +11,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "probar": "node pruebas/version.test.js && node pruebas/servidor.test.js",
+    "probar": "node pruebas/version.test.js && node pruebas/servidor.test.js && node pruebas/sin-secretos.test.js",
     "probar:servidor": "node pruebas/servidor.test.js",
     "icono": "powershell -ExecutionPolicy Bypass -File recursos/hacer-icono.ps1",
     "armar": "node hacer.js todos",
