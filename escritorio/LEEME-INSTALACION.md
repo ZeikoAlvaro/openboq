@@ -130,7 +130,7 @@ lo mismo con `"%LOCALAPPDATA%\Programs\OpenBOQ\Uninstall OpenBOQ.exe"`.
 |---|---|
 | `--sin-aceleracion` | Apaga la GPU. Para equipos viejos donde la ventana sale negra o parpadea. |
 | `--sin-actualizar` | No busca actualizaciones al arrancar. |
-| `--consola` | Abre las herramientas de desarrollo. |
+| ~~`--consola`~~ | Eliminado en 2.7.3: las herramientas de desarrollo están apagadas (`devTools: false`). |
 | `--puerto=N` | Cambia el puerto interno. **Cambia el origen y con eso el `localStorage`.** |
 | `--carpeta-descargas=<ruta>` | Guarda las exportaciones ahí sin preguntar, en vez de abrir el «Guardar como». |
 | `--vuelta-entrar` | Al entrar con Google vuelve por `/entrar` en vez de por la raíz. Requiere agregar `http://127.0.0.1:8731/entrar` a las «Redirect URLs» de Supabase. |
@@ -198,7 +198,7 @@ A cada menú se le pegan al final las cosas que solo existen en el escritorio:
 > su cuenta. Registrándolos también en el menú, Windows se los quedaría antes
 > de que llegaran a la página: **Supr dejaría de borrar texto dentro de una
 > celda y pasaría a borrar el ítem entero.** Los únicos atajos registrados de
-> verdad son los que la página no escucha: Ctrl+R, F12, Alt+F4 y los de
+> verdad son los que la página no escucha: Ctrl+R, Alt+F4 y los de
 > edición de texto.
 
 Si la página no contesta —no cargó, falló el preload—, queda un menú mínimo

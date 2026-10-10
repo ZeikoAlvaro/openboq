@@ -16,7 +16,6 @@
      --puerto=N          cambia el puerto del servidor interno. OJO: cambia
                          el origen y con eso el localStorage, así que los
                          proyectos guardados con otro puerto no se ven.
-     --consola           abre las herramientas de desarrollo al arrancar.
      --sin-actualizar    no busca actualizaciones al arrancar.
      --vuelta-entrar     al entrar con Google, vuelve por la página liviana
                          /entrar en vez de por la raíz. Requiere tener
@@ -118,7 +117,7 @@ ipcMain.on('openboq-datos', e => {
    la tiene sin tocar este archivo.
 
    Lo que sí se agrega acá es lo que SOLO puede hacer el escritorio: salir,
-   recargar la ventana, la consola, buscar actualizaciones y los datos de
+   recargar la ventana, buscar actualizaciones y los datos de
    esta instalación. Van pegados al final del menú que les corresponde, no
    en un menú aparte.
 
@@ -130,7 +129,7 @@ ipcMain.on('openboq-datos', e => {
    sigue siendo la única que los atiende.
 
    Los únicos atajos registrados de verdad son los que la página no escucha:
-   Ctrl+R, F12, Alt+F4 y los de edición de texto. */
+   Ctrl+R, Alt+F4 y los de edición de texto. */
 
 /* «Ctrl+Mayús+S» → «CmdOrCtrl+Shift+S». Electron no entiende los nombres en
    castellano ni las abreviaturas de la página, y un atajo que no sabe leer
@@ -178,7 +177,6 @@ function extrasDe(clave) {
     { label: 'Ver las descargas en la web', click: () => shell.openExternal(WEB_DESCARGAS) },
     { type: 'separator' },
     { label: 'Recargar la ventana', accelerator: 'CmdOrCtrl+R', click: () => ventana && ventana.reload() },
-    { label: 'Herramientas de desarrollo', accelerator: 'F12', click: () => ventana && ventana.webContents.toggleDevTools() },
     { type: 'separator' },
     { label: 'Datos de esta instalación…', click: acercaEscritorio }
   ];
@@ -213,7 +211,7 @@ function menuDePagina(def) {
 
   /* Si la página no trajo alguno de los menús donde viven los extras, esos
      extras no pueden perderse: sin ellos no habría manera de buscar
-     actualizaciones ni de abrir la consola. */
+     actualizaciones. */
   ['archivo', 'edicion', 'ayuda'].forEach(clave => {
     if (menus.some(m => sinAcento(m.label) === clave)) return;
     const sueltos = extrasDe(clave).filter(x => x.type !== 'separator');
@@ -473,7 +471,11 @@ function crearVentana(url) {
       nodeIntegration: false,
       sandbox: true,
       webviewTag: false,
-      spellcheck: false
+      spellcheck: false,
+      /* Herramientas de desarrollo APAGADAS (pedido de Alvaro, 10/10/2026):
+         sin menú, sin F12 y sin Ctrl+Mayús+I. Con `devTools: false` Electron
+         no las abre por ningún camino. */
+      devTools: false
     }
   });
 
@@ -506,7 +508,6 @@ function crearVentana(url) {
 
   ventana.once('ready-to-show', () => {
     ventana.show();
-    if (tiene('consola')) ventana.webContents.openDevTools();
     if (servicio && !servicio.estandar) avisarPuerto();
     /* Chequeo mudo, y no en el mismo instante del arranque: primero que la
        ventana quede usable. --sin-actualizar lo apaga (sirve para probar). */
@@ -521,6 +522,15 @@ function crearVentana(url) {
      elige salir, `preventDefault()` deja seguir el cierre. El proyecto no
      se pierde: queda en el almacenamiento de la aplicación como siempre;
      lo que se pierde es solo lo que estaba en prueba sin confirmar. */
+  /* F12, Ctrl+Mayús+I/J/C: ni siquiera llegan a la página. Con devTools
+     apagado no abrirían nada igual; esto evita además que algún atajo del
+     navegador reaparezca en una versión futura de Electron. */
+  ventana.webContents.on('before-input-event', (e, t) => {
+    const k = String(t.key || '').toLowerCase();
+    if (t.type === 'keyDown' && (k === 'f12' ||
+      (t.control && t.shift && (k === 'i' || k === 'j' || k === 'c')))) e.preventDefault();
+  });
+
   ventana.webContents.on('will-prevent-unload', e => {
     const r = dialog.showMessageBoxSync(ventana, {
       type: 'question',
