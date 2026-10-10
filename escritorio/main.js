@@ -513,6 +513,30 @@ function crearVentana(url) {
     if (!tiene('sin-actualizar')) setTimeout(() => buscarActualizacion(false), 5000);
   });
 
+  /* «¿Salir sin guardar?» de verdad. La página pone un `beforeunload`
+     cuando hay cambios sin guardar en un .boq (o en prueba). En el
+     navegador eso abre la pregunta; en Electron, sin este manejador,
+     CANCELA EN SILENCIO: la X, «Salir de OpenBOQ» y la recarga no hacían
+     nada (10/10/2026). Acá se pregunta con un cuadro de Windows y, si se
+     elige salir, `preventDefault()` deja seguir el cierre. El proyecto no
+     se pierde: queda en el almacenamiento de la aplicación como siempre;
+     lo que se pierde es solo lo que estaba en prueba sin confirmar. */
+  ventana.webContents.on('will-prevent-unload', e => {
+    const r = dialog.showMessageBoxSync(ventana, {
+      type: 'question',
+      title: 'OpenBOQ',
+      message: 'Hay cambios que todavía no se guardaron en un archivo .boq.',
+      detail: 'El proyecto queda guardado en OpenBOQ y lo encuentra al volver a abrir, ' +
+        'pero no en un archivo. Lo que esté «en prueba» sin confirmar se descarta.\n\n' +
+        '¿Salir igual?',
+      buttons: ['Salir', 'Seguir trabajando'],
+      defaultId: 1,
+      cancelId: 1,
+      noLink: true
+    });
+    if (r === 0) e.preventDefault();
+  });
+
   ventana.on('closed', () => { ventana = null; });
 
   ventana.loadURL(url);

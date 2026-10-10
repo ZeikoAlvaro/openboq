@@ -18,6 +18,14 @@ const files = cfg.files || [];
 ok(files.includes('!firma-local${/*}') && files.includes('!firma-local'), 'files excluye firma-local/');
 ok(files.includes('!*.pfx') && files.includes('!clave*.txt'), 'files excluye .pfx y clave*.txt');
 
+/* y al revés: lo que el paquete SÍ tiene que llevar. drive.html es la página
+   de vuelta del permiso de Google Drive (registrada en Google como
+   http://127.0.0.1:8731/drive.html); hasta la 2.7.1 no viajaba y Drive no
+   podía volver nunca en el escritorio. */
+const extra = (cfg.extraResources || []).map(x => x.from);
+for (const f of ['../index.html', '../drive.html', '../privacidad.html'])
+  ok(extra.includes(f), 'el paquete lleva ' + f.slice(3));
+
 /* si hay algún armado, mirar adentro del asar */
 let asar = null;
 try { asar = require('@electron/asar'); } catch (e) { try { asar = require('asar'); } catch (e2) { /* sin asar */ } }

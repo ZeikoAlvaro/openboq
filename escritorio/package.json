@@ -1,7 +1,7 @@
 {
   "name": "openboq-escritorio",
   "productName": "OpenBOQ",
-  "version": "2.7.1",
+  "version": "2.7.2",
   "private": true,
   "description": "OpenBOQ como aplicación de escritorio para Windows: presupuestos de obra, análisis de precios unitarios, cómputos métricos y cronograma.",
   "license": "MIT",

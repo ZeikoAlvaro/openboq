@@ -61,6 +61,8 @@
 
   "extraResources": [
     { "from": "../index.html", "to": "openboq/index.html" },
+    { "from": "../drive.html", "to": "openboq/drive.html" },
+    { "from": "../privacidad.html", "to": "openboq/privacidad.html" },
     { "from": "../css", "to": "openboq/css" },
     { "from": "../js", "to": "openboq/js" },
     { "from": "../data/catalogo.obq.js", "to": "openboq/data/catalogo.obq.js" },

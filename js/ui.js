@@ -795,8 +795,18 @@
   }
 
   const MARCA_LOGIN = 'openboq_recarga_login';
+  /* La recarga por login NO pasa por el aviso de «cambios sin guardar».
+     En el navegador ese aviso pregunta; en el escritorio (Electron) cancela
+     la recarga EN SILENCIO, y la sesión recién entrada quedaba guardada pero
+     sin mostrarse: la aplicación seguía diciendo «Invitado» (10/10/2026).
+     El proyecto no se pierde: queda en el navegador como en cualquier
+     cierre (M.guardarLocal). Lo que estaba en prueba sin confirmar se
+     descarta, igual que si se respondiera «salir» al aviso. */
+  let recargandoPorLogin = false;
   function recargarPorLogin() {
     try { sessionStorage.setItem(MARCA_LOGIN, '1'); } catch (e) { }
+    if (!ensayo) M.guardarLocal();
+    recargandoPorLogin = true;
     location.reload();
   }
   function seRecargoPorLogin() {
@@ -5308,6 +5318,7 @@
     /* Al cerrar la pestaña: el proyecto queda guardado en el navegador, pero si
        todavía no se escribió en un .boq el navegador pregunta antes de salir. */
     window.addEventListener('beforeunload', e => {
+      if (recargandoPorLogin) return;   // ver recargarPorLogin
       if (!ensayo) M.guardarLocal();   // lo que se estaba probando no se guarda
       else { e.preventDefault(); e.returnValue = ''; }
       if (hayContenido() && sinArchivo) { e.preventDefault(); e.returnValue = ''; }
