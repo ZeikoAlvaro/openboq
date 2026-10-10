@@ -160,10 +160,12 @@ function extrasDe(clave) {
     { type: 'separator' },
     { label: 'Salir de OpenBOQ', accelerator: 'Alt+F4', role: 'quit' }
   ];
+  /* Sin «Deshacer/Rehacer» nativos: desde la web v85 la página trae los suyos
+     (del proyecto, con Ctrl+Z / Ctrl+Y). Los roles undo/redo registraban
+     Ctrl+Z en el menú y se lo comían antes de que llegara a la página.
+     Dentro de un campo de texto, Ctrl+Z sigue deshaciendo letras: la página
+     lo deja pasar al motor del navegador. */
   if (clave === 'edicion') return [
-    { type: 'separator' },
-    { label: 'Deshacer', role: 'undo' },
-    { label: 'Rehacer', role: 'redo' },
     { type: 'separator' },
     { label: 'Cortar', role: 'cut' },
     { label: 'Copiar', role: 'copy' },
