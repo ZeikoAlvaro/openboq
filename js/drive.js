@@ -126,6 +126,94 @@ const DRIVE = (() => {
 
   const hay = () => !!(CFG && CFG.client_id);
 
+  /* ------------------------------------------- el permiso que no se cierra
+     DECISIÓN DEL 10/10/2026 (opción B). El token de una hora hacía que el
+     Drive «se cerrara» todo el tiempo. Ahora, si está configurado el Worker
+     de canje (`DRIVE_CFG.canje`, carpeta drive-canje/), el permiso se pide
+     UNA vez con el flujo de código + PKCE y Google entrega un refresh token.
+
+     Ese refresh token vive SOLO en este navegador (localStorage), atado a la
+     cuenta con la que se dio. El Worker no guarda nada: canjea y devuelve.
+     Con él, el token de la hora se renueva sin ventanas ni clics, cuando
+     haga falta, durante meses — hasta que el usuario quite el permiso desde
+     su cuenta de Google o salga de OpenBOQ en este equipo.
+
+     Sin `canje` configurado, todo sigue como antes (flujo implícito). */
+  const LS_RT = 'openboq_drive_rt';
+  const hayCanje = () => !!(CFG && CFG.canje);
+
+  const rtGuardado = () => {
+    try {
+      const g = JSON.parse(localStorage.getItem(LS_RT) || 'null');
+      return g && g.rt ? g : null;
+    } catch (e) { return null; }
+  };
+  const guardarRT = (rt, cuenta) => {
+    try { localStorage.setItem(LS_RT, JSON.stringify({ rt, cuenta: cuenta || null })); } catch (e) { }
+  };
+  const borrarRT = () => { try { localStorage.removeItem(LS_RT); } catch (e) { } };
+
+  /* PKCE preparado DE ANTEMANO. El hash es asíncrono (crypto.subtle) y la
+     ventana de permiso tiene que abrirse dentro del clic, sin un `await`
+     delante: por eso el par se arma al cargar y después de cada uso. Si el
+     navegador no tiene crypto.subtle (sitio sin https, banco de pruebas),
+     queda en null y se usa el flujo de antes. */
+  let pkce = null;
+  const b64url = bytes => btoa(String.fromCharCode.apply(null, Array.from(bytes)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  function prepararPKCE() {
+    pkce = null;
+    try {
+      if (typeof crypto === 'undefined' || !crypto.subtle || typeof btoa === 'undefined') return;
+      const u = new Uint8Array(32);
+      crypto.getRandomValues(u);
+      const verificador = b64url(u);
+      crypto.subtle.digest('SHA-256', new TextEncoder().encode(verificador))
+        .then(h => { pkce = { verificador, desafio: b64url(new Uint8Array(h)) }; })
+        .catch(() => { });
+    } catch (e) { }
+  }
+  if (hayCanje()) prepararPKCE();
+
+  /** POST al Worker de canje. Lanza con `.invalido` si Google dijo que no. */
+  async function alCanje(ruta, cuerpo) {
+    let r;
+    try {
+      r = await fetch(CFG.canje + ruta, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cuerpo)
+      });
+    } catch (e) { throw new Error('Sin conexión con el servicio de Drive'); }
+    let d = {};
+    try { d = await r.json(); } catch (e) { }
+    if (!r.ok) {
+      const e = new Error(explicarError(d.error || ('HTTP ' + r.status)));
+      e.codigo = d.error || String(r.status);
+      e.invalido = r.status === 400;
+      throw e;
+    }
+    return d;
+  }
+
+  /* Una sola renovación a la vez: al abrir «Mi cuenta» salen varios pedidos
+     juntos y no tiene sentido pedir cinco tokens. */
+  let renovandoRT = null;
+  function renovarConRT(g) {
+    if (!renovandoRT) {
+      renovandoRT = alCanje('/renovar', { refresh_token: g.rt })
+        .then(d => { guardarToken(d.access_token, d.expires_in); return token; })
+        .catch(e => {
+          /* El permiso ya no vale: lo quitó desde su cuenta de Google, o pasó
+             medio año sin usarlo. Se tira y el próximo clic lo pide de nuevo. */
+          if (e.invalido) borrarRT();
+          throw e;
+        })
+        .finally(() => { renovandoRT = null; });
+    }
+    return renovandoRT;
+  }
+
   /* ------------------------------------------------------------- el token */
   /* En memoria y, espejado, en `sessionStorage` de la pestaña: ver el
      encabezado. Recargar ya no lo pierde; cerrar la pestaña sí. */
@@ -189,19 +277,28 @@ const DRIVE = (() => {
     return Array.from(u).map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
-  function urlAutorizacion(estado, modo, correo) {
+  function urlAutorizacion(estado, modo, correo, desafio) {
     const p = new URLSearchParams({
       client_id: CFG.client_id,
       redirect_uri: location.origin + '/drive.html',
-      response_type: 'token',
+      response_type: desafio ? 'code' : 'token',
       scope: ALCANCE,
       include_granted_scopes: 'true',
       state: estado
     });
+    if (desafio) {
+      /* Flujo de código: `offline` + `consent` es lo que hace que Google
+         entregue el refresh token, también a quien ya había dado el permiso
+         con el flujo viejo. La pantalla sale UNA vez. */
+      p.set('access_type', 'offline');
+      p.set('prompt', 'consent');
+      p.set('code_challenge', desafio);
+      p.set('code_challenge_method', 'S256');
+    }
     /* `none` es el reintento invisible: si el permiso ya está dado, Google
        devuelve el token sin mostrar nada; si no, contesta con un error y
        recién ahí se abre la ventana. */
-    if (modo) p.set('prompt', modo);
+    else if (modo) p.set('prompt', modo);
     /* Sin esto, quien tiene varias cuentas de Google abiertas termina
        autorizando con la que no es y sus archivos van a parar a otro Drive.
        Se manda solo si es un correo: `cuentaVista()` puede devolver la marca
@@ -246,6 +343,35 @@ const DRIVE = (() => {
        la última autorización. */
     const correo = (op && op.correo) || cuentaVista();
     const yaAutorizado = !!cuentaVista();
+
+    /* Con refresh token: renovar sin ventana ni clic. Si es de OTRA cuenta
+       (otra persona entró en este navegador) no se usa: se tira. */
+    if (hayCanje()) {
+      const g = rtGuardado();
+      if (g && op && op.correo && g.cuenta && g.cuenta !== op.correo) borrarRT();
+      else if (g) {
+        try { return await renovarConRT(g); }
+        catch (e) {
+          if (!e.invalido) throw e;          // sin red: no hay ventana que lo arregle
+          /* invalido: se sigue abajo y, si hay clic, se pide el permiso. */
+        }
+      }
+
+      /* Sin refresh token y con un clic vivo: flujo de código, UNA ventana. */
+      if (op && op.interactivo && pkce) {
+        const par = pkce;
+        prepararPKCE();                      // el próximo, listo para otra vez
+        const d = await pedirEnVentana('', correo, par.desafio);
+        const t = await alCanje('/canje', {
+          code: d.code, code_verifier: par.verificador,
+          redirect_uri: location.origin + '/drive.html'
+        });
+        guardarToken(t.access_token, t.expires_in);
+        if (t.refresh_token) guardarRT(t.refresh_token, correo);
+        recordarCuenta(correo || cuentaVista() || 'si');
+        return token;
+      }
+    }
 
     if (op && op.interactivo) {
       /* Renovación: el permiso ya está dado, así que `none` alcanza y no
@@ -335,10 +461,10 @@ const DRIVE = (() => {
    * `modo` vacío deja decidir a Google: muestra el selector de cuenta o la
    * pantalla de permiso solo si hacen falta.
    */
-  function pedirEnVentana(modo, correo) {
+  function pedirEnVentana(modo, correo, desafio) {
     return new Promise((listo, falla) => {
       const estado = azar();
-      const url = urlAutorizacion(estado, modo, correo);
+      const url = urlAutorizacion(estado, modo, correo, desafio);
 
       const silencioso = modo === 'none';
       const medidas = silencioso
@@ -369,6 +495,11 @@ const DRIVE = (() => {
           const e = new Error(explicarError(d.error));
           e.codigo = d.error;          // el crudo, para poder diagnosticar
           falla(e); return;
+        }
+        /* Flujo de código: se devuelve el código y lo canjea quien llamó. */
+        if (desafio) {
+          if (!d.code) { falla(new Error('Google no devolvió el código de permiso')); return; }
+          listo(d); return;
         }
         if (!d.access_token) { falla(new Error('Google no devolvió token')); return; }
         guardarToken(d.access_token, d.expires_in);
@@ -582,16 +713,36 @@ const DRIVE = (() => {
    * pantallas.
    */
   function estado() {
+    const permanente = hayCanje() && !!rtGuardado();
     return {
       hay: hay(),
-      autorizado: vigente(),
+      /* Con refresh token cuenta como autorizado aunque el token de la hora
+         haya vencido: el próximo pedido lo renueva solo, sin ventana. */
+      autorizado: vigente() || permanente,
       recordado: !!cuentaVista(),
+      permanente,
+      canje: hayCanje(),
       vence: vence || null
     };
   }
 
+  /**
+   * Suelta todo lo del Drive EN ESTE NAVEGADOR: token, refresh token y la
+   * cuenta recordada. Se usa al salir de OpenBOQ, para que quien use el
+   * equipo después no herede el Drive.
+   *
+   * NO revoca el permiso en Google: eso desconectaría también el Drive del
+   * celular o de la otra computadora del mismo usuario. Quitarlo del todo se
+   * hace desde myaccount.google.com → Seguridad → Apps de terceros.
+   */
+  function desconectar() {
+    olvidar();
+    borrarRT();
+    olvidarCuenta();
+  }
+
   return {
-    hay, autorizar, olvidar, estado,
+    hay, autorizar, olvidar, desconectar, estado,
     carpeta, escribir, buscar, listar, leer, borrar,
     ALCANCE
   };

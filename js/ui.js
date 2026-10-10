@@ -85,6 +85,12 @@
          vive en el navegador, no se pierde nada. */
       NUBE.alEntrar(recargarPorLogin);
       NUBE.alFallarLogin(avisarLoginSinSesion);
+      /* La sesión murió en el servidor (no por falta de red): se dice, en vez
+         de dejar al usuario «conectado» con todo fallando por detrás. */
+      if (NUBE.alVencerSesion) NUBE.alVencerSesion(() => {
+        render();
+        marcarGuardado('Su sesión venció: vuelva a entrar con Google', true);
+      });
       setTimeout(() => { NUBE.enviarCola().catch(() => { }); }, 8000);
       window.addEventListener('online', () => { NUBE.enviarCola().catch(() => { }); });
     }
@@ -471,9 +477,13 @@
          se le dice qué pasó y que es un clic, que además no muestra ninguna
          pantalla porque va con `prompt=none`. */
       c.innerHTML = dv.recordado
-        ? `<p class="mini">Su Drive está conectado, pero el permiso de esta sesión
-        caducó (dura una hora). Un clic lo reanuda, sin pantallas de Google.</p>
-        <button class="btn" data-acc="driveConectar">Reanudar mi Drive</button>`
+        ? (dv.canje
+          ? `<p class="mini">Su Drive estuvo conectado con el permiso de una hora. Un clic
+          lo deja conectado <b>de forma permanente</b> en este equipo: Google le pide
+          confirmar una sola vez.</p>`
+          : `<p class="mini">Su Drive está conectado, pero el permiso de esta sesión
+          caducó (dura una hora). Un clic lo reanuda, sin pantallas de Google.</p>`) +
+        `<button class="btn" data-acc="driveConectar">Reanudar mi Drive</button>`
         : `<p class="mini">Todavía no conectó su Drive. Los archivos quedan en
         <b>su</b> cuenta, en una carpeta «OpenBOQ», y OpenBOQ no puede ver nada más de su Drive.</p>
         <button class="btn" data-acc="driveConectar">Conectar con mi Drive</button>`;
@@ -593,8 +603,9 @@
     const dvi = DRIVE.estado();
     if (!dvi.autorizado) {
       c.innerHTML = (dvi.recordado
-        ? `<span class="mini">Su Drive está conectado; el permiso de esta sesión caducó
-        (dura una hora). Un clic lo reanuda, sin pantallas.</span>
+        ? `<span class="mini">${dvi.canje
+          ? 'Un clic deja su Drive conectado de forma permanente en este equipo (Google pide confirmar una vez).'
+          : 'Su Drive está conectado; el permiso de esta sesión caducó (dura una hora). Un clic lo reanuda, sin pantallas.'}</span>
         <div style="margin-top:8px"><button class="btn" data-acc="driveConectar">Reanudar mi Drive</button></div>`
         : `<span class="mini">Todavía no conectó su Drive. Sus proyectos quedan
         en <b>su</b> cuenta y no los ve nadie más.</span>
@@ -4117,7 +4128,9 @@
         <h4 class="cta-t">En su Google Drive</h4>
         <div id="ctaDrive"><p class="mini">Consultando…</p></div>`,
         [['Cerrar', null, 'sec'],
-        ['Salir de la cuenta', () => { NUBE.salir(); location.reload(); }, 'rojo']]);
+        /* Salir suelta también el Drive de ESTE equipo (no lo revoca en
+           Google): quien use la computadora después no lo hereda. */
+        ['Salir de la cuenta', () => { NUBE.salir(); if (hayDrive()) DRIVE.desconectar(); location.reload(); }, 'rojo']]);
       pintarDrive();
       /* El panel de administración NO se enlaza desde la aplicación (decisión
          de Alvaro, 15/09/2026): se entra solo con la dirección directa. */

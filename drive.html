@@ -64,6 +64,10 @@
     openboq: 'drive',
     state: frag.get('state') || qry.get('state') || '',
     access_token: frag.get('access_token') || '',
+    /* Flujo de código (desde el 10/10/2026): llega en la query. Solo no
+       sirve: hace falta el verificador PKCE, que quedó en la ventana que
+       abrió esta, y el canje lo hace el Worker. */
+    code: qry.get('code') || '',
     expires_in: frag.get('expires_in') || '',
     scope: frag.get('scope') || '',
     error: frag.get('error') || qry.get('error') || ''
@@ -92,7 +96,7 @@
     m.textContent = dato.error === 'access_denied'
       ? 'Se rechazó el permiso. Cerrá esta ventana y volvé a intentar desde OpenBOQ.'
       : 'Cerrá esta ventana y volvé a intentar desde OpenBOQ.';
-  } else if (dato.access_token) {
+  } else if (dato.access_token || dato.code) {
     t.textContent = 'Permiso concedido';
     m.textContent = 'Cerrá esta ventana y volvé a OpenBOQ.';
   } else {

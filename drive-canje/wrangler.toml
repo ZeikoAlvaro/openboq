@@ -1,0 +1,23 @@
+## OpenBOQ — canje del permiso de Google Drive
+##
+## Un Worker SIN MEMORIA: no tiene KV, ni D1, ni registros con tokens. Hace
+## una sola cosa que el navegador no puede hacer solo: hablar con Google con
+## el `client_secret` puesto. El refresh token vuelve al navegador del
+## usuario y vive SOLO ahí. Ver LEEME.md.
+##
+## Desplegar:  npx wrangler deploy                         (desde esta carpeta)
+## Secreto:    npx wrangler secret put GOOGLE_CLIENT_SECRET
+
+name = "openboq-drive"
+main = "src/index.js"
+compatibility_date = "2026-08-17"
+
+[vars]
+# Público: es el mismo que va en js/nube-config.js (DRIVE_CFG.client_id).
+GOOGLE_CLIENT_ID = "621939092202-uco66nj1sdlbhgjo95ebscpkt8ad7ccc.apps.googleusercontent.com"
+# Orígenes desde los que se acepta un pedido, separados por coma. Además se
+# aceptan 127.0.0.1 y localhost con cualquier puerto: la aplicación de
+# escritorio y las pruebas locales.
+ORIGENES = "https://openboq.pages.dev"
+
+# Sin observabilidad a propósito: los cuerpos llevan tokens.

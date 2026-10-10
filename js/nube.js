@@ -98,8 +98,15 @@ const NUBE = (() => {
     return datos;
   }
 
-  /** Reintenta una vez renovando el token: la sesión dura una hora. */
+  /**
+   * Pedido con la sesión puesta. El token de acceso dura una hora: si está
+   * por vencer se renueva ANTES de pedir, y si igual vuelve 401 se renueva y
+   * se reintenta una vez.
+   */
   async function pedirConSesion(ruta, opciones) {
+    if (sesion && sesion.refresh_token && porVencer()) {
+      try { await renovar(); } catch (e) { if (e.sesionMuerta) throw e; /* sin red: se intenta igual */ }
+    }
     try { return await pedir(ruta, opciones); }
     catch (e) {
       if (e.status !== 401 || !sesion || !sesion.refresh_token) throw e;
@@ -108,11 +115,120 @@ const NUBE = (() => {
     }
   }
 
-  async function renovar() {
-    const s = await pedir('/auth/v1/token?grant_type=refresh_token',
-      { method: 'POST', body: { refresh_token: sesion.refresh_token } });
+  /* ------------------------------------------------ renovar la sesión
+     POR QUÉ ESTO ES MÁS QUE UN PEDIDO. Supabase ROTA el refresh token en
+     cada renovación: el viejo deja de servir a los pocos segundos, y si
+     alguien lo vuelve a usar, Supabase da la sesión entera por robada y la
+     anula. Con dos pestañas abiertas eso podía pasar solo: una renovaba, la
+     otra seguía con el token viejo en memoria y, al renovar, mataba la sesión
+     de las dos. Medido en `auth.sessions` el 10/10/2026: el servidor nunca
+     vence una sesión por tiempo — la que se pierde, se pierde en el navegador.
+
+     Tres reglas, entonces:
+       1. Antes de renovar se RELEE localStorage: si otra pestaña ya renovó,
+          se toma su sesión y no se gasta el token.
+       2. Una sola renovación a la vez: en la pestaña (una promesa compartida)
+          y entre pestañas (navigator.locks, donde exista).
+       3. Se distingue «sin red» de «la sesión ya no vale». Solo la segunda
+          cierra la sesión, y avisa en vez de dejar al usuario a medias. */
+
+  /** Vencimiento del token de acceso, en ms. Sesiones viejas no traen
+      `expires_at`: se saca del propio JWT. */
+  function vencimiento(s) {
+    if (!s) return 0;
+    if (s.expires_at) return Number(s.expires_at) * 1000;
+    try {
+      const b = String(s.access_token || '').split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      return (JSON.parse(atob(b)).exp || 0) * 1000;
+    } catch (e) { return 0; }
+  }
+  /** Le queda menos de un minuto. Si no se sabe cuánto le queda, no se
+      adelanta nada: decide el 401. */
+  const porVencer = () => {
+    const v = vencimiento(sesion);
+    return v > 0 && Date.now() > v - 60000;
+  };
+
+  let renovando = null;
+  let avisarVencida = null;
+
+  function renovar() {
+    if (!renovando) {
+      const tarea = () => renovarYa();
+      const conCandado = typeof navigator !== 'undefined' && navigator.locks && navigator.locks.request
+        ? navigator.locks.request('openboq_renovar_sesion', tarea)
+        : tarea();
+      renovando = Promise.resolve(conCandado).finally(() => { renovando = null; });
+    }
+    return renovando;
+  }
+
+  async function renovarYa() {
+    const usado = sesion && sesion.refresh_token;
+    /* Regla 1: otra pestaña pudo renovar mientras esta esperaba. */
+    let guardada = null;
+    try { guardada = JSON.parse(localStorage.getItem(LS_SESION) || 'null'); } catch (e) { }
+    if (guardada && guardada.refresh_token && guardada.refresh_token !== usado &&
+        Date.now() < vencimiento(guardada) - 60000) {
+      sesion = guardada;
+      return guardada;
+    }
+    const rt = (guardada && guardada.refresh_token) || usado;
+    if (!rt) { const e = new Error('SIN_SESION'); e.sesionMuerta = true; throw e; }
+    let s;
+    try {
+      s = await pedir('/auth/v1/token?grant_type=refresh_token',
+        { method: 'POST', body: { refresh_token: rt } });
+    } catch (e) {
+      /* 400/401/403 con un refresh token = la sesión ya no vale (revocada,
+         usada dos veces, o el usuario salió desde otro lado). Todo lo demás
+         —sin red, 5xx, proyecto en pausa— NO cierra nada: se reintenta luego. */
+      if (e.status === 400 || e.status === 401 || e.status === 403) {
+        guardarSesion(null);
+        e.sesionMuerta = true;
+        if (avisarVencida) { try { avisarVencida(); } catch (x) { } }
+      }
+      throw e;
+    }
+    /* Una respuesta sin token no es una sesión: no se pisa la que hay. */
+    if (!s || !s.access_token) throw new Error('Renovación sin token');
     guardarSesion(s);
     return s;
+  }
+
+  /** Quién quiere enterarse de que la sesión murió y hay que volver a entrar. */
+  function alVencerSesion(cb) { avisarVencida = cb; }
+
+  /** Renueva si hace falta. Para el arranque y para cuando la pestaña vuelve
+      a estar a la vista tras horas o días en segundo plano. */
+  async function asegurarSesion() {
+    if (!sesion || !sesion.refresh_token || !porVencer()) return !!sesion;
+    try { await renovar(); return true; }
+    catch (e) { return !e.sesionMuerta; }
+  }
+
+  /* Lo que haga otra pestaña se refleja acá: si renovó, se toma su sesión
+     (si no, esta seguiría con un token que ya no sirve); si salió, se sale. */
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('storage', e => {
+      if (e.key !== LS_SESION) return;
+      try { sesion = e.newValue ? JSON.parse(e.newValue) : null; } catch (x) { }
+    });
+    if (typeof document !== 'undefined' && document.addEventListener)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') asegurarSesion();
+      });
+  }
+
+  /** Le pide al navegador que no borre lo guardado por OpenBOQ cuando le
+      falta espacio. Chrome y Firefox lo conceden a los sitios que se usan;
+      Safari solo a la app instalada en la pantalla de inicio. No promete
+      nada: si lo niega, todo sigue igual. */
+  function pedirPersistencia() {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persist)
+        navigator.storage.persisted().then(ya => ya || navigator.storage.persist()).catch(() => { });
+    } catch (e) { }
   }
 
   /* ===================================================================
@@ -260,6 +376,7 @@ const NUBE = (() => {
       access_token: at,
       refresh_token: p.get('refresh_token'),
       token_type: p.get('token_type'),
+      expires_at: Number(p.get('expires_at')) || null,
       user: null
     });
     history.replaceState(null, '', location.pathname + location.search);
@@ -292,6 +409,7 @@ const NUBE = (() => {
       access_token: s.access_token,
       refresh_token: s.refresh_token || null,
       token_type: s.token_type || 'bearer',
+      expires_at: Number(s.expires_at) || null,
       user: null
     });
     return true;
@@ -360,11 +478,16 @@ const NUBE = (() => {
   /** Completa los datos del usuario cuando la sesión vino del hash. */
   async function cargarUsuario() {
     if (!sesion || !sesion.access_token) return null;
-    if (sesion.user) return usuario();
+    pedirPersistencia();
+    if (sesion.user) { asegurarSesion(); return usuario(); }
     try {
       const u = await pedirConSesion('/auth/v1/user');
       guardarSesion(Object.assign({}, sesion, { user: u }));
-    } catch (e) { guardarSesion(null); }
+    } catch (e) {
+      /* Solo se tira la sesión si el servidor dijo que no vale. Sin red, se
+         conserva: antes un corte de conexión justo al entrar la borraba. */
+      if (e.sesionMuerta || e.status === 401 || e.status === 403) guardarSesion(null);
+    }
     return usuario();
   }
 
@@ -861,6 +984,7 @@ const NUBE = (() => {
     hay, conectado, usuario, hayToken,
     entrarCon, salir, recogerRedireccion, tomarSesion, cargarUsuario,
     alEntrar, alFallarLogin, releerSesion, origenAjeno,
+    alVencerSesion, asegurarSesion,
     subirBiblioteca, bajarBiblioteca, infoBiblioteca, borrarBiblioteca, ultimoRespaldo,
     listarProyectos, bajarProyecto, guardarProyecto, borrarProyecto,
     empaquetarProyecto, desempaquetarProyecto, hayCandado, TOPE_PROYECTOS,

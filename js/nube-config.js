@@ -52,5 +52,10 @@ const NUBE_CFG = {
    tienen que estar: el callback de Supabase (`/auth/v1/callback`), y el
    `/drive.html` de cada origen desde donde se use OpenBOQ. */
 const DRIVE_CFG = {
-  client_id: "621939092202-uco66nj1sdlbhgjo95ebscpkt8ad7ccc.apps.googleusercontent.com"
+  client_id: "621939092202-uco66nj1sdlbhgjo95ebscpkt8ad7ccc.apps.googleusercontent.com",
+  /* Worker de canje (drive-canje/): con él el Drive queda conectado meses en
+     vez de una hora. El `client_secret` vive como secreto del Worker, nunca
+     acá. Vacío = flujo implícito de antes (token de una hora). Tiene que
+     estar también en el `connect-src` de index.html. */
+  canje: "https://openboq-drive.alvaroedwin76.workers.dev"
 };
