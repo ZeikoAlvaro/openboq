@@ -1,0 +1,88 @@
+# Arma los instaladores de Windows de OpenBOQ desde el código público y, si
+# SignPath está configurado, los firma.
+#
+# - Se dispara al empujar una etiqueta v* (por ejemplo v2.7.1) o a mano.
+# - Arma los tres canales (x64, universal 32 bits, arm64) sin firmar.
+# - Firma con SignPath Foundation SOLO si existe la variable del repositorio
+#   SIGNPATH_ORGANIZATION_ID y el secreto SIGNPATH_API_TOKEN (los da SignPath
+#   cuando aprueba el proyecto). Sin eso, deja los instaladores sin firmar
+#   como artefactos para revisar.
+# - Después de firmar recalcula el feed de actualización (latest.yml,
+#   universal.yml, arm64.yml) con escritorio/actualizar_feed.js: la firma
+#   cambia la huella del .exe y sin esto el actualizador lo rechazaría.
+#
+# La publicación del release sigue siendo a mano (escritorio/publicar_release.js)
+# hasta que esto se haya probado de punta a punta.
+
+name: Escritorio (Windows)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  armar:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        canal: [x64, universal, arm64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Dependencias del escritorio
+        working-directory: escritorio
+        run: npm ci
+
+      - name: Pruebas del escritorio
+        working-directory: escritorio
+        run: npm run probar
+
+      - name: Armar el canal (sin firmar)
+        working-directory: escritorio
+        run: node hacer.js ${{ matrix.canal }}
+
+      - name: Subir los instaladores sin firmar
+        id: sin-firmar
+        uses: actions/upload-artifact@v4
+        with:
+          name: sin-firmar-${{ matrix.canal }}
+          path: escritorio/salida/${{ matrix.canal }}/*.exe
+          if-no-files-found: error
+
+      - name: Firmar con SignPath
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: openboq
+          signing-policy-slug: release-signing
+          github-artifact-id: ${{ steps.sin-firmar.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: escritorio/salida/${{ matrix.canal }}
+
+      - name: Recalcular el feed con los instaladores firmados
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        working-directory: escritorio
+        run: node actualizar_feed.js ${{ matrix.canal }}
+
+      - name: Subir el canal completo (instaladores, feed y blockmap)
+        uses: actions/upload-artifact@v4
+        with:
+          name: openboq-${{ matrix.canal }}
+          path: |
+            escritorio/salida/${{ matrix.canal }}/*.exe
+            escritorio/salida/${{ matrix.canal }}/*.yml
+            escritorio/salida/${{ matrix.canal }}/*.blockmap
+          if-no-files-found: error

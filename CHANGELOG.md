@@ -5,6 +5,23 @@ La versión en línea siempre es la de <https://openboq.pages.dev>.
 
 ---
 
+## 2.7 · octubre 2026
+
+**Repositorio**
+- El módulo del formato .ddp (`js/importador.js`, `js/exportador.js`) vuelve al repositorio
+  público, legible y sin ofuscar, para que el instalador de Windows pueda firmarse con un
+  certificado reconocido.
+
+**Aplicación**
+- Clic derecho sobre un ítem del presupuesto abre su menú.
+- Barra inferior con guardar, deshacer (Ctrl+Z), rehacer (Ctrl+Y) y guardar como; la cuenta pasa
+  a esa barra.
+- La cabecera queda más limpia: moneda, tipo de cambio y decimales se configuran en
+  CONFIGURACIÓN.
+- Desde el modo simple siempre hay salida a la interfaz completa.
+
+---
+
 ## 2.6 · septiembre 2026
 
 **Repositorio**

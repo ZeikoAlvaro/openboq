@@ -61,12 +61,12 @@ antes de comprar):
 | **OV clásico (Sectigo, DigiCert…)** | 200–400 US$/año | verificación de organización + token USB | El token hay que tenerlo puesto para armar |
 | **EV** | 400+ US$/año | verificación reforzada + token | Único que da reputación de SmartScreen **desde la primera descarga** |
 
-**Recomendado para OpenBOQ: Azure Trusted Signing.** Es el único camino que
-firma en la nube (sin token físico) y **sin obligar a hacer público el
-código** —SignPath Foundation exige repositorio abierto, y el escritorio
-empaqueta el módulo del formato .ddp—. Cuesta ~10 US$/mes y hace que Avast y
-Defender dejen de protestar de raíz. El proyecto ya trae el enganche listo
-(`firma-azure.js`): se activa solo cuando existen las variables de entorno.
+**Camino elegido (10/10/2026): SignPath Foundation.** Desde la 2.7 todo el
+código del escritorio, incluido el módulo del formato .ddp, está en el
+repositorio público, que es lo que SignPath exige para firmar gratis. El
+instalador se arma en GitHub Actions (`.github/workflows/escritorio.yml`) y
+SignPath lo firma. Azure Trusted Signing (~10 US$/mes, enganche listo en
+`firma-azure.js`) queda como alternativa.
 
 ```powershell
 # Azure Trusted Signing (recomendado): sin .pfx, sin token físico

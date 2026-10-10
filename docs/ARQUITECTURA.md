@@ -154,9 +154,9 @@ La sesión se renueva sola con el *refresh token*.
 
 ## 5. Formato .ddp, ida y vuelta
 
-> El módulo del formato .ddp (`js/importador.js` y `js/exportador.js`) **no se distribuye en el
-> repositorio público**: está disponible en <https://openboq.pages.dev>. Sin él, la aplicación
-> arranca igual y no muestra las opciones de importar y exportar (`pruebas/sin-importador.test.js`).
+> El módulo del formato .ddp (`js/importador.js` y `js/exportador.js`) está en este repositorio
+> desde la versión 2.7. Es opcional: sin esos dos archivos la aplicación arranca igual y no
+> muestra las opciones de importar y exportar (`pruebas/sin-importador.test.js`).
 
 **Importar:** `importador.js` abre el contenedor, lee ítems, análisis, insumos e incidencias, y
 guarda los archivos que no usa para devolverlos después.

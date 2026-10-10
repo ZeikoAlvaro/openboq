@@ -238,12 +238,10 @@ function configurar(canal) {
     ]
   });
 
-  /* Ofuscar el módulo .ddp dentro del paquete SIEMPRE. El escritorio empaqueta la
-     web como archivos sueltos en resources/openboq/js; sin esto, importador.js
-     y exportador.js viajarían en claro dentro del .exe y una release pública
-     los dejaría a la vista. Ruta con `/` para que electron-builder la resuelva
-     igual en Windows. */
-  base.afterPack = path.join(AQUI, 'ofuscar-ddp.js').replace(/\\/g, '/');
+  /* Hasta el 10/10/2026 aquí se enganchaba `ofuscar-ddp.js` (afterPack) para
+     ofuscar el módulo .ddp dentro del paquete. Desde que ese módulo es
+     público ya no se ofusca: SignPath firma solo lo que sale de código
+     abierto y verificable. `ofuscar-ddp.js` queda sin uso. */
 
   /* Firma en la nube con Azure Trusted Signing cuando hay credenciales. No
      necesita token físico ni hacer público el código (lo que sí exige
