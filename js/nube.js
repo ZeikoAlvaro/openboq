@@ -50,8 +50,13 @@ const NUBE = (() => {
     } catch (e) { }
   };
 
+  /* `nombre` sale de Google (user_metadata); solo se usa para pintar la
+     barra inferior. Puede venir vacío: entonces se muestra el correo. */
   const usuario = () => sesion && sesion.user
-    ? { id: sesion.user.id, email: sesion.user.email }
+    ? {
+      id: sesion.user.id, email: sesion.user.email,
+      nombre: ((sesion.user.user_metadata || {}).full_name || (sesion.user.user_metadata || {}).name || '').trim()
+    }
     : null;
   const conectado = () => !!usuario();
 

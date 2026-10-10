@@ -248,6 +248,47 @@ table.rej tfoot td{background:var(--papel-3);border:0;border-top:1px solid var(-
 .estado .total{color:var(--rojo-txt);font-size:15px}
 .estado .total b{color:var(--rojo-txt)}
 
+/* acceso rápido, como la barra de título de Excel: guardar · deshacer ·
+   rehacer · guardar como. Íconos de trazo que toman el color del texto. */
+.acc-rapido{display:inline-flex;align-items:center;gap:2px;padding-right:10px;
+  margin-right:2px;border-right:1px solid var(--linea)}
+.acc-rapido button{display:inline-grid;place-items:center;width:30px;height:28px;padding:0;
+  border:1px solid transparent;border-radius:var(--r);background:transparent;
+  color:var(--texto);cursor:pointer}
+.acc-rapido button:hover:not(:disabled){background:var(--papel-3);border-color:var(--linea)}
+.acc-rapido button:focus-visible{outline:2px solid var(--acento);outline-offset:1px}
+.acc-rapido button:disabled{opacity:.35;cursor:default}
+.acc-rapido svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.4;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* la cuenta: nombre y círculo con iniciales, a la derecha */
+.estado .cuenta-est{display:inline-flex;align-items:center;gap:8px;margin-left:auto;
+  padding:2px 3px 2px 10px;border:1px solid transparent;border-radius:999px;
+  background:transparent;color:inherit;font:inherit;cursor:pointer;max-width:260px}
+.estado .cuenta-est:hover{border-color:var(--linea);background:var(--papel-3)}
+.estado .cuenta-est .nom{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.estado .cuenta-est .avatar{flex:none;display:inline-grid;place-items:center;width:26px;height:26px;
+  border-radius:50%;background:var(--papel-3);border:1px solid var(--linea);
+  font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--texto)}
+.estado .cuenta-est.dentro .avatar{background:var(--azul-txt);border-color:var(--azul-txt);color:#fff}
+.estado .cuenta-est + .total{margin-left:14px}
+/* una sola fila en pantalla ancha: lo que se achica es el mensaje de
+   guardado (con «…»), nunca el total ni los botones */
+@media (min-width:641px){
+  .col>.estado{flex-wrap:nowrap}
+  .col>.estado>*{flex:none;white-space:nowrap}
+  .col>.estado>#stGuardado{flex:0 1 auto;min-width:40px;overflow:hidden;text-overflow:ellipsis}
+  .col>.estado>.cuenta-est{flex:0 1 auto;min-width:36px}
+  /* con «Guardar cambios / Descartar» a la vista no entra todo: se van los
+     contadores, que ya figuran arriba (módulo) y en la lateral (ítems) */
+  .col>.estado:has(#accEnsayo:not([style*="none"]))>.st-dato{display:none}
+}
+@media (min-width:641px) and (max-width:1500px){
+  .acc-ensayo>.mini{display:none}
+}
+/* sin servidor la cuenta se oculta y el total vuelve a irse a la derecha */
+.estado .cuenta-est[style*="none"] + .total{margin-left:auto}
+
 /* ---- diálogos ---- */
 .modal{border-radius:var(--r-g);box-shadow:var(--sombra-2)}
 
@@ -355,7 +396,7 @@ body.modo-simple #v-reportes [data-acc="repResumen"],
 body.modo-simple #v-reportes [data-acc="exportarCsvIns"]{display:none}
 
 /* barra de estado: el total y el guardado */
-body.modo-simple .estado > span:nth-child(-n+3){display:none}
+body.modo-simple .estado > .st-dato{display:none}
 
 /* la guía del presupuesto vacío */
 .guia-simple{text-align:left !important;padding:22px 26px !important;line-height:1.6}
@@ -416,7 +457,8 @@ body.modo-simple #repOtros,body.modo-simple #repOtros+.rep-bts{display:none}
      (Google lo exige visible). Ítems, insumos y módulo ya están arriba. */
   .col>.estado{gap:4px 10px;padding:3px 8px}
   /* la cuenta queda: en el celular la barra lateral no la muestra */
-  .col>.estado>span:nth-child(-n+3),#stGuardado{display:none}
+  .col>.estado>.st-dato,#stGuardado{display:none}
+  .estado .cuenta-est .nom{display:none}
   .col>.estado .total{width:auto;margin-left:auto;font-size:14px}
   .modulos .mtab{height:32px}
   .modulos .mtab.nueva{width:32px}

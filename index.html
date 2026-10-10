@@ -142,10 +142,10 @@
 
 <!-- ?v=N en cada archivo propio: sin eso el navegador puede seguir usando el
      .css o .js viejo de su caché. Al publicar, subir N acá y en sw.js. -->
-<link rel="stylesheet" href="css/estilo.css?v=84">
+<link rel="stylesheet" href="css/estilo.css?v=85">
 <!-- Capa v2: solo armazón y color, cargada después para pisar lo anterior.
      Los identificadores no cambian, así que ui.js sigue igual. -->
-<link rel="stylesheet" href="css/ui2.css?v=84">
+<link rel="stylesheet" href="css/ui2.css?v=85">
 </head>
 <body>
 
@@ -178,9 +178,8 @@
   </div>
 
   <div class="lat-pie">
-    <!-- El texto lo pinta pintarCuenta() en js/ui.js, igual que #stCuenta de la
-         barra de estado: acá decía «Invitado» fijo y no cambiaba al entrar. -->
-    <button class="quien" id="btnCuenta" data-acc="cuenta" title="Mi cuenta"><span class="i">👤</span><span class="txt">Invitado</span></button>
+    <!-- La cuenta se mudó a la barra inferior (#stCuenta). pintarCuenta()
+         sigue tolerando que #btnCuenta no exista. -->
     <!-- El cambio de interfaz (simple de 4 pasos o completa) NO va aca: vive en
          CONFIGURACION → «Interfaz simple / completa». Estaba en los dos lados y
          en la barra se apretaba sin querer. `aplicarModo()` en ui.js sigue
@@ -219,21 +218,8 @@
     <select id="selBase" style="min-width:230px"></select>
   </div>
   <span class="pill" id="pillStats">—</span>
-  <span class="empuja"></span>
-  <!-- en el celular estos tres se ocultan; se editan por CONFIGURACIÓN → Moneda y decimales -->
-  <div class="campo solo-ancho"><label>Precisión:</label>
-    <select id="selPrecision">
-      <option value="0">0</option><option value="1">0.0</option>
-      <option value="2" selected>0.00</option><option value="3">0.000</option>
-      <option value="4">0.0000</option>
-    </select>
-  </div>
-  <div class="campo solo-ancho"><label>Moneda:</label>
-    <select id="selMoneda"><option value="Bs">Bs</option><option value="$US">$US</option></select>
-  </div>
-  <div class="campo solo-ancho"><label>T/C Bs/$US:</label>
-    <input type="number" id="inpTC" step="0.01" style="width:64px" value="6.96">
-  </div>
+  <!-- Precisión, moneda y tipo de cambio salieron de acá (10/10): se editan
+       solo por CONFIGURACIÓN → «Moneda, tipo de cambio y decimales…». -->
 </div>
 
 <main>
@@ -401,13 +387,22 @@
 
 <!-- ===================== BARRA DE ESTADO ===================== -->
 <div class="estado">
-  <span>Ítems: <b id="stItems">0</b></span>
-  <span>Insumos: <b id="stInsumos">0</b></span>
-  <span>Módulo: <b id="stModulo">—</b></span>
+  <!-- acceso rápido, como la barra de título de Excel: guardar, deshacer,
+       rehacer y guardar como. Deshacer/rehacer los habilita pintarHistoria(). -->
+  <span class="acc-rapido" role="toolbar" aria-label="Acceso rápido">
+    <button type="button" data-acc="guardar" title="Guardar (Ctrl+S)" aria-label="Guardar">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h9l2 2v9h-11z M5 2.5v4h6v-4 M4.5 13.5v-4h7v4"/></svg></button>
+    <button type="button" id="btDeshacer" data-acc="deshacer" title="Deshacer (Ctrl+Z)" aria-label="Deshacer" disabled>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3 2.5 6l3 3 M2.5 6h7a4 4 0 0 1 0 8h-3"/></svg></button>
+    <button type="button" id="btRehacer" data-acc="rehacer" title="Rehacer (Ctrl+Y)" aria-label="Rehacer" disabled>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 3l3 3-3 3 M13.5 6h-7a4 4 0 0 0 0 8h3"/></svg></button>
+    <button type="button" data-acc="guardarComo" title="Guardar como… (Ctrl+Mayús+S)" aria-label="Guardar como">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h9l2 2v4 M2.5 2.5v11h5 M5 2.5v4h6v-4 M9.5 13.5l4-4 1.5 1.5-4 4h-1.5z"/></svg></button>
+  </span>
+  <span class="st-dato">Ítems: <b id="stItems">0</b></span>
+  <span class="st-dato">Insumos: <b id="stInsumos">0</b></span>
+  <span class="st-dato">Módulo: <b id="stModulo">—</b></span>
   <span id="stGuardado" class="mini">—</span>
-  <!-- quién está usando la aplicación: el correo de la cuenta, o «Invitado».
-       Se hace clic para entrar, salir o guardar la biblioteca. -->
-  <span id="stCuenta" class="cuenta-est" data-acc="cuenta" title="Mi cuenta">👤 Invitado</span>
   <!-- Google exige que la politica de privacidad este enlazada desde la pagina
        principal para aprobar el permiso de Drive, y su rastreador NO ejecuta
        JavaScript: por eso el enlace va en el HTML estatico y en la barra de
@@ -421,6 +416,11 @@
     <button class="btn sec" data-acc="descartarCambios" title="Volver a como estaba antes de estos cambios">↺ Descartar</button>
     <span class="mini">en <b id="lblEnsayo">—</b></span>
   </span>
+  <!-- quién está usando la aplicación: nombre y círculo con iniciales, como
+       Excel. Antes estaba también en el pie de la barra lateral; ahora solo
+       acá. Clic para entrar, salir o guardar la biblioteca. -->
+  <button type="button" id="stCuenta" class="cuenta-est" data-acc="cuenta" title="Mi cuenta">
+    <span class="nom">Invitado</span><span class="avatar" aria-hidden="true">👤</span></button>
   <span class="total">TOTAL <b id="stTotal">0,00</b> <span id="stMoneda">Bs</span></span>
 </div>
 
@@ -512,20 +512,20 @@
      opcional y siempre lo fue.                                              -->
 <!-- Tauri bridge — emula window.OPENBOQ_ESCRITORIO si está en Tauri. Carga ANTES de cualquier otro script. -->
 <script src="tauri-bridge.js" onerror="console.log('tauri-bridge.js: no en Tauri o error')"></script>
-<script src="js/cifrado.js?v=84" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.obq.js?v=84" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.js?v=84" onerror="window.__sinCatalogo=1"></script>
+<script src="js/cifrado.js?v=85" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.obq.js?v=85" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.js?v=85" onerror="window.__sinCatalogo=1"></script>
 <!-- Cuenta, respaldo de la biblioteca, aportes anónimos y reportes.
      nube-config.js lleva la dirección del servidor y la clave pública; si
      falta, la aplicación funciona igual, solo sin cuenta. -->
-<script src="js/nube-config.js?v=84" onerror="window.__sinNube=1"></script>
-<script src="js/nube.js?v=84"></script>
-<script src="js/drive.js?v=84"></script>
+<script src="js/nube-config.js?v=85" onerror="window.__sinNube=1"></script>
+<script src="js/nube.js?v=85"></script>
+<script src="js/drive.js?v=85"></script>
 <!-- Pone al día la Base de Datos con lo que cambió en el repositorio
      central desde que se generó el catálogo. Si no está o falla, la
      aplicación funciona igual con el catálogo que trae. -->
-<script src="js/sync.js?v=84" onerror="window.__sinSincro=1"></script>
-<script src="js/acceso.js?v=84"></script>
+<script src="js/sync.js?v=85" onerror="window.__sinSincro=1"></script>
+<script src="js/acceso.js?v=85"></script>
 <script>
   /* ---------- arranque ----------
      El resto de la aplicación se carga DESPUÉS de que `window.OPENBOQ_DB`
@@ -541,7 +541,7 @@
   (function () {
     /* el mismo número que los ?v= de arriba: estuvo fijo en '62' desde la v2.6
        y motor.js, ui.js y los demás se pedían siempre con ?v=62 */
-    var V = '84';
+    var V = '85';
     var RESTO = ['js/motor.js', 'js/importador.js', 'js/exportador.js', 'js/xlsx.js',
                  'js/reportes.js', 'js/ui.js', 'js/ui2.js'];
 

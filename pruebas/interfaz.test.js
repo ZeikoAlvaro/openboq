@@ -19,8 +19,11 @@ console.log('== Interfaz ==');
 const NBASES=w.MOTOR.BD.bases.length;
 ok($('#selBase').options.length===NBASES,'el selector lista las '+NBASES+' bases');
 ok($('#tblPresupuesto').innerHTML.includes('DESCRIPCIÓN'),'tabla de presupuesto renderizada');
-{ const nApus=w.MOTOR.BD.stats.apus, txt=$('#pillStats').textContent;
-  ok(txt.replace(/\D/g,'').includes(String(nApus)),'el contador muestra los '+nApus+' items: '+txt); }
+/* el contador «N bases · N ítems · N insumos» ya no se muestra (10/10) */
+ok($('#pillStats').style.display==='none'&&!$('#pillStats').textContent,'sin contador de bases en la cabecera');
+{ const ag=w.MOTOR.BD.bases.find(b=>/AGOSTO\s*2026/i.test(b.n));
+  if (ag) ok(String($('#selBase').value)===String(ag.id)&&String($('#selBaseFiltro').value)===String(ag.id),
+    'la base que sale primero es '+ag.n); }
 
 console.log('== Flujo: buscar en la base e insertar ==');
 $('#buscaBase').value='revoque';

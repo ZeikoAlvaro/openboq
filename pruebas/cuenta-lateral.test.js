@@ -1,10 +1,10 @@
-/* Quién está usando la aplicación se muestra en DOS lugares: la barra de
-   estado (#stCuenta) y el pie de la barra lateral (#btnCuenta).
+/* Quién está usando la aplicación se muestra en la barra inferior
+   (#stCuenta): nombre y círculo con iniciales, como la barra de Excel.
 
-   Esta prueba existe por un bug de la v2.0: el del pie decía «Invitado» fijo
-   en el HTML y nadie lo actualizaba nunca. Con la sesión iniciada seguía
-   diciendo «Invitado», y los datos de la cuenta recién aparecían al hacer
-   clic. Los dos tienen que decir lo mismo, siempre.
+   Hasta la v2.7 también estaba en el pie de la barra lateral (#btnCuenta), y
+   la prueba nació por un bug de la v2.0: ese pie decía «Invitado» fijo aunque
+   hubiera sesión. Ahora la cuenta vive en un solo lugar y la lateral ya no
+   tiene el botón.
 
    No toca la red: NUBE es un doble de prueba. */
 const { JSDOM } = require('jsdom');
@@ -17,7 +17,7 @@ const ok = (c, m) => console.log((c ? '  ✓ ' : '  ✗ ') + m) || (c ? 0 : erro
 
 /**
  * Arranca la aplicación con una NUBE simulada.
- * @param {?{email:string}} usuario null = sin sesión
+ * @param {?{email:string, nombre?:string}} usuario null = sin sesión
  */
 function armar(usuario) {
   const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'file:///app/index.html' });
@@ -57,29 +57,32 @@ function armar(usuario) {
 console.log('== Sin sesión ==');
 {
   const w = armar(null);
-  const bt = w.document.querySelector('#btnCuenta');
   const st = w.document.querySelector('#stCuenta');
-  ok(!!bt, 'el pie de la barra lateral tiene el botón de cuenta');
-  ok(bt.querySelector('.txt').textContent === 'Invitado', 'dice «Invitado»: ' + bt.querySelector('.txt').textContent);
-  ok(st.textContent.includes('Invitado'), 'y la barra de estado también');
-  ok(!bt.classList.contains('dentro'), 'sin resaltar');
+  ok(!w.document.querySelector('#btnCuenta'), 'la barra lateral ya no tiene el botón de cuenta');
+  ok(!!st && !!st.closest('.estado'), 'la cuenta está en la barra inferior');
+  ok(st.querySelector('.nom').textContent === 'Invitado', 'dice «Invitado»: ' + st.querySelector('.nom').textContent);
+  ok(!st.classList.contains('dentro'), 'sin resaltar');
   w.close();   // ui.js deja temporizadores andando; sin esto el proceso no termina
 }
 
-console.log('== Con la sesión iniciada ==');
+console.log('== Con la sesión iniciada, sin nombre ==');
 {
   const w = armar({ id: 'u1', email: 'alguien@ejemplo.com' });
-  const bt = w.document.querySelector('#btnCuenta');
   const st = w.document.querySelector('#stCuenta');
-  const txt = bt.querySelector('.txt').textContent;
-  ok(txt === 'alguien@ejemplo.com', 'el pie muestra el correo, no «Invitado»: ' + txt);
-  ok(!/Invitado/.test(bt.textContent), 'y en ninguna parte del botón queda «Invitado»');
-  ok(st.textContent.includes('alguien@ejemplo.com'), 'la barra de estado dice lo mismo');
-  ok(bt.classList.contains('dentro'), 'el pie queda resaltado');
-  ok(/alguien@ejemplo\.com/.test(bt.title), 'y el título del botón nombra la cuenta');
-  /* El 👤 vive en su propio <span class="i">: con la barra plegada es lo único
-     que queda visible, así que no puede irse junto con el texto. */
-  ok(!!bt.querySelector('.i'), 'el ícono sigue en su propio span');
+  ok(st.querySelector('.nom').textContent === 'alguien@ejemplo.com', 'muestra el correo: ' + st.querySelector('.nom').textContent);
+  ok(!/Invitado/.test(st.textContent), 'y en ninguna parte queda «Invitado»');
+  ok(st.querySelector('.avatar').textContent === 'A', 'el círculo lleva la inicial del correo: ' + st.querySelector('.avatar').textContent);
+  ok(st.classList.contains('dentro'), 'queda resaltado');
+  ok(/alguien@ejemplo\.com/.test(st.title), 'y el título nombra la cuenta');
+  w.close();
+}
+
+console.log('== Con nombre de Google ==');
+{
+  const w = armar({ id: 'u2', email: 'ao@ejemplo.com', nombre: 'Alvaro Oczachoque' });
+  const st = w.document.querySelector('#stCuenta');
+  ok(st.querySelector('.nom').textContent === 'Alvaro Oczachoque', 'muestra el nombre: ' + st.querySelector('.nom').textContent);
+  ok(st.querySelector('.avatar').textContent === 'AO', 'iniciales AO: ' + st.querySelector('.avatar').textContent);
   w.close();
 }
 

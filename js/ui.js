@@ -826,11 +826,9 @@
      no aporta nada frente al proveedor. */
 
   /**
-   * Quién está usando la aplicación. Se pinta en los DOS lugares donde figura:
-   * la barra de estado (`#stCuenta`) y el pie de la barra lateral
-   * (`#btnCuenta`). El del pie decía «Invitado» fijo en el HTML y no se
-   * actualizaba nunca: con la sesión iniciada seguía diciendo «Invitado» y
-   * recién al hacer clic aparecían los datos de la cuenta.
+   * Quién está usando la aplicación. Se pinta en la barra inferior
+   * (`#stCuenta`). Hasta la v2.7 también figuraba en el pie de la barra
+   * lateral (`#btnCuenta`); si una página vieja lo trae, se pinta igual.
    *
    * Sin cuenta dice «Invitado» y no «Sin cuenta»: la aplicación funciona
    * igual sin entrar, así que no corresponde que parezca una carencia.
@@ -850,7 +848,15 @@
 
     if (el) {
       el.style.display = '';
-      el.textContent = '👤 ' + (u ? u.email : 'Invitado');
+      /* nombre y círculo con iniciales, como la barra de Excel; sin nombre
+         de Google, el correo y su inicial */
+      const nom = u ? (u.nombre || u.email) : 'Invitado';
+      const ini = !u ? '👤' : u.nombre
+        ? u.nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase()
+        : u.email.charAt(0).toUpperCase();
+      const n = el.querySelector('.nom'), a = el.querySelector('.avatar');
+      if (n) n.textContent = nom; else el.textContent = nom;
+      if (a) a.textContent = ini;
       el.classList.toggle('dentro', !!u);
       el.title = titulo;
     }
@@ -1032,10 +1038,81 @@
     if (!ensayo) return;
     try { M.deserializar(ensayo.copia); } catch (e) { /* la copia siempre es válida */ }
     ensayo = null;
+    /* es el mismo proyecto vuelto atrás, no otro: descartar se puede deshacer */
+    hist.P = M.proyecto();
     render();
+    historiaRevisar();
     marcarGuardado('Cambios descartados');
     estadoEnsayo();
   }
+  /* ===================== DESHACER / REHACER =====================
+     Botones ↶ ↷ de la barra inferior, Ctrl+Z y Ctrl+Y. Trabaja con fotos
+     del proyecto entero (M.serializar), igual que el ensayo, así no hace
+     falta tocar cada acción: después de cualquier gesto (tecla, clic, cambio)
+     se compara el proyecto con la última foto y, si cambió, la foto vieja
+     pasa a la pila de deshacer. Lo tipeado en un campo se junta en un solo
+     paso: la comparación espera a que se deje de escribir.
+     Lo que solo mueve la vista (módulo activo, ítem seleccionado) no cuenta
+     como cambio. Abrir o empezar otro proyecto vacía la historia: deshacer
+     nunca lleva a un proyecto distinto del abierto.
+     Deshacer deja el resultado como cambio en prueba: «Guardar cambios» lo
+     confirma y «Descartar» vuelve a como estaba antes de deshacer. */
+  const HIST_MAX = 40;
+  const hist = { atras: [], adelante: [], foto: null, firma: '', P: null, t: 0 };
+  const firmaDe = s => s.replace(/"(moduloActivo|itemSel)": [^,\n]*/g, '');
+
+  function historiaReiniciar() {
+    clearTimeout(hist.t);
+    hist.atras = []; hist.adelante = [];
+    hist.foto = M.serializar(); hist.firma = firmaDe(hist.foto); hist.P = M.proyecto();
+    pintarHistoria();
+  }
+  /** Compara con la última foto; si el proyecto cambió, la guarda para deshacer. */
+  function historiaRevisar() {
+    clearTimeout(hist.t);
+    if (hist.P !== M.proyecto()) return historiaReiniciar();
+    const foto = M.serializar(), firma = firmaDe(foto);
+    if (firma === hist.firma) { hist.foto = foto; return; }
+    hist.atras.push(hist.foto);
+    if (hist.atras.length > HIST_MAX) hist.atras.shift();
+    hist.adelante = [];
+    hist.foto = foto; hist.firma = firma;
+    pintarHistoria();
+  }
+  const historiaLuego = ms => { clearTimeout(hist.t); hist.t = setTimeout(historiaRevisar, ms); };
+
+  function historiaIr(desde, hacia, que) {
+    historiaRevisar();            // lo recién tipeado también entra
+    if (!desde.length) return;
+    const P0 = M.proyecto(), mod = P0.moduloActivo, sel = P0.itemSel;
+    probando(ensayo ? ensayo.clave : (ETIQUETA_ENSAYO[vista] ? vista : 'presupuesto'));
+    hacia.push(hist.foto);
+    const foto = desde.pop();
+    try { M.deserializar(foto); } catch (e) { return; }
+    /* deserializar vuelve al primer módulo: se queda donde estaba */
+    const P = M.proyecto();
+    P.moduloActivo = Math.max(0, Math.min(mod, P.modulos.length - 1));
+    P.itemSel = sel && M.getItem(sel) ? sel : null;
+    hist.foto = foto; hist.firma = firmaDe(foto); hist.P = P;
+    render(); irVista(vista);
+    marcarGuardado(que + ' — todavía sin guardar', true);
+    pintarHistoria();
+  }
+  const deshacer = () => historiaIr(hist.atras, hist.adelante, 'Deshecho');
+  const rehacer = () => historiaIr(hist.adelante, hist.atras, 'Rehecho');
+
+  function pintarHistoria() {
+    const d = $('#btDeshacer'), r = $('#btRehacer');
+    if (d) {
+      d.disabled = !hist.atras.length;
+      d.title = 'Deshacer (Ctrl+Z)' + (hist.atras.length ? ' — ' + hist.atras.length + ' paso(s)' : '');
+    }
+    if (r) {
+      r.disabled = !hist.adelante.length;
+      r.title = 'Rehacer (Ctrl+Y)' + (hist.adelante.length ? ' — ' + hist.adelante.length + ' paso(s)' : '');
+    }
+  }
+
   /**
    * Pregunta qué hacer con lo que se estaba probando antes de irse.
    * @param {Function} seguir lo que se hace después de decidir
@@ -1092,12 +1169,24 @@
     const ops = hay
       ? M.BD.bases.map(b => `<option value="${b.id}">${esc(b.n)} (${b.apus.length} ítems)</option>`).join('')
       : '<option value="">— sin Base de Datos cargada —</option>';
+    /* La base que se ofrece primero es la BD ACTUALIZADA AGOSTO 2026 (la más
+       reciente). Si el usuario ya había elegido otra, se respeta al rellenar. */
+    const previa = $('#selBase').value;
     $('#selBase').innerHTML = ops;
     $('#selBaseFiltro').innerHTML = ops;
-    const s = M.BD.stats;
-    $('#pillStats').textContent = hay
-      ? `${s.bases || M.BD.bases.length} bases · ${(s.apus || 0).toLocaleString('es-BO')} ítems · ${(s.insumos || 0).toLocaleString('es-BO')} insumos`
-      : 'Sin Base de Datos de precios';
+    if (hay) {
+      const pref = M.BD.bases.find(b => String(b.id) === previa) ||
+        M.BD.bases.find(b => /AGOSTO\s*2026/i.test(b.n)) || M.BD.bases[0];
+      $('#selBase').value = $('#selBaseFiltro').value = pref.id;
+      baseSelId = pref.id;
+    }
+    /* El contador «N bases · N ítems · N insumos» se sacó de la cabecera
+       (pedido de Alvaro, 10/10). Queda solo el aviso cuando no hay base. */
+    const pill = $('#pillStats');
+    if (pill) {
+      pill.textContent = hay ? '' : 'Sin Base de Datos de precios';
+      pill.style.display = hay ? 'none' : '';
+    }
     if (!hay)
       $('#detApu').innerHTML = `<div class="vacio" style="max-width:620px;margin:0 auto;text-align:left">
         <p style="text-align:center"><b>Todavía no hay ninguna base de datos cargada.</b></p>
@@ -1112,10 +1201,9 @@
   /* ===================== RENDER GENERAL ===================== */
   function render() {
     const P = M.proyecto();
+    /* otro proyecto (abierto, nuevo, recuperado): la historia empieza de cero */
+    if (hist.P !== P) historiaReiniciar();
     $('#lblProyecto').textContent = P.nombre;
-    $('#selPrecision').value = P.precision;
-    $('#selMoneda').value = P.moneda;
-    $('#inpTC').value = P.tc;
     $('#inpPlazo').value = P.plazo;
     $('#inpInicioObra').value = P.inicioObra || '';
     renderModulos();
@@ -1978,6 +2066,7 @@
       ['—'], ['Borrar todo y empezar de cero', 'borrarTodo']
     ],
     edicion: [
+      ['Deshacer', 'deshacer', 'Ctrl+Z'], ['Rehacer', 'rehacer', 'Ctrl+Y'], ['—'],
       ['Nuevo ítem', 'nuevoItem', 'Ins'], ['Duplicar ítem', 'dupItem'], ['Eliminar ítem', 'delItem', 'Supr'],
       ['—'], ['Subir ítem', 'subirItem'], ['Bajar ítem', 'bajarItem'],
       ['—'], ['Nuevo módulo', 'nuevoModulo'], ['Renombrar módulo', 'renModulo'], ['Eliminar módulo', 'delModulo']
@@ -2133,8 +2222,10 @@
   function itemArg(arg) {
     return (typeof arg === 'string' && M.getItem(arg)) ? arg : M.proyecto().itemSel;
   }
-  function abrirMenuItem(bt) {
-    if (bt.classList.contains('abierto')) return;
+  /* Con `pos` ({x, y}) el menú sale donde se hizo clic derecho, en vez de
+     colgar del botón ▾. */
+  function abrirMenuItem(bt, pos) {
+    if (!pos && bt.classList.contains('abierto')) return;
     cerrarMenus();
     const P = M.proyecto(), id = bt.dataset.itm;
     const L = M.items(), k = L.findIndex(x => x.id === id);
@@ -2159,7 +2250,10 @@
       `<div class="padre" tabindex="0">Mover a otro módulo<span>▸</span>${sub('moverItemModulo')}</div>` +
       '<div class="sep"></div>' +
       op('Eliminar', 'delItem', id);
-    const r = bt.getBoundingClientRect();
+    /* el clic derecho se trata como un punto: el menú se abre justo al lado */
+    const r = pos
+      ? { left: pos.x, right: pos.x + 232, top: pos.y, bottom: pos.y + 2 }
+      : bt.getBoundingClientRect();
     d.style.left = Math.max(4, Math.min(r.right - 230, window.innerWidth - 234)) + 'px';
     d.style.top = r.bottom + 'px';
     document.body.appendChild(d);
@@ -2619,6 +2713,8 @@
     },
     guardar() { salirDeEnsayo(() => guardarArchivo(false)); },
     guardarComo() { salirDeEnsayo(() => guardarArchivo(true)); },
+    deshacer() { deshacer(); },
+    rehacer() { rehacer(); },
     /* botones de la barra de estado: confirmar o deshacer lo que se está probando */
     guardarCambios() { guardarEnsayo(); },
     descartarCambios() {
@@ -3493,9 +3589,8 @@
         [...new Set(av)].slice(0, 60).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>'
         : '<p style="color:var(--ok)"><b>Sin observaciones.</b> Todos los ítems tienen insumos, cantidades y precios válidos.</p>');
     },
-    /* Moneda, tipo de cambio y decimales. Están en la cabecera, pero en el
-       celular esa fila se oculta para no comerse la pantalla: acá se editan
-       igual desde el menú CONFIGURACIÓN. */
+    /* Moneda, tipo de cambio y decimales. Desde el 10/10 se editan SOLO acá
+       (menú CONFIGURACIÓN): la cabecera ya no los muestra. */
     formatoNumeros() {
       const P = M.proyecto();
       modal('Moneda y decimales', `<div class="form-g">
@@ -4398,12 +4493,11 @@
       modal('Acerca de OpenBOQ',
         '<p><b>OpenBOQ</b> — programa para presupuestos, cómputos métricos y cronograma de obra.</p>' +
         '<p>De código abierto y uso libre.</p>' +
-        /* Única mención en toda la aplicación. Va acá y no en el login ni en
-           cada guardado: alcanza con que esté escrito en un lugar estable. */
-        '<p class="mini" style="border-top:1px solid var(--linea);padding-top:8px">Los análisis que se ' +
-        'arman alimentan la Base de Datos común de forma anónima: tipo de insumo, unidad, precio ' +
-        'y rendimiento. No se envían cantidades de obra, montos, cómputos, ni el nombre del ' +
-        'proyecto o de la entidad.</p>');
+        '<p class="mini" style="border-top:1px solid var(--linea);padding-top:8px">La conexión con el ' +
+        'sitio y con todos los servicios viaja cifrada (HTTPS). El acceso a la información de cada ' +
+        'cuenta está restringido a nivel de base de datos.</p>' +
+        '<p class="mini">Para más información sobre el código: <a href="https://github.com/ZeikoAlvaro/openboq" ' +
+        'target="_blank" rel="noopener">github.com/ZeikoAlvaro/openboq</a></p>');
     },
     guia() {
       modal('Guía rápida', `<ol style="font-size:12px;line-height:1.6;padding-left:18px">
@@ -4763,9 +4857,6 @@
       });
       render();
     });
-    $('#selPrecision').addEventListener('change', e => { M.proyecto().precision = +e.target.value; tocar(); render(); });
-    $('#selMoneda').addEventListener('change', e => { M.proyecto().moneda = e.target.value; tocar(); render(); });
-    $('#inpTC').addEventListener('change', e => { M.proyecto().tc = +e.target.value || 6.96; tocar(); render(); });
     $('#selBase').addEventListener('change', e => { $('#selBaseFiltro').value = e.target.value; buscarBase(); });
     $('#buscaPres').addEventListener('input', renderPresupuesto);
 
@@ -4803,13 +4894,28 @@
       /* sin cortar acá, el clic llega al documento y cierra el menú recién abierto */
       if (bt) { e.stopPropagation(); bt.classList.contains('abierto') ? cerrarMenus() : abrirMenuItem(bt); return; }
       const tr = e.target.closest('tr[data-item]');
-      if (tr) {
-        M.proyecto().itemSel = tr.dataset.item;
-        $$('#tblPresupuesto tr').forEach(x => x.classList.remove('sel'));
-        tr.classList.add('sel');
-        $('#selItemAnalisis').value = tr.dataset.item;
-        $('#selItemComputo').value = tr.dataset.item;
-      }
+      if (tr) seleccionarFilaPres(tr);
+    });
+    function seleccionarFilaPres(tr) {
+      M.proyecto().itemSel = tr.dataset.item;
+      $$('#tblPresupuesto tr').forEach(x => x.classList.remove('sel'));
+      tr.classList.add('sel');
+      $('#selItemAnalisis').value = tr.dataset.item;
+      $('#selItemComputo').value = tr.dataset.item;
+    }
+    /* Clic derecho sobre una fila (la descripción, el número, los precios)
+       = el mismo menú ▾ del ítem, donde está el puntero. Se deja el menú del
+       navegador donde sirve: en UND. y CANTIDAD, que se editan, en la
+       descripción mientras se le cambia el nombre, y con Mayús apretada. */
+    $('#tblPresupuesto').addEventListener('contextmenu', e => {
+      const tr = e.target.closest('tr[data-item]');
+      if (!tr || e.shiftKey) return;
+      const t = e.target;
+      if (t.matches('input') && (!t.readOnly || t.classList.contains('editando'))) return;
+      const bt = tr.querySelector('.b-itm'); if (!bt) return;
+      e.preventDefault();
+      seleccionarFilaPres(tr);
+      abrirMenuItem(bt, { x: e.clientX, y: e.clientY });
     });
     /* Doble clic en una fila del presupuesto = abrir su análisis (B-2), el
        mismo gesto que en el B-3 abre el detalle del insumo.
@@ -5164,8 +5270,27 @@
       } catch (err) { alert('No se pudieron leer los archivos:\n' + err.message); }
     });
 
+    /* Deshacer/rehacer: después de cada gesto se mira si el proyecto cambió.
+       Escribiendo se espera a la pausa, así una palabra es un solo paso. */
+    let tipeando = null;   // el campo donde se escribió desde que tomó el foco
+    document.addEventListener('focusin', () => { tipeando = null; }, true);
+    document.addEventListener('input', e => { tipeando = e.target; historiaLuego(700); }, true);
+    document.addEventListener('change', () => historiaLuego(150), true);
+    document.addEventListener('click', () => historiaLuego(250), true);
+    document.addEventListener('keyup', e => { if (!tipeando) historiaLuego(250); }, true);
+
     // atajos
     document.addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      /* Ctrl+Z dentro de un campo que se está escribiendo es el del navegador
+         (deshace letras); fuera de eso, y con un diálogo cerrado, es el de la
+         aplicación. Ctrl+Y y Ctrl+Mayús+Z rehacen. */
+      if (e.ctrlKey && !e.altKey && (k === 'z' || k === 'y') &&
+        e.target !== tipeando && !$('#overlay').classList.contains('on')) {
+        e.preventDefault();
+        if (k === 'y' || e.shiftKey) rehacer(); else deshacer();
+        return;
+      }
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 's') { e.preventDefault(); ACC.guardarComo(); }
       else if (e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); ACC.guardar(); }
       else if (e.ctrlKey && e.key.toLowerCase() === 'n') { e.preventDefault(); ACC.nuevo(); }
