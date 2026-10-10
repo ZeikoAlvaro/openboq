@@ -397,6 +397,9 @@ body.modo-simple #v-reportes [data-acc="exportarCsvIns"]{display:none}
 
 /* barra de estado: el total y el guardado */
 body.modo-simple .estado > .st-dato{display:none}
+/* el botón para volver a la interfaz completa existe solo en modo simple */
+.estado .solo-simple{display:none}
+body.modo-simple .estado .solo-simple{display:inline-flex;align-items:center;padding:4px 10px}
 
 /* la guía del presupuesto vacío */
 .guia-simple{text-align:left !important;padding:22px 26px !important;line-height:1.6}

@@ -2115,7 +2115,11 @@
       ['—'], ['Guardar este proyecto en mi Drive', 'driveGuardarProyecto'],
       ['Respaldar mis bases y cambios en mi Drive', 'driveGuardarBiblioteca']
     ],
+    /* «Interfaz simple / completa» va también acá: en modo simple el menú
+       CONFIGURACIÓN se oculta y AYUDA es de lo poco que queda a la vista.
+       Sin esto, quien entraba al modo simple no tenía cómo volver. */
     ayuda: [['Acerca de OpenBOQ', 'acerca'], ['Guía rápida de uso', 'guia'],
+    ['—'], ['Interfaz simple / completa', 'cambiarModo'],
     ['—'], ['Reportar un error o una observación…', 'reportar']]
   };
 

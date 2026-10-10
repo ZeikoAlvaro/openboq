@@ -69,6 +69,21 @@ const visible = (w, sel) => { const e = w.document.querySelector(sel); return !!
   ok(w.document.body.classList.contains('modo-simple'), 'vuelve en modo simple');
   ok(!w.document.querySelector('#iniPerfil [data-perfil]'), 'sin volver a preguntar');
 
+  console.log('== En modo simple siempre hay salida a la completa ==');
+  {
+    /* CONFIGURACIÓN se oculta en modo simple: la salida tiene que estar en
+       AYUDA y en la barra inferior, o quien entra no puede volver. */
+    const w2 = arrancar({ openboq_perfil: guardado });
+    await dormir(500);
+    const d2 = w2.document;
+    clic(w2, d2.querySelector('.menubar .m[data-menu="ayuda"]'));
+    ok(!!d2.querySelector('.menu-pop [data-acc="cambiarModo"]'), 'AYUDA ofrece «Interfaz simple / completa»');
+    const bt = d2.querySelector('.estado [data-acc="cambiarModo"]');
+    ok(!!bt, 'la barra inferior tiene el botón «Interfaz completa»');
+    clic(w2, bt);
+    ok(!d2.body.classList.contains('modo-simple'), 'el botón vuelve a la interfaz completa');
+  }
+
   console.log('== CONFIGURACION vuelve a la completa ==');
   cambiarInterfaz(w);
   ok(!w.document.body.classList.contains('modo-simple'), 'sale del modo simple');
