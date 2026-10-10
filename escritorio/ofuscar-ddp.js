@@ -1,6 +1,6 @@
 'use strict';
 
-/* Hook afterPack de electron-builder: ofusca el módulo de PRESCOM
+/* Hook afterPack de electron-builder: ofusca el módulo del formato .ddp
  * (importador.js y exportador.js) DENTRO del paquete, antes de que se arme
  * el instalador.
  *
@@ -14,7 +14,7 @@
  * tiene que hacer lo mismo o abre el mismo agujero por otro lado.
  *
  * Misma configuración de ofuscación que el sitio, para que el resultado sea
- * el ya probado contra las pruebas de PRESCOM.
+ * el ya probado contra las pruebas del formato .ddp.
  */
 
 const fs = require('fs');
@@ -39,7 +39,7 @@ const OPCIONES = {
   selfDefending: false,
   unicodeEscapeSequence: false
 };
-const CABECERA = '/*! OpenBOQ · módulo PRESCOM · © 2026 Alvaro Oczachoque · Todos los derechos reservados. ' +
+const CABECERA = '/*! OpenBOQ · módulo .ddp · © 2026 Alvaro Oczachoque · Todos los derechos reservados. ' +
   'Prohibida su copia, modificación o redistribución sin autorización. */\n';
 
 exports.default = async function ofuscar(context) {
@@ -54,7 +54,7 @@ exports.default = async function ofuscar(context) {
     const original = fs.readFileSync(ruta, 'utf8');
 
     /* Ya ofuscado (rearmado sobre una salida previa): no lo toco de nuevo. */
-    if (original.indexOf('módulo PRESCOM') > 0 && original.length && /_0x/.test(original)) {
+    if (/módulo (\.ddp|PRES[C]OM)/.test(original.slice(0, 200)) && original.length && /_0x/.test(original)) {
       console.log('   [ofuscar-ddp] ' + nombre + ' ya estaba ofuscado, se deja.');
       continue;
     }
@@ -76,7 +76,7 @@ exports.default = async function ofuscar(context) {
     }
 
     /* Comprobación dura: si el nombre de una función interna sobrevivió, la
-       ofuscación no se aplicó y NO se sigue (evita publicar PRESCOM en claro). */
+       ofuscación no se aplicó y NO se sigue (evita publicar el módulo .ddp en claro). */
     const fn = (original.match(/function (\w{6,})/) || [])[1];
     if (fn && codigo.indexOf('function ' + fn + '(') >= 0) {
       throw new Error('[ofuscar-ddp] ' + nombre + ' conserva nombres internos: NO se aplicó la ofuscación');
