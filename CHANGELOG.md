@@ -8,7 +8,7 @@ La versión en línea siempre es la de <https://openboq.pages.dev>.
 ## 2.6 · septiembre 2026
 
 **Repositorio**
-- El módulo de PRESCOM deja de distribuirse en el repositorio público; la aplicación funciona sin
+- El módulo del formato .ddp deja de distribuirse en el repositorio público; la aplicación funciona sin
   él y oculta esas opciones.
 
 **Interfaz**
@@ -41,7 +41,7 @@ La versión en línea siempre es la de <https://openboq.pages.dev>.
 
 ## 2.1 · agosto 2026
 
-- Importar de PRESCOM **cierra al centavo** también en proyectos de cientos de ítems.
+- Abrir un proyecto `.ddp` **cierra al centavo** también en proyectos de cientos de ítems.
 - El B-3 muestra solo los insumos que se usan.
 - **Comparar dos proyectos en Excel:** ítem contra ítem e insumo contra insumo.
 
@@ -59,7 +59,7 @@ La versión en línea siempre es la de <https://openboq.pages.dev>.
 
 ## 1.12 · agosto 2026
 
-- El presupuesto importado de PRESCOM cierra en **0,00** contra el total del archivo. En proyectos
+- El presupuesto importado de un `.ddp` cierra en **0,00** contra el total del archivo. En proyectos
   importados manda el precio unitario del archivo, declarado en el B-2 como «redondeo del archivo
   de origen».
 
@@ -70,7 +70,7 @@ La versión en línea siempre es la de <https://openboq.pages.dev>.
 
 ## 1.10 · agosto 2026
 
-- **Exportar a PRESCOM:** el proyecto vuelve al formato de PRESCOM con el membrete y los rótulos del
+- **Exportar a formato .ddp:** el proyecto vuelve al formato `.ddp` con el membrete y los rótulos del
   original.
 
 ## 1.9 · agosto 2026

@@ -20,7 +20,7 @@ formularios B-1, B-2 y B-3, cronograma y curva S. Gratis, sin instalar y pensado
 | **Cronograma** | Duraciones, predecesoras, diagrama de barras y curva S, desde el mismo presupuesto. |
 | **Reportes** | B-1, B-2, B-3, requerimiento de insumos, cómputos, cronograma y resumen por módulos, para imprimir o guardar en PDF. |
 | **Excel** | Libro `.xlsx` real, una hoja por reporte, sin librerías externas. |
-| **PRESCOM** | Importa proyectos de PRESCOM y los exporta de vuelta en su formato, con el membrete y los rótulos del original. Disponible en <https://openboq.pages.dev>; el módulo no se distribuye en este repositorio. |
+| **Formato .ddp** | Abre proyectos en formato `.ddp` y los exporta de vuelta en ese formato, con el membrete y los rótulos del original. Disponible en <https://openboq.pages.dev>; el módulo no se distribuye en este repositorio. |
 | **Nube** | Con sesión de Google, los proyectos se guardan en el Google Drive del propio usuario. Ver [docs/GOOGLE-DRIVE.md](docs/GOOGLE-DRIVE.md). |
 
 Además: interfaz simple de cuatro pasos para quien nunca usó un programa de presupuestos, tema
@@ -40,7 +40,7 @@ calculando aunque se corte la conexión.
 
 | Pieza | Para qué | Si no está |
 |---|---|---|
-| Navegador | cálculo, proyecto abierto, reportes, Excel, PRESCOM | — |
+| Navegador | cálculo, proyecto abierto, reportes, Excel, formato .ddp | — |
 | Cloudflare Pages | entrega los archivos del sitio | no se puede abrir la aplicación |
 | Supabase | inicio de sesión, puesta al día del catálogo, aportes anónimos de precios | la aplicación funciona con el catálogo que trae |
 | Google Drive del usuario | guardar y recuperar proyectos en la nube | se trabaja con archivos `.boq` locales |
@@ -72,7 +72,7 @@ node herramientas/probar.js --detalle      # con la salida completa
 ```
 
 Algunas pruebas necesitan archivos que no están en el repositorio (el catálogo sin cifrar o
-proyectos reales de PRESCOM). Si faltan, se **omiten** con aviso en lugar de fallar. Ver
+proyectos reales en formato .ddp). Si faltan, se **omiten** con aviso en lugar de fallar. Ver
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
@@ -89,8 +89,8 @@ openboq/
 ├── js/
 │   ├── motor.js            cálculo y estado del proyecto
 │   ├── ui.js  ui2.js       interfaz
-│   ├── importador.js       PRESCOM: importar  (no incluido en este repositorio)
-│   ├── exportador.js       PRESCOM: exportar  (no incluido en este repositorio)
+│   ├── importador.js       formato .ddp: abrir     (no incluido en este repositorio)
+│   ├── exportador.js       formato .ddp: exportar  (no incluido en este repositorio)
 │   ├── reportes.js         formularios imprimibles
 │   ├── xlsx.js             generador de .xlsx
 │   ├── nube.js             sesión, aportes y reportes (Supabase)
@@ -129,5 +129,4 @@ Lo nuevo de cada versión está en [CHANGELOG.md](CHANGELOG.md).
 MIT, ver [LICENSE](LICENSE). La licencia cubre el código. Los precios de referencia provienen de
 bases de terceros y de aportes de usuarios, y se entregan sin garantía.
 
-PRESCOM es marca de sus respectivos titulares. OpenBOQ es un proyecto independiente y no está
-afiliado a ellos.
+OpenBOQ es un proyecto independiente: no está afiliado a ningún otro programa de presupuestos.

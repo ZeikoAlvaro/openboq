@@ -49,13 +49,13 @@ exports.default = async function ofuscar(context) {
   for (const nombre of ARCHIVOS) {
     const ruta = path.join(dirJs, nombre);
     if (!fs.existsSync(ruta)) {
-      throw new Error('[ofuscar-prescom] no está ' + ruta + ' — no se puede armar sin ofuscar PRESCOM');
+      throw new Error('[ofuscar-ddp] no está ' + ruta + ' — no se puede armar sin ofuscar el módulo .ddp');
     }
     const original = fs.readFileSync(ruta, 'utf8');
 
     /* Ya ofuscado (rearmado sobre una salida previa): no lo toco de nuevo. */
     if (original.indexOf('módulo PRESCOM') > 0 && original.length && /_0x/.test(original)) {
-      console.log('   [ofuscar-prescom] ' + nombre + ' ya estaba ofuscado, se deja.');
+      console.log('   [ofuscar-ddp] ' + nombre + ' ya estaba ofuscado, se deja.');
       continue;
     }
 
@@ -72,18 +72,18 @@ exports.default = async function ofuscar(context) {
       vm.runInContext(codigo + '\n;globalThis.__g = typeof ' + global + ';', ctx);
       if (global && ctx.__g !== 'object') throw new Error(global + ' quedó como ' + ctx.__g);
     } catch (e) {
-      throw new Error('[ofuscar-prescom] ' + nombre + ' no quedó utilizable tras ofuscar: ' + e.message);
+      throw new Error('[ofuscar-ddp] ' + nombre + ' no quedó utilizable tras ofuscar: ' + e.message);
     }
 
     /* Comprobación dura: si el nombre de una función interna sobrevivió, la
        ofuscación no se aplicó y NO se sigue (evita publicar PRESCOM en claro). */
     const fn = (original.match(/function (\w{6,})/) || [])[1];
     if (fn && codigo.indexOf('function ' + fn + '(') >= 0) {
-      throw new Error('[ofuscar-prescom] ' + nombre + ' conserva nombres internos: NO se aplicó la ofuscación');
+      throw new Error('[ofuscar-ddp] ' + nombre + ' conserva nombres internos: NO se aplicó la ofuscación');
     }
 
     fs.writeFileSync(ruta, codigo);
-    console.log('   [ofuscar-prescom] ofuscado ' + nombre
+    console.log('   [ofuscar-ddp] ofuscado ' + nombre
       + '  ' + (original.length / 1024).toFixed(0) + ' KB → ' + (codigo.length / 1024).toFixed(0) + ' KB');
   }
 };

@@ -79,8 +79,8 @@ Algunas pruebas necesitan archivos que no están en el repositorio:
 | Archivo | Por qué no está | Qué pasa si falta |
 |---|---|---|
 | `data/catalogo.js` | catálogo de precios sin cifrar | se omiten las pruebas que lo cargan |
-| `js/importador.js`, `js/exportador.js` | módulo de PRESCOM, no se distribuye | se omiten las pruebas que lo cargan; la aplicación arranca sin las opciones de PRESCOM |
-| `pruebas/casos-reales.local.json` | lista de proyectos reales de PRESCOM | se omiten las comprobaciones con esos proyectos |
+| `js/importador.js`, `js/exportador.js` | módulo del formato .ddp, no se distribuye | se omiten las pruebas que lo cargan; la aplicación arranca sin las opciones del formato .ddp |
+| `pruebas/casos-reales.local.json` | lista de proyectos reales en formato .ddp | se omiten las comprobaciones con esos proyectos |
 | PostgreSQL local | prueba del esquema y RLS de `supabase/` | `sql-supabase.test.js` se omite sola |
 
 `npm test` muestra cuántas se omitieron. Lo importante es que **ninguna falle**.

@@ -45,7 +45,7 @@ console.log('\nOpenBOQ — ' + archivos.length + ' prueba(s)\n');
 
 /* Archivos que no están en el repositorio público: el catálogo sin cifrar, el
    panel de administración, la lista de códigos de acceso y el módulo de
-   PRESCOM. Quien los tenga corre todas las pruebas; quien no, ve omitidas las
+   formato .ddp. Quien los tenga corre todas las pruebas; quien no, ve omitidas las
    que los necesitan, en vez de verlas fallar por algo que no depende de su
    cambio. */
 const OPCIONALES = ['data/catalogo.js', 'panel.html', 'acceso.json',

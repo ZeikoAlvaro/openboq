@@ -677,7 +677,7 @@ table.rej.crono thead tr.sem th{top:25px;font-size:11px;font-weight:400;padding:
 .b-mini:hover { color:var(--azul-osc); }
 .fmt-pie { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:10px 0 4px; max-width:980px; }
 
-/* Caja de aviso: la cadena que todavía no cierra, y la exportación a PRESCOM
+/* Caja de aviso: la cadena que todavía no cierra, y la exportación a formato .ddp
    con un formato propio. Amarilla, no roja: no es un error, es algo que hay
    que saber antes de seguir. */
 .aviso-caja { background:var(--aviso-fondo); border:1px solid var(--aviso-borde);

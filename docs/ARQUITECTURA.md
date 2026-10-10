@@ -9,7 +9,7 @@ Estado a la versión **2.6**.
 
 **OpenBOQ no tiene backend propio.** Es un sitio estático: HTML, CSS y JavaScript que el navegador
 descarga y ejecuta. El cálculo de precios unitarios, cómputos, cronograma, reportes, Excel y la
-lectura y escritura de archivos de PRESCOM ocurren en la máquina del usuario.
+lectura y escritura de archivos `.ddp` ocurren en la máquina del usuario.
 
 Los servicios externos hacen tareas puntuales y **ninguno es indispensable para calcular**:
 
@@ -24,7 +24,7 @@ flowchart TB
   subgraph NAV["Navegador del usuario"]
     UI["ui.js · interfaz"]
     MOT["motor.js · cálculo y estado"]
-    IMP["importador.js / exportador.js · PRESCOM"]
+    IMP["importador.js / exportador.js · formato .ddp"]
     REP["reportes.js / xlsx.js · B-1, B-2, B-3, Excel"]
     NUB["nube.js · sesión, aportes, reportes"]
     DRV["drive.js · proyectos en Drive"]
@@ -58,8 +58,8 @@ expone un objeto global (`MOTOR`, `IMPORTADOR`, `NUBE`, `DRIVE`, …).
 |---|---|
 | `js/motor.js` | **Cálculo y estado.** Proyecto, módulos, ítems, insumos, análisis con la cadena de incidencias, cómputos, cronograma con predecesoras y curva S, bases propias, lectura y escritura del `.boq`. Es la única pieza que modifica el proyecto. |
 | `js/ui.js`, `js/ui2.js` | **Interfaz.** Menús, pestañas, rejillas editables, diálogos, pantalla de inicio, modo simple de cuatro pasos y el sistema de «cambios en prueba» (nada se aplica sin confirmar). |
-| `js/importador.js` | Lee proyectos de PRESCOM: el contenedor comprimido y los archivos sueltos. Nunca escribe sobre los archivos del usuario. Conserva lo que OpenBOQ no usa (membrete, rótulos) para devolverlo intacto. |
-| `js/exportador.js` | Escribe el proyecto en formato PRESCOM: genera los archivos binarios, copia los del original y arma el ZIP a mano, con el texto en Windows-1252. |
+| `js/importador.js` | Lee proyectos en formato `.ddp`: el contenedor comprimido y los archivos sueltos. Nunca escribe sobre los archivos del usuario. Conserva lo que OpenBOQ no usa (membrete, rótulos) para devolverlo intacto. |
+| `js/exportador.js` | Escribe el proyecto en formato `.ddp`: genera los archivos binarios, copia los del original y arma el ZIP a mano, con el texto en Windows-1252. |
 | `js/reportes.js` | Formularios imprimibles B-1, B-2 y B-3, requerimiento de insumos, planilla de cómputos, cronograma y resumen por módulos. |
 | `js/xlsx.js` | Genera un `.xlsx` real (Office Open XML con CRC propio), sin librerías. |
 | `js/nube.js` | Todo lo que habla con Supabase, con `fetch` plano contra la API REST. Sin SDK. |
@@ -152,11 +152,11 @@ La sesión se renueva sola con el *refresh token*.
 
 ---
 
-## 5. PRESCOM, ida y vuelta
+## 5. Formato .ddp, ida y vuelta
 
-> El módulo de PRESCOM (`js/importador.js` y `js/exportador.js`) **no se distribuye en el
+> El módulo del formato .ddp (`js/importador.js` y `js/exportador.js`) **no se distribuye en el
 > repositorio público**: está disponible en <https://openboq.pages.dev>. Sin él, la aplicación
-> arranca igual y no muestra las opciones de importar y exportar (`pruebas/sin-prescom.test.js`).
+> arranca igual y no muestra las opciones de importar y exportar (`pruebas/sin-importador.test.js`).
 
 **Importar:** `importador.js` abre el contenedor, lee ítems, análisis, insumos e incidencias, y
 guarda los archivos que no usa para devolverlos después.
@@ -164,18 +164,18 @@ guarda los archivos que no usa para devolverlos después.
 **Exportar:** `exportador.js` genera los archivos del proyecto y los empaqueta con el mismo nombre
 adentro y afuera. Tres restricciones del formato que el código respeta:
 
-1. **El nombre es uno solo.** PRESCOM busca los archivos internos por el nombre del contenedor; por
+1. **El nombre es uno solo.** El programa de origen busca los archivos internos por el nombre del contenedor; por
    eso renombrar el archivo desde Windows lo rompe. Se exporta de nuevo con otro nombre.
 2. **Tope por análisis:** 30 materiales, 10 de mano de obra y 20 de equipo. Se avisa antes de
    exportar.
 3. **Texto en Windows-1252**, no UTF-8.
 
-**Al centavo:** PRESCOM guarda subtotales con 3 decimales y el precio unitario con 2, y los dígitos
+**Al centavo:** el formato `.ddp` guarda subtotales con 3 decimales y el precio unitario con 2, y los dígitos
 que descarta deciden algunos redondeos. En un proyecto importado manda el precio unitario del
 archivo; el B-2 lo muestra como «redondeo del archivo de origen» y se suelta en cuanto el análisis
 cambia.
 
-Lo que PRESCOM no puede guardar (cómputos, cronograma, códigos propios) queda solo en el `.boq`.
+Lo que el formato `.ddp` no puede guardar (cómputos, cronograma, códigos propios) queda solo en el `.boq`.
 
 ---
 
@@ -193,7 +193,7 @@ oficial siempre disponible y el usuario puede crear formatos propios.
 | Utilidad | 7,00 % |
 | IT | 3,09 % |
 
-No hay redondeos intermedios: solo se redondea el precio unitario final. Al importar de PRESCOM se
+No hay redondeos intermedios: solo se redondea el precio unitario final. Al importar un `.ddp` se
 respetan los porcentajes del archivo.
 
 ---

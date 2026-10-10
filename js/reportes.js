@@ -78,7 +78,7 @@ const REP = (() => {
     h += '<table><thead><tr><th style="width:34px">N°</th><th>DESCRIPCIÓN DE LA ACTIVIDAD</th>' +
       '<th style="width:46px">UND.</th><th style="width:70px">CANTIDAD</th>' +
       '<th style="width:82px">PRECIO UNIT.</th><th style="width:92px">PRECIO TOTAL</th></tr></thead><tbody>';
-    /* total y subtotales como PRESCOM: MOTOR.totalGeneral */
+    /* total y subtotales como el programa de origen: MOTOR.totalGeneral */
     let n = 0;
     const gran = MOTOR.totalGeneral();
     P.modulos.forEach(m => {
@@ -155,7 +155,7 @@ const REP = (() => {
           h += fila(x.k === 'sum' ? '<b>' + t + '</b>' : t, MOTOR.r2(x.valor));
         });
       }
-      /* Renglón que solo aparece en los ítems traídos de PRESCOM cuyo precio
+      /* Renglón que solo aparece en los ítems traídos de un .ddp cuyo precio
          unitario difiere del calculado por el redondeo del archivo de origen.
          Va a la vista para que el análisis siga sumando exactamente su precio
          unitario y cualquiera pueda seguir de dónde sale el centavo. */
@@ -413,7 +413,7 @@ const REP = (() => {
       if (P.modulos.length > 1)
         h.fila([cel('Subtotal ' + m.n, EST.subT, 5), xn(MOTOR.subtotalGeneral(m), EST.subN)]);
     });
-    /* total y subtotales como PRESCOM: MOTOR.totalGeneral */
+    /* total y subtotales como el programa de origen: MOTOR.totalGeneral */
     h.fila([cel('Total presupuesto:', EST.totT, 5), xn(MOTOR.totalGeneral(), EST.totN)]);
     h.blanco();
     h.fila([cel('Son: ' + literal(MOTOR.conv(MOTOR.totalGeneral())) + ' ' +

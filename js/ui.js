@@ -16,7 +16,7 @@
 
   /* ===================== ARRANQUE ===================== */
   function init() {
-    /* sin el módulo de PRESCOM, la tarjeta «Traer de PRESCOM» no se muestra */
+    /* sin el módulo del formato .ddp, la tarjeta «Abrir un .ddp» no se muestra */
     if (!HAY_IMPORTADOR) $$('[data-acc="importarDDP"]').forEach(b => { b.style.display = 'none'; });
     const recuperado = M.cargarLocal();
     if (!recuperado) M.proyectoNuevo('Sin nombre');
@@ -253,11 +253,12 @@
   }
 
   /* ===================== MODO SIMPLE =====================
-     La interfaz completa copia el orden de PRESCOM: quien viene de ahí la
+     La interfaz completa copia el orden de los programas de presupuestos
+     que ya se usan en el país: quien viene de ahí la
      reconoce, y a quien nunca armó un presupuesto lo abruma —un probador lo
      dijo con esas palabras: «demasiado pesada»—.
 
-     La primera vez, la pantalla de inicio pregunta si ya usó PRESCOM. Si dice
+     La primera vez, la pantalla de inicio pregunta si ya usó otro programa de presupuestos. Si dice
      que no, la aplicación queda en cuatro pasos: buscar ítems con precio,
      ponerles cantidad, ver el detalle del precio e imprimir. Lo demás no se
      borra ni se desactiva: se oculta con body.modo-simple, y la opción
@@ -298,10 +299,10 @@
     if (simple && VISTAS_SIMPLE.indexOf(vista) < 0) irVista('presupuesto');
   }
 
-  /** Guarda la elección (y, si la hay, la respuesta sobre PRESCOM) y la aplica. */
-  function fijarModo(modo, usaPrescom) {
+  /** Guarda la elección (y, si la hay, la respuesta sobre la experiencia previa) y la aplica. */
+  function fijarModo(modo, usaOtro) {
     const p = Object.assign({}, leerPerfil() || {}, { modo });
-    if (typeof usaPrescom === 'boolean') p.usa_prescom = usaPrescom;
+    if (typeof usaOtro === 'boolean') p.usa_prescom = usaOtro;
     try { localStorage.setItem(CLAVE_PERFIL, JSON.stringify(p)); } catch (e) { /* sin almacenamiento */ }
     aplicarModo(modo === 'simple');
     render();
@@ -318,7 +319,7 @@
       <b>¿Ya trabajó con archivos .ddp u otro programa de presupuestos de obra?</b>
       <div class="ini-bts">
         <button class="btn" data-ini-queda data-perfil="nuevo">No, es mi primera vez</button>
-        <button class="btn sec" data-ini-queda data-perfil="prescom">Sí, ya lo usé</button>
+        <button class="btn sec" data-ini-queda data-perfil="experiencia">Sí, ya lo usé</button>
       </div>
       <span class="mini">Si es su primera vez, OpenBOQ arranca en <b>cuatro pasos simples</b>.
         Puede cambiar de interfaz cuando quiera desde <b>CONFIGURACIÓN → Interfaz simple / completa</b>.</span>`;
@@ -1298,7 +1299,7 @@
        es el mismo con el que el ítem sale en el documento que se presenta. */
     const desde = M.itemsAntesDelModulo();
     /* los totales que se MUESTRAN usan M.totalGeneral / subtotalGeneral: en un
-       proyecto importado de PRESCOM coinciden con su B-1; el cálculo interno
+       proyecto importado de un .ddp coinciden con su B-1; el cálculo interno
        (porcentajes, recálculo) sigue con totalProyecto */
     let sm = 0, so = 0, se = 0;
     if (!L.length && modoSimple()) {
@@ -1549,7 +1550,7 @@
     const req = {}; M.requerimiento().forEach(x => req[x.ins.id] = x);
     /* Los usos salen de una sola pasada. Preguntarlos insumo por insumo
        recorría el presupuesto entero cada vez: con los 1.194 insumos y 250
-       ítems de un PRESCOM importado, la pestaña tardaba en dibujarse. */
+       ítems de un .ddp importado, la pestaña tardaba en dibujarse. */
     const usos = M.usosPorInsumo();
     /* Un insumo que no entra en ningún análisis no aporta cantidad ni monto:
        en el B-3 solo agrega renglones vacíos y ensucia cualquier comparación
@@ -1651,7 +1652,7 @@
 
      · FORMATO OFICIAL (SABS). Se editan los porcentajes, como siempre. La
        estructura está bloqueada porque es la del DS 0181 y es la única que el
-       exportador sabe escribir de vuelta en un .ddp de PRESCOM.
+       exportador sabe escribir de vuelta en un .ddp.
 
      · FORMATO PROPIO. Sale de duplicar el oficial, arranca idéntico —ningún
        ítem cambia de precio al duplicar— y ahí sí se agregan, se quitan, se
@@ -2058,7 +2059,7 @@
       ['Guardar como… (elegir carpeta)', 'guardarComo', 'Ctrl+Mayús+S'], ['—'],
       ['Importar proyecto (.ddp)…', 'importarDDP'],
       ['Importar archivos sueltos (.PRE .IND .DAT)…', 'importarSueltos'],
-      ['Exportar a formato .ddp…', 'exportarPrescom'], ['—'],
+      ['Exportar a formato .ddp…', 'exportarDdp'], ['—'],
       ['Datos generales del proyecto…', 'datosProyecto'],
       /* Lo que sale del proyecto —Excel e insumos en CSV— vive en REPORTES y
          solo ahi: estaba repetido en los dos menus y el mismo usuario no
@@ -2124,7 +2125,7 @@
   (() => {
     const fuera = new Set([
       ...(HAY_IMPORTADOR ? [] : ['importarDDP', 'importarSueltos', 'recalcularPU']),
-      ...(HAY_EXPORTADOR ? [] : ['exportarPrescom'])
+      ...(HAY_EXPORTADOR ? [] : ['exportarDdp'])
     ]);
     if (!fuera.size) return;
     Object.keys(MENUS).forEach(k => {
@@ -2453,7 +2454,7 @@
      Dos decisiones que valen la pena explicar:
 
      · Solo salen los insumos que PARTICIPAN en alguno de esos ítems. Una
-       matriz con los 1.200 insumos de un PRESCOM importado sería casi toda
+       matriz con los 1.200 insumos de un .ddp importado sería casi toda
        ceros: no se podría leer y tardaría en dibujarse.
 
      · Un rendimiento escrito en 0 SACA el insumo de ese análisis, no lo deja
@@ -2786,12 +2787,12 @@
         [['Cancelar', null, 'sec'], ['Elegir archivos…', () => $('#fileSueltos').click()]]);
     },
 
-    /* --- vuelta a PRESCOM ---------------------------------------------
+    /* --- vuelta a .ddp ---------------------------------------------
        El proyecto se escribe en los mismos archivos binarios de los que
        salió. Se revisa antes: si algún análisis pasa de lo que el formato
        admite (30 materiales, 10 de mano de obra, 20 de equipo) no se
-       exporta, porque PRESCOM leería el ítem incompleto sin decir nada. */
-    exportarPrescom() {
+       exporta, porque el programa de origen leería el ítem incompleto sin decir nada. */
+    exportarDdp() {
       let r;
       try { r = EXPORTADOR.archivos(); }
       catch (e) { alert('No se pudo preparar la exportación:\n' + e.message); return; }
@@ -2809,7 +2810,7 @@
       const arch = (P.prescom && P.prescom.base) || EXPORTADOR.nombreSugerido(P.nombre);
       /* El .ddp tiene diecisiete renglones fijos para la cadena de recargos: los
          del DS 0181 y nada más. Una cadena propia no entra ahí, y callarlo
-         sería entregar a PRESCOM un archivo que calcula distinto del que se ve
+         sería entregar un .ddp que calcula distinto del que se ve
          en pantalla. Se avisa antes, con el número de la diferencia. */
       const avisoFormato = M.formatoEsOficial() ? '' : `
         <div class="aviso-caja"><b>Este proyecto no usa el formato oficial.</b>
@@ -2845,7 +2846,7 @@
         ['Guardar como…', () => {
           const n = ($('#expNom').value || arch).trim();
           cerrarModal();
-          bajarPrescom(n);
+          bajarDdp(n);
         }]]);
       const cajaNom = $('#expNom');
       if (cajaNom) cajaNom.addEventListener('input', () => {
@@ -3899,7 +3900,7 @@
     /**
      * Copia ítems del presupuesto a una base propia, para reusarlos.
      * @param {string} [sugerido] nombre para una base nueva. Al importar un
-     *        .ddp llega el nombre del archivo, así cada PRESCOM queda en su
+     *        .ddp llega el nombre del archivo, así cada .ddp queda en su
      *        propia base y no se mezcla con lo que ya había.
      * @param {number} [idDest] base destino preseleccionada
      * @param {string[]} [soloIds] ítems que salen marcados (el resto, sin
@@ -4556,7 +4557,7 @@
     manejo = null; sinGuardar = false; sinArchivo = true;   // todavía no hay .boq propio
     M.guardarLocal(); render(); irVista('presupuesto');
     marcarGuardado('Importado ' + hora());
-    /* se muestran los totales como el B-1 de PRESCOM; el control usa los otros */
+    /* se muestran los totales como el B-1 del programa de origen; el control usa los otros */
     const tOrig = s.totalOrigenB1 !== undefined ? s.totalOrigenB1 : s.totalOrigen;
     const tRecal = s.totalRecalculadoB1 !== undefined ? s.totalRecalculadoB1 : s.totalRecalculado;
     const dif = Math.abs(tOrig - tRecal);
@@ -4616,8 +4617,8 @@
      diálogo «Guardar como» del sistema y el nombre que el usuario elige ahí
      es el que se escribe adentro del contenedor: es la única forma de que el
      nombre del archivo y el de los trece archivos internos no se separen
-     nunca, que es lo que hace que PRESCOM no reconozca un proyecto. */
-  async function bajarPrescom(nombre) {
+     nunca, que es lo que hace que el programa de origen no reconozca un proyecto. */
+  async function bajarDdp(nombre) {
     let destino = null, base = EXPORTADOR.nombreInterno(nombre);
     try {
       if (typeof window.showSaveFilePicker === 'function') {
@@ -4653,7 +4654,7 @@
   /* ---------------------------------------------------------------------
      GUARDAR EL PRESUPUESTO EN UNA BASE PROPIA
 
-     Un archivo de PRESCOM trae ítems que sirven para los proyectos que
+     Un archivo .ddp trae ítems que sirven para los proyectos que
      vengan; el volcado es lo que los convierte en biblioteca. Dos cuidados:
      se elige QUÉ ítems entran, y cuando la base ya tiene un análisis con la
      misma descripción se pregunta —antes reemplazaba en silencio, así que

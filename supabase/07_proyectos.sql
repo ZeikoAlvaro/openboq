@@ -79,7 +79,7 @@ create index if not exists usuarios_proyectos_dueno
 --   la fecha      reloj del servidor. El del equipo puede estar corrido.
 --
 -- Y un tope duro de tamaño: 3 MB de JSON. Un proyecto de 64 ítems con los
--- archivos de PRESCOM adentro no llega a 500 KB; 3 MB es holgado y a la vez
+-- archivos .ddp adentro no llega a 500 KB; 3 MB es holgado y a la vez
 -- frena que alguien use la cuenta como disco.
 -- =========================================================================
 create or replace function obq_proyecto_normalizar() returns trigger

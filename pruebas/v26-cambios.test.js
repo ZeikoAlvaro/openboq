@@ -9,7 +9,7 @@
      O-7  edición masiva: matriz, factor, fusión y carga en lote
 
    Y sobre todo lo que no puede romperse por culpa de ninguno de ellos:
-   **importar y exportar PRESCOM**. Un .ddp real entra, se lo somete a las
+   **importar y exportar .ddp**. Un .ddp real entra, se lo somete a las
    cuatro novedades y tiene que seguir saliendo igual, al centavo. Es el
    camino por el que los proyectos van y vuelven de las unidades solicitantes;
    si se rompe, no avisa: el archivo se abre y los números están mal.
@@ -310,9 +310,9 @@ console.log('== O-7 · edición masiva ==');
 }
 
 /* ======================================================================
-   PRESCOM · NADA DE ESTO PUEDE ROMPER EL .ddp
+   .ddp · NADA DE ESTO PUEDE ROMPER EL ARCHIVO
    ====================================================================== */
-console.log('== PRESCOM · importar y exportar siguen exactos ==');
+console.log('== .ddp · importar y exportar siguen exactos ==');
 const ab = f => { const b = fs.readFileSync(f); return b.buffer.slice(b.byteOffset, b.byteOffset + b.length); };
 /* El .ddp real no se versiona: su ruta va en pruebas/casos-reales.local.json. */
 const DDP = (() => {
@@ -322,8 +322,8 @@ const DDP = (() => {
   } catch (e) { return null; }
 })();
 
-async function prescom() {
-  if (!DDP) { console.log('  · sin pruebas/casos-reales.local.json: se omite la vuelta a PRESCOM'); return; }
+async function vueltaDdp() {
+  if (!DDP) { console.log('  · sin pruebas/casos-reales.local.json: se omite la vuelta a .ddp'); return; }
   /* --- 1. importar --- */
   const ida = await w.IMPORTADOR.importarDDP(ab(DDP));
   const P = M.proyecto();
@@ -333,7 +333,7 @@ async function prescom() {
   ok(Math.abs(ida.resumen.totalOrigen - totalImportado) < 0.005,
     'el total coincide con el del archivo de origen al centavo: ' +
     M.fmt(ida.resumen.totalOrigen) + ' vs ' + M.fmt(totalImportado));
-  ok(M.formatoEsOficial(), 'un proyecto importado de PRESCOM queda con el formato oficial');
+  ok(M.formatoEsOficial(), 'un proyecto importado de un .ddp queda con el formato oficial');
   ok(M.conPuDeArchivo().items > 0,
     M.conPuDeArchivo().items + ' ítem(s) conservan el precio unitario del archivo');
 
@@ -366,7 +366,7 @@ async function prescom() {
   /* --- 4. con un formato propio también tiene que exportar --- */
   M.usarFormato(M.duplicarFormato('Cadena propia'));
   ok(Math.abs(M.totalProyecto() - totalVuelta) < 0.005,
-    'duplicar el formato sobre un proyecto de PRESCOM no mueve el total: ' + M.fmt(M.totalProyecto()));
+    'duplicar el formato sobre un proyecto .ddp no mueve el total: ' + M.fmt(M.totalProyecto()));
   const salida2 = await w.EXPORTADOR.ddp({ nombre: 'VUELTA2 v26' });
   ok(!!(salida2 && salida2.datos && salida2.datos.length),
     'y el .ddp se sigue exportando con un formato propio (la interfaz avisa antes)');
@@ -421,7 +421,7 @@ async function catalogoCifrado() {
 }
 
 (async () => {
-  try { await prescom(); } catch (e) { ok(false, 'PRESCOM: ' + (e && e.message)); console.log(e); }
+  try { await vueltaDdp(); } catch (e) { ok(false, '.ddp: ' + (e && e.message)); console.log(e); }
   try { await catalogoCifrado(); } catch (e) { ok(false, 'cifrado: ' + (e && e.message)); console.log(e); }
 
   const reales = errores.filter(e => !/^ALERT: /.test(e));

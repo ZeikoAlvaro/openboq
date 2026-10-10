@@ -8,7 +8,7 @@
 -- La aplicación, cada vez que lista la carpeta de Drive del usuario, manda
 -- un RESUMEN: cuántos proyectos, cuánto pesan, cuántos ítems suman y cuándo
 -- se guardó el último. Nunca un nombre de archivo ni un dato del proyecto.
--- Además el perfil de uso: si ya usó PRESCOM y qué interfaz eligió.
+-- Además el perfil de uso: si ya usó otro programa de presupuestos y qué interfaz eligió.
 --
 -- Cada usuario escribe SOLO su fila (auth.uid() dentro de la función) y no
 -- puede leer la tabla: la lee el panel, por obq_admin_usuarios.
@@ -95,7 +95,7 @@ revoke all on function obq_uso_reportar(jsonb) from public, anon;
 grant execute on function obq_uso_reportar(jsonb) to authenticated;
 alter function obq_uso_reportar(jsonb) set statement_timeout = '5s';
 
--- El perfil de la cuenta con sesión (¿usó PRESCOM?, interfaz elegida). La
+-- El perfil de la cuenta con sesión (¿usó otro programa?, interfaz elegida). La
 -- respuesta vive en el navegador; esto la recupera en otro equipo o después
 -- de borrar la caché, para no volver a preguntarle a quien ya contestó.
 -- Devuelve solo SU perfil, nada más de la fila.

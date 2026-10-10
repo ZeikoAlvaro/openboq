@@ -238,12 +238,12 @@ function configurar(canal) {
     ]
   });
 
-  /* Ofuscar PRESCOM dentro del paquete SIEMPRE. El escritorio empaqueta la
+  /* Ofuscar el módulo .ddp dentro del paquete SIEMPRE. El escritorio empaqueta la
      web como archivos sueltos en resources/openboq/js; sin esto, importador.js
      y exportador.js viajarían en claro dentro del .exe y una release pública
      los dejaría a la vista. Ruta con `/` para que electron-builder la resuelva
      igual en Windows. */
-  base.afterPack = path.join(AQUI, 'ofuscar-prescom.js').replace(/\\/g, '/');
+  base.afterPack = path.join(AQUI, 'ofuscar-ddp.js').replace(/\\/g, '/');
 
   /* Firma en la nube con Azure Trusted Signing cuando hay credenciales. No
      necesita token físico ni hacer público el código (lo que sí exige

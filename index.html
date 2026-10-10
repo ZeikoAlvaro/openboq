@@ -429,7 +429,7 @@
 
 <!-- ===================== PANTALLA DE INICIO =====================
      Sale al abrir, con la sesión anterior arriba: continuar donde se dejó,
-     empezar en blanco, abrir un .boq o traer un proyecto de PRESCOM. Se
+     empezar en blanco, abrir un .boq o traer un proyecto .ddp. Se
      cierra con Esc y se vuelve a abrir con ARCHIVO → Pantalla de inicio.
 
      En pantalla ancha van dos columnas —de qué se parte a la izquierda, la
@@ -453,7 +453,7 @@
     </header>
     <div class="ini-cuerpo">
       <div class="ini-col">
-        <!-- la primera vez: ¿ya usó PRESCOM? (pintarPerfilInicio en ui.js) -->
+        <!-- la primera vez: ¿ya usó otro programa de presupuestos? (pintarPerfilInicio en ui.js) -->
         <div id="iniPerfil"></div>
         <div id="iniSesion"></div>
         <div class="ini-acc">
@@ -555,7 +555,7 @@
       s.src = RESTO[i] + '?v=' + V;
       s.onload = function () { cargar(i + 1); };
       s.onerror = function () {
-        /* el módulo de PRESCOM es opcional: sin él la aplicación oculta sus opciones */
+        /* el módulo del formato .ddp es opcional: sin él la aplicación oculta sus opciones */
         if (/importador|exportador/.test(RESTO[i])) console.info('OpenBOQ: sin ' + RESTO[i] + ' (módulo .ddp no incluido)');
         else console.error('OpenBOQ: no se pudo cargar ' + RESTO[i]);
         cargar(i + 1);

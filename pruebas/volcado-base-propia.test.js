@@ -6,7 +6,7 @@
    - un mismo insumo a dos precios en la misma base propia le pisaba el precio
      al primer análisis, que quedaba mostrando un precio y sumando otro;
    - el volcado reemplazaba por descripción en silencio, así que dos proyectos
-     PRESCOM con «HORMIGÓN H21» a precios distintos dejaban uno solo.          */
+     .ddp con «HORMIGÓN H21» a precios distintos dejaban uno solo.          */
 const {JSDOM}=require('jsdom');
 const fs=require('fs'),path=require('path');
 const dir=path.join(__dirname,'..');

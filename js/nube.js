@@ -788,7 +788,7 @@ const NUBE = (() => {
      =================================================================== */
   /**
    * Manda un resumen de uso de la cuenta con sesión: cuántos proyectos tiene
-   * en su Drive y cuánto pesan, si ya usó PRESCOM, qué interfaz eligió y la
+   * en su Drive y cuánto pesan, si ya usó otro programa de presupuestos, qué interfaz eligió y la
    * versión. NUNCA un nombre de archivo ni un dato del proyecto: los proyectos
    * son del usuario y el servidor no tiene llave para abrirlos.
    *

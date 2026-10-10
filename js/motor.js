@@ -116,7 +116,7 @@ const MOTOR = (() => {
   }
 
   /** ¿El proyecto está con el formato oficial? Lo preguntan el exportador a
-      PRESCOM y la pestaña INCIDENCIAS, que se comportan distinto si no. */
+      .ddp y la pestaña INCIDENCIAS, que se comportan distinto si no. */
   const formatoEsOficial = () => !P || !P.formatoId || P.formatoId === ID_SABS ||
     !(P.formatos || []).some(x => x.id === P.formatoId);
 
@@ -203,7 +203,7 @@ const MOTOR = (() => {
     /* Alias del B-2 clásico. Con el formato oficial salen todos y el resto de
        la aplicación no se entera del cambio; con un formato propio salen los
        que existan y 0 los que no. Quien de verdad los necesita —el .ddp de
-       PRESCOM— pregunta antes con `formatoEsOficial`. */
+       .ddp— pregunta antes con `formatoEsOficial`. */
     const A = { cargas: 0, ivaMO: 0, totalMO: 0, herr: 0, totalEQ: 0,
                 subtotal: 0, gg: 0, parcial2: 0, util: 0, parcial3: 0, it: 0 };
     filas.forEach(f => { if (f.ref && f.ref in A) A[f.ref] = f.valor; });
@@ -241,7 +241,7 @@ const MOTOR = (() => {
     if (!(P.formatos || []).some(x => x.id === id)) return formato();   // id inexistente: no se mueve
 
     P.formatoId = id;
-    /* se mantienen sincronizados los seis de siempre: el exportador a PRESCOM
+    /* se mantienen sincronizados los seis de siempre: el exportador a .ddp
        y los .boq viejos los leen de ahí */
     (formato().filas || []).forEach(x => {
       if (x.p && x.k === 'pct' && isFinite(x.pct)) P.params[x.p] = Number(x.pct);
@@ -355,7 +355,7 @@ const MOTOR = (() => {
      cantidades y rendimientos; NO sirve para plata. Los precios unitarios y
      los totales van SIEMPRE con `r2`: el centavo es el centavo, y cambiar la
      cantidad de decimales de la pantalla no puede mover el presupuesto ni
-     descuadrar un proyecto importado de PRESCOM. */
+     descuadrar un proyecto importado de un .ddp. */
   function r(v, d) {
     d = (d === undefined) ? P.precision : d;
     const f = Math.pow(10, d);
@@ -402,7 +402,7 @@ const MOTOR = (() => {
      algo cierto: ese día, esta persona puso ese número.
 
      NO SE FECHA lo que llega de otro lado con precio propio: un ítem traído
-     del catálogo, un .ddp importado de PRESCOM, un .boq abierto. Ponerles la
+     del catálogo, un .ddp importado, un .boq abierto. Ponerles la
      fecha de hoy sería firmar como propio un precio ajeno y de antigüedad
      desconocida; queda en blanco, que es la respuesta honesta. Los insumos que
      ya existían antes de esta versión tampoco se fechan hacia atrás.
@@ -446,7 +446,7 @@ const MOTOR = (() => {
   /**
    * En cuántos ítems entra cada insumo, todo de una pasada.
    * `usoInsumo` recorre el presupuesto entero por cada insumo: en un proyecto
-   * importado de PRESCOM, con 1.200 insumos y 250 ítems, eso es un cuarto de
+   * importado de un .ddp, con 1.200 insumos y 250 ítems, eso es un cuarto de
    * millón de recorridos cada vez que se dibuja la pestaña INSUMOS. Acá se
    * cuenta una sola vez.
    * @returns {Object<string,number>} id de insumo -> cantidad de ítems (0 no aparece)
@@ -669,7 +669,7 @@ const MOTOR = (() => {
   /* =====================================================================
      EL PRECIO UNITARIO QUE TRAJO EL ARCHIVO
      ---------------------------------------------------------------------
-     PRESCOM guarda los subtotales de cada análisis REDONDEADOS A 3 DECIMALES
+     El .ddp guarda los subtotales de cada análisis REDONDEADOS A 3 DECIMALES
      y el precio unitario a 2. Los dígitos que descarta son, en los ítems cuyo
      precio cae a menos de medio centavo del límite de redondeo, los que
      deciden para qué lado va el centavo. Medido sobre un proyecto real de 250
@@ -680,7 +680,7 @@ const MOTOR = (() => {
 
      Por eso, en un proyecto importado manda el precio unitario del archivo:
      es el del documento aprobado, y así el presupuesto cierra en 0,00 contra
-     PRESCOM. En cuanto se edita el análisis se vuelve al cálculo.
+     el programa de origen. En cuanto se edita el análisis se vuelve al cálculo.
 
      Cómo se sabe que «se editó»: se guarda junto al precio el valor CRUDO de
      la cadena en el momento de importar. Cualquier cambio —un rendimiento,
@@ -778,7 +778,7 @@ const MOTOR = (() => {
   /**
    * La planilla rendimiento por rendimiento: insumos en las filas, ítems en
    * las columnas. Solo se devuelven los insumos que participan en alguno de
-   * esos ítems — una matriz con los 1.200 insumos de un PRESCOM importado
+   * esos ítems — una matriz con los 1.200 insumos de un .ddp importado
    * sería casi toda ceros y no se podría leer.
    * @param {{ids?:string[], modulo?:number, tipo?:string}} [op] alcance y filtro por tipo (M/O/E)
    * @returns {{items:Array, insumos:Array, rend:Object}} `rend['idIns|idItem']` = rendimiento
@@ -934,13 +934,13 @@ const MOTOR = (() => {
     return r2(P.modulos.reduce((s, m) => s + totalModulo(m), 0));
   }
   /* LOS TOTALES QUE SE MUESTRAN E IMPRIMEN en un proyecto importado de
-     PRESCOM (`P.redondeoPrescom`, lo marca el importador).
+     .ddp (`P.redondeoPrescom`, lo marca el importador).
 
-     PRESCOM redondea el parcial de cada ítem (P.U. × cantidad) «al par»
+     El programa de origen redondea el parcial de cada ítem (P.U. × cantidad) «al par»
      —redondeo bancario, el `Round` de Visual Basic—: cuando cae justo en
      medio centavo va al centavo par. 71,58 × 27.880,75 = 1.995.704,085 da
      ,08 y no ,09. Módulos y total son la suma de esos parciales. Con eso
-     cierran al centavo los totales que muestra PRESCOM.
+     cierran al centavo los totales que muestra el programa de origen.
 
      El cálculo interno (analisis().total, totalModulo, totalProyecto) no
      cambia; un proyecto hecho en OpenBOQ tampoco. `totalPorModulo` era la
@@ -953,17 +953,17 @@ const MOTOR = (() => {
     if (resto > 50 || (resto === 50 && c % 2 === 1)) c++;
     return s * c / 100;
   }
-  const redondeoPrescom = () => P.redondeoPrescom === true || P.totalPorModulo === true;
+  const redondeoDelArchivo = () => P.redondeoPrescom === true || P.totalPorModulo === true;
   function parcialGeneral(it) {
     const a = analisis(it);
-    return redondeoPrescom() ? r2par(a.pu * (Number(it.cant) || 0)) : a.total;
+    return redondeoDelArchivo() ? r2par(a.pu * (Number(it.cant) || 0)) : a.total;
   }
   function subtotalGeneral(m) {
-    if (!redondeoPrescom()) return totalModulo(m);
+    if (!redondeoDelArchivo()) return totalModulo(m);
     return r2(m.items.reduce((s, it) => s + parcialGeneral(it), 0));
   }
   function totalGeneral() {
-    if (!redondeoPrescom()) return totalProyecto();
+    if (!redondeoDelArchivo()) return totalProyecto();
     return r2(P.modulos.reduce((s, m) => s + subtotalGeneral(m), 0));
   }
   function conv(v) { return P.moneda === '$US' ? v / (P.tc || 1) : v; }
@@ -1513,7 +1513,7 @@ const MOTOR = (() => {
       a dos precios son dos insumos distintos. Sin eso, el segundo análisis que
       entra le pisa el precio al primero, que queda mostrando un precio y
       sumando otro en sus subtotales —y es el caso normal al guardar dos
-      proyectos PRESCOM en la misma base. Es la misma unicidad
+      proyectos .ddp en la misma base. Es la misma unicidad
       (análisis, insumo, precio) con la que se guarda el repositorio central.
 
       En las bases publicadas se mantiene el comportamiento contrario, y es a
@@ -1959,7 +1959,7 @@ const MOTOR = (() => {
      archivo, con la diferencia en Bs y en %.
 
      Se empareja por NOMBRE, no por id: los dos archivos casi nunca comparten
-     los ids —uno salió de un PRESCOM y el otro de una copia editada— y lo que
+     los ids —uno salió de un .ddp y el otro de una copia editada— y lo que
      el usuario reconoce es la descripción. Los nombres repetidos se emparejan
      en el orden en que aparecen, así dos renglones que se llaman igual no caen
      los dos en la misma fila. Lo que queda sin par se marca y va al final.

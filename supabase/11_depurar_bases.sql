@@ -6,7 +6,7 @@
 --   OCULTAR   Itemes revista, SANTA CRUZ   (quedan en Supabase, fuera del catálogo)
 --   RENOMBRAR ACTUALIZADO -> BD ACTUALIZADA AGOSTO 2026
 --
--- Por qué estaban duplicadas: en codex\APUS\prescom_dat_copias\ los archivos
+-- Por qué estaban duplicadas: en codex\APUS\copias_dat\ los archivos
 -- RIEGOS.Conflict.dat y RIEGOS.Conflict1.dat son copias de conflicto de
 -- sincronización de Riegos.DAT (mismo tamaño, 19.408 bytes, fechadas las dos
 -- el 30/09/2024 10:06 junto con REVISTA.dat y SANTA CRUZ.dat). La migración

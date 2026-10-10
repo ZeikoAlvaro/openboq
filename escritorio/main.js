@@ -372,7 +372,7 @@ const FILTROS = {
   '.xlsx': [{ name: 'Libro de Excel', extensions: ['xlsx'] }],
   '.csv': [{ name: 'Valores separados por comas', extensions: ['csv'] }],
   '.boq': [{ name: 'Proyecto OpenBOQ', extensions: ['boq'] }],
-  '.ddp': [{ name: 'Proyecto de PRESCOM', extensions: ['ddp'] }],
+  '.ddp': [{ name: 'Proyecto .ddp', extensions: ['ddp'] }],
   '.json': [{ name: 'Archivo JSON', extensions: ['json'] }]
 };
 const TODOS = { name: 'Todos los archivos', extensions: ['*'] };

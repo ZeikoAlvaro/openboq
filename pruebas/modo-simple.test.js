@@ -1,4 +1,4 @@
-/* Interfaz simple para quien nunca usó PRESCOM.
+/* Interfaz simple para quien nunca usó un programa de presupuestos.
 
    La primera vez la pantalla de inicio pregunta; «No, es mi primera vez» deja
    cuatro pasos a la vista y el botón ⇄ vuelve a la completa. Acá se fija que
@@ -46,8 +46,8 @@ const visible = (w, sel) => { const e = w.document.querySelector(sel); return !!
   await dormir(500);
   const $ = s => w.document.querySelector(s);
   ok(!w.document.body.classList.contains('modo-simple'), 'arranca en la completa');
-  ok(!!$('#iniPerfil [data-perfil="nuevo"]') && !!$('#iniPerfil [data-perfil="prescom"]'),
-    'la pantalla de inicio pregunta si ya usó PRESCOM');
+  ok(!!$('#iniPerfil [data-perfil="nuevo"]') && !!$('#iniPerfil [data-perfil="experiencia"]'),
+    'la pantalla de inicio pregunta si ya usó otro programa');
   ok($('#tabs button[data-v="base"]').textContent.trim() === 'BASE DE DATOS', 'las pestañas conservan su nombre');
 
   console.log('== «No, es mi primera vez» ==');
@@ -74,7 +74,7 @@ const visible = (w, sel) => { const e = w.document.querySelector(sel); return !!
   ok(!w.document.body.classList.contains('modo-simple'), 'sale del modo simple');
   ok(w.document.querySelector('#tabs button[data-v="base"]').textContent.trim() === 'BASE DE DATOS', 'las pestañas recuperan su nombre');
   ok(JSON.parse(w.localStorage.getItem('openboq_perfil')).modo === 'completo', 'y lo recuerda');
-  ok(JSON.parse(w.localStorage.getItem('openboq_perfil')).usa_prescom === false, 'sin olvidar que no usaba PRESCOM');
+  ok(JSON.parse(w.localStorage.getItem('openboq_perfil')).usa_prescom === false, 'sin olvidar que no usaba otro programa');
 
   console.log('== Con una pestaña oculta abierta, el modo simple lleva al presupuesto ==');
   clic(w, w.document.querySelector('#tabs button[data-v="cronograma"]'));

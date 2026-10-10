@@ -20,8 +20,8 @@ const ok = (c, m) => console.log((c ? '  ✓ ' : '  ✗ ') + m) || (c ? 0 : erro
 const MOD_IMP = 'js/' + ['import', 'ador.js'].join('');
 const MOD_EXP = 'js/' + ['export', 'ador.js'].join('');
 
-function arrancar(conPrescom) {
-  const archivos = ['js/motor.js', ...(conPrescom ? [MOD_IMP, MOD_EXP] : []),
+function arrancar(conModulo) {
+  const archivos = ['js/motor.js', ...(conModulo ? [MOD_IMP, MOD_EXP] : []),
     'js/xlsx.js', 'js/reportes.js', 'js/ui.js'];
   const src = archivos.map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n;\n') +
     '\n;window.MOTOR=MOTOR;window.HAY_IMP=(typeof IMPORTADOR!=="undefined");';
@@ -52,12 +52,12 @@ const tarjetaVisible = w => {
 };
 
 (async () => {
-  console.log('== Sin el módulo de PRESCOM ==');
+  console.log('== Sin el módulo del formato .ddp ==');
   let w = arrancar(false);
   await dormir(400);
   ok(w.HAY_IMP === false, 'el módulo no está cargado');
   ok(!!w.document.querySelector('#tabs button[data-v="presupuesto"]'), 'la aplicación arranca');
-  ok(!tarjetaVisible(w), 'la pantalla de inicio no ofrece «Traer de PRESCOM»');
+  ok(!tarjetaVisible(w), 'la pantalla de inicio no ofrece «Abrir un .ddp»');
   const archivo = textoMenu(w, 'archivo');
   ok(archivo !== null, 'el menú ARCHIVO se abre');
   if (archivo !== null) {

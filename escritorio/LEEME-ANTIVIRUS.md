@@ -64,7 +64,7 @@ antes de comprar):
 **Recomendado para OpenBOQ: Azure Trusted Signing.** Es el único camino que
 firma en la nube (sin token físico) y **sin obligar a hacer público el
 código** —SignPath Foundation exige repositorio abierto, y el escritorio
-empaqueta el módulo de PRESCOM—. Cuesta ~10 US$/mes y hace que Avast y
+empaqueta el módulo del formato .ddp—. Cuesta ~10 US$/mes y hace que Avast y
 Defender dejen de protestar de raíz. El proyecto ya trae el enganche listo
 (`firma-azure.js`): se activa solo cuando existen las variables de entorno.
 
