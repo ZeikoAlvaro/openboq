@@ -150,8 +150,8 @@ const REP = (() => {
         bloque('1. MATERIALES', a.grupos.M, ['TOTAL MATERIALES', a.mat]);
         bloque('2. MANO DE OBRA', a.grupos.O, ['SUBTOTAL MANO DE OBRA', a.mo]);
         bloque('3. EQUIPO, MAQUINARIA Y HERRAMIENTAS', a.grupos.E, ['SUBTOTAL EQUIPO Y MAQUINARIA', a.eq]);
-        (a.cadena || []).filter(x => x.k !== 'ent').slice(0, -1).forEach(x => {
-          const t = x.i + '. ' + esc(x.n).toUpperCase() + (x.k === 'pct' ? ' (' + x.pct + '%)' : '');
+        (a.cadena || []).filter(x => x.k !== 'ent').slice(0, -1).filter(x => !x.vacia).forEach(x => {
+          const t = x.i + '. ' + esc(x.n).toUpperCase() + ((x.k === 'pct' || x.k === 'imp') ? ' (' + x.pct + '%)' : '');
           h += fila(x.k === 'sum' ? '<b>' + t + '</b>' : t, MOTOR.r2(x.valor));
         });
       }
@@ -472,8 +472,8 @@ const REP = (() => {
         blq('1. Materiales', a.grupos.M); par('Total materiales', a.mat);
         blq('2. Mano de obra', a.grupos.O); par('Subtotal mano de obra', a.mo);
         blq('3. Equipo, maquinaria y herramientas', a.grupos.E); par('Subtotal equipo y maquinaria', a.eq);
-        (a.cadena || []).filter(x => x.k !== 'ent').slice(0, -1).forEach(x => {
-          par(x.i + '. ' + x.n + (x.k === 'pct' ? ' (' + x.pct + '%)' : ''), MOTOR.r2(x.valor));
+        (a.cadena || []).filter(x => x.k !== 'ent').slice(0, -1).filter(x => !x.vacia).forEach(x => {
+          par(x.i + '. ' + x.n + ((x.k === 'pct' || x.k === 'imp') ? ' (' + x.pct + '%)' : ''), MOTOR.r2(x.valor));
         });
       }
       if (a.ajuste) par('Redondeo del archivo de origen', a.ajuste);
@@ -586,8 +586,9 @@ const REP = (() => {
     FM.forEach((x, i) => {
       if (x.k === 'sum') return;
       const formula = x.k === 'ent' ? LETRA[i] || ''
-        : (x.pct + ' % × (' + (x.sobre || []).map(n => 'Nº' + n).join(' + ') + ')');
-      f(x.n + (x.k === 'pct' ? ' (' + x.pct + '%)' : ''), ac[i], formula);
+        : (x.pct + ' % × (' + (x.sobre || []).map((n, j) => (Number(n) < 0 ? (j ? ' − ' : '−') : (j ? ' + ' : '')) +
+            'Nº' + Math.abs(Number(n))).join('') + ')' + (x.k === 'imp' ? ' ÷ (1 − impuestos sobre el precio final)' : ''));
+      f(x.n + ((x.k === 'pct' || x.k === 'imp') ? ' (' + x.pct + '%)' : ''), ac[i], formula);
     });
     h.fila([cel('Total presupuesto:', EST.totT), xn(MOTOR.totalProyecto(), EST.totN), cel('', EST.totT)]);
     return h;

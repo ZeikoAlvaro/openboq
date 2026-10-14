@@ -195,6 +195,111 @@ const EXPORTADOR = (() => {
   }
 
   /* =====================================================================
+     LA HOJA B-2 (.CFG)
+
+     Tres casos, del más fiel al más general:
+
+     1. Formato oficial y el proyecto vino de un .ddp cuya hoja ya era la
+        oficial: se devuelve LA MISMA hoja del archivo, con los porcentajes
+        actuales escritos en su lugar. Así no se pierden los nombres de fila
+        ni una fila 11 propia («Imprevistos 0 %»).
+     2. Formato oficial sin hoja de origen: la oficial de siempre (filasCFG).
+     3. Formato propio: se escribe fila por fila con sus fórmulas —letras, + y
+        -—. Si vino de un .ddp, cada fila vuelve a su lugar original.
+     ===================================================================== */
+  const SABS_F = ['*', '*', '*', 'A', 'B', 'E', 'E+F+O', 'G', 'C+H', 'D+G+I', '', 'J', 'J+L', 'J+L+M', 'E+F', 'N', 'N+P'];
+  const SABS_PCT = { 5: 'cargas', 7: 'herr', 11: 'gg', 12: 'util', 14: 'ivaMO', 15: 'it' };
+
+  function hojaCFG(P, plantilla, errores, avisos) {
+    const cfg = new Uint8Array(17 * 73);
+    const dvC = new DataView(cfg.buffer);
+    const oficial = typeof MOTOR === 'undefined' || !MOTOR.formatoEsOficial || MOTOR.formatoEsOficial();
+
+    if (oficial) {
+      const orig = plantilla && plantilla.cfg ? deB64(plantilla.cfg) : null;
+      if (orig && orig.length === 17 * 73 && hojaEsOficial(orig)) {
+        cfg.set(orig);
+        for (const i in SABS_PCT) dvC.setFloat32(i * 73 + 50, Number(P.params[SABS_PCT[i]]) || 0, true);
+        return cfg;
+      }
+      filasCFG(P.params).forEach((fl, k) => {
+        const o = k * 73;
+        texto(cfg, o, fl[0], 50);
+        dvC.setFloat32(o + 50, Number(fl[1]), true);
+        texto(cfg, o + 54, fl[2], 15);
+        fl[3].forEach((b, i) => { cfg[o + 69 + i] = b; });
+      });
+      return cfg;
+    }
+
+    /* --- formato propio --- */
+    const F = (MOTOR.formato().filas || []);
+    const nombre = MOTOR.formato().n;
+    if (F.length > 17) { errores.push(`El formato «${nombre}» tiene ${F.length} filas; el .ddp admite 17.`); return cfg; }
+    if (F.filter(x => x.k === 'ent').length !== 3) { errores.push(`El formato «${nombre}» no tiene las tres entradas.`); return cfg; }
+    /* lugar de cada fila: el original si vino de un .ddp y sigue entero; si
+       no, en orden, con el precio unitario en la última (fila 17) */
+    const usaPos = F.every(x => Number.isInteger(x.pos)) && new Set(F.map(x => x.pos)).size === F.length &&
+      F[F.length - 1].pos === 16;
+    const lugar = F.map((x, i) => usaPos ? x.pos : (i === F.length - 1 ? 16 : i));
+    const letra = j => String.fromCharCode(65 + lugar[j]);
+    /* Impuestos sobre el precio final: el .ddp no tiene un tipo de fila para
+       eso —en el programa de origen es un ajuste de la instalación («cálculo
+       de impuesto mejorado»)—. Se escriben como porcentaje sobre su base y se
+       avisa: los precios unitarios exportados son los de OpenBOQ, pero si allá
+       se recalcula sin ese ajuste, los impuestos salen distintos. */
+    if (avisos && F.some(x => x.k === 'imp' && !x.vacia))
+      avisos.push('El formato calcula IVA/IT sobre el precio final. El .ddp no guarda ese modo: ' +
+        'en el programa de origen hay que activar el «cálculo de impuesto mejorado» o, al recalcular, ' +
+        'los impuestos saldrán sobre el parcial.');
+    const ocupado = new Set(lugar);
+    for (let s = 0; s < 17; s++) {
+      if (ocupado.has(s)) continue;
+      const o = s * 73;
+      texto(cfg, o, '', 50); dvC.setFloat32(o + 50, -1, true); texto(cfg, o + 54, '', 15);
+      cfg[o + 69] = s + 1;
+    }
+    F.forEach((x, j) => {
+      const o = lugar[j] * 73;
+      let formula = '';
+      if (x.k === 'ent') formula = '*';
+      else if (!x.vacia) {
+        formula = (x.sobre || []).map(v => {
+          const n = Number(v), k = Math.abs(n) - 1;
+          if (!(k >= 0 && k < F.length)) return '';
+          return (n < 0 ? '-' : '+') + letra(k);
+        }).join('').replace(/^\+/, '');
+      }
+      if (formula.length > 15)
+        errores.push(`Fila «${x.n}» del formato: la fórmula ${formula} pasa de los 15 caracteres que admite el .ddp.`);
+      const conPct = x.k === 'pct' || x.k === 'imp';
+      const suma = !conPct;
+      texto(cfg, o, x.n || '', 50);
+      dvC.setFloat32(o + 50, conPct ? (Number(x.pct) || 0) : -1, true);
+      texto(cfg, o + 54, formula.slice(0, 15), 15);
+      const px = Array.isArray(x.px) && x.px.length === 4 ? x.px
+        : [lugar[j] + 1, 0, (suma && x.k !== 'ent') ? 255 : 0, (suma && x.k !== 'ent') ? 255 : 0];
+      px.forEach((b, i) => { cfg[o + 69 + i] = b; });
+    });
+    return cfg;
+  }
+
+  /** ¿Esta hoja (bytes de un .CFG) es la oficial? La fila 11 no cuenta. */
+  function hojaEsOficial(u8) {
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    const td = new TextDecoder('windows-1252');
+    for (let i = 0; i < 17; i++) {
+      if (i === 10) continue;
+      const o = i * 73;
+      const f = td.decode(u8.slice(o + 54, o + 69)).replace(/[\s\u0000]+/g, '').toUpperCase();
+      const pct = dv.getFloat32(o + 50, true);
+      if (f !== SABS_F[i]) return false;
+      if ((i in SABS_PCT) ? !(pct >= 0) : !(pct < 0)) return false;
+    }
+    return true;
+  }
+
+  /* =====================================================================
      ARMADO DE LOS ARCHIVOS
      ===================================================================== */
   /**
@@ -334,17 +439,14 @@ const EXPORTADOR = (() => {
     dvS.setFloat64(190, fecha, true);
     dvS.setFloat32(200, tc, true);
     if (stt.length >= 572) texto(stt, 532, P.entidad, 40);   // primera línea del membrete
+    /* la precisión con la que se calculó el proyecto (ver MOTOR.precisionOrigen):
+       si vino de un .ddp vuelve la misma; si no, queda la de la plantilla */
+    const prec = P.calcOrigen && P.calcOrigen.precision;
+    if (Array.isArray(prec) && prec.length === 4 && stt.length >= 720)
+      prec.forEach((v, k) => dvS.setInt16(712 + 2 * k, v, true));
 
     /* --- .CFG --- */
-    const cfg = new Uint8Array(17 * 73);
-    const dvC = new DataView(cfg.buffer);
-    filasCFG(P.params).forEach((fl, k) => {
-      const o = k * 73;
-      texto(cfg, o, fl[0], 50);
-      dvC.setFloat32(o + 50, Number(fl[1]), true);
-      texto(cfg, o + 54, fl[2], 15);
-      fl[3].forEach((b, i) => { cfg[o + 69 + i] = b; });
-    });
+    const cfg = hojaCFG(P, plantilla, errores, avisos);
 
     /* --- .TIE: un registro de 66 bytes por módulo. Si el proyecto vino de
        un .ddp se conservan las fechas que ya traía cada módulo. --- */

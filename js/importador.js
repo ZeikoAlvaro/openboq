@@ -24,8 +24,12 @@
            [85..92]   double cantidad
            [108..115] double precio unitario   [116] materiales
            [124] mano de obra                  [132] equipo
+   .STT  [712..719] cuatro int16: precisión con la que se calculó (4,3,4,2
+           de fábrica). Ver MOTOR.precisionOrigen.
    .CFG  estructura del análisis B-2: 17 registros de 73 bytes
-           [0..49] etiqueta · [50..53] float32 % · [54..68] fórmula
+           [0..49] etiqueta · [50..53] float32 % (−1 = suma) · [54..68]
+           fórmula (letras A-Q = filas, + y -, «*» = entrada)
+           [69..72] int16 id + int16 negrita. Ver formatoDesdeCFG.
    ========================================================================= */
 'use strict';
 
@@ -94,11 +98,21 @@ const IMPORTADOR = (() => {
   function leerSTT(b) {
     if (!b || b.byteLength < 204) return {};
     const u = new Uint8Array(b), dv = new DataView(b);
+    /* Bytes 712-719: la precisión con la que el programa de origen calculó
+       este proyecto (cuatro int16; de fábrica 4,3,4,2). Encontrada por
+       ingeniería inversa el 14/10/2026: al copiar el «formato de cálculo» de
+       otro proyecto, el programa la lee de acá. Ver MOTOR.precisionOrigen. */
+    let precision = null;
+    if (b.byteLength >= 720) {
+      const q = [0, 1, 2, 3].map(k => dv.getInt16(712 + 2 * k, true));
+      if (q.every(v => v >= 0 && v <= 8)) precision = q;
+    }
     return {
       nombre: txt(u, 0, 70) || 'Proyecto importado',
       lugar: txt(u, 70, 60),
       cliente: txt(u, 130, 60),
-      tc: Math.round(dv.getFloat32(200, true) * 10000) / 10000 || 6.96
+      tc: Math.round(dv.getFloat32(200, true) * 10000) / 10000 || 6.96,
+      precision
     };
   }
 
@@ -170,8 +184,10 @@ const IMPORTADOR = (() => {
     const filas = [];
     for (let k = 0; k * R + R <= u.length; k++) {
       const o = k * R;
-      filas.push({ n: txt(u, o, 50), pct: dv.getFloat32(o + 50, true), f: txt(u, o + 54, 15) });
+      filas.push({ n: txt(u, o, 50), pct: dv.getFloat32(o + 50, true), f: txt(u, o + 54, 15),
+                   px: [u[o + 69], u[o + 70], u[o + 71], u[o + 72]] });
     }
+    p._todas = filas;
     const buscar = re => { const f = filas.find(x => re.test(x.n) && x.pct >= 0); return f ? Math.round(f.pct * 100) / 100 : null; };
     const map = {
       cargas: /CARGAS?\s+SOCIAL/i,
@@ -184,6 +200,58 @@ const IMPORTADOR = (() => {
     for (const k in map) { const v = buscar(map[k]); if (v !== null) p[k] = v; }
     p._filas = filas.filter(x => x.n);
     return p;
+  }
+
+  /* ---------------------------------------------------------------------
+     LA HOJA B-2 DEL ARCHIVO, COMO FÓRMULAS
+
+     El .CFG no son seis porcentajes: son 17 filas y cada una dice cómo se
+     calcula. La fórmula usa letras —la fila 1 es la A— con + y -, y «*»
+     marca las tres entradas (materiales, mano de obra, equipo). Si la fila
+     tiene porcentaje, vale ese porcentaje de la suma; si no (−1), vale la
+     suma. Una fila puede nombrar a otra que está más abajo: en el oficial,
+     TOTAL MANO DE OBRA = E+F+O, y O es el IVA.
+
+     Antes se buscaban los porcentajes por la ETIQUETA de la fila y se
+     volcaban en la cadena oficial. Con la hoja oficial da lo mismo; con otra
+     —«Beneficios sociales» sobre B, la utilidad sobre J, sin IVA— la cadena
+     quedaba con 55 % de cargas que el archivo no tiene.
+
+     Ahora:
+       · si la hoja ES la oficial (mismas fórmulas, mismos lugares), se usa el
+         formato oficial y los porcentajes se toman por POSICIÓN;
+       · si no, se arma un formato propio con las fórmulas del archivo, que el
+         motor calcula igual que el programa de origen.
+     --------------------------------------------------------------------- */
+  const SABS_F = ['*', '*', '*', 'A', 'B', 'E', 'E+F+O', 'G', 'C+H', 'D+G+I', '', 'J', 'J+L', 'J+L+M', 'E+F', 'N', 'N+P'];
+  const SABS_PCT = { 5: 'cargas', 7: 'herr', 11: 'gg', 12: 'util', 14: 'ivaMO', 15: 'it' };
+  const normF = s => String(s || '').replace(/\s+/g, '').toUpperCase();
+
+  /** ¿La hoja del archivo es la oficial? La fila 11 (vacía en el oficial) no
+      la nombra ninguna otra, así que lo que tenga no cambia el precio. */
+  function esHojaOficial(todas) {
+    if (!todas || todas.length !== 17) return false;
+    return todas.every((x, i) => {
+      if (i === 10) return true;
+      if (normF(x.f) !== SABS_F[i]) return false;
+      return (i in SABS_PCT) ? x.pct >= 0 : x.pct < 0;
+    });
+  }
+
+  /**
+   * Convierte las filas del .CFG en un formato del motor.
+   * @returns {{formato:Object}|{error:string}}
+   */
+  function formatoDesdeCFG(todas, nombreProyecto) {
+    /* La conversión vive en el motor (MOTOR.formatoDesdeHoja) porque la usan
+       también las plantillas de INCIDENCIAS; acá solo se recupera el
+       porcentaje que se tecleó (el archivo lo guarda como float32). */
+    return MOTOR.formatoDesdeHoja((todas || []).map(x => Object.assign({}, x,
+      { pct: x.pct >= 0 ? single(x.pct) : -1 })), {
+      nombre: 'Hoja B-2 del .ddp' + (nombreProyecto ? ' — ' + String(nombreProyecto).slice(0, 40) : ''),
+      nota: 'Leída del archivo importado, fila por fila y con sus fórmulas. Se calcula igual que en el programa de origen.',
+      origen: 'ddp'
+    });
   }
 
   /* =====================================================================
@@ -240,6 +308,7 @@ const IMPORTADOR = (() => {
       const arch = ruta.split('/').pop();
       const ext = (arch.split('.').pop() || '').toUpperCase();
       if (ext === 'STT') { plant.stt = b64(zip[ruta].slice(190)); continue; }
+      if (ext === 'CFG') { plant.cfg = b64(zip[ruta]); continue; }        // la hoja original, para devolverla igual
       if (ext === 'TIE') { plant.archivos.TIE = b64(zip[ruta]); continue; }   // por las fechas de cada módulo
       if (regen.indexOf(ext) >= 0) continue;
       if (/^(ADI|CEQ|CMM|GRP|IMP|PLA)$/.test(ext)) plant.archivos[ext] = b64(zip[ruta]);
@@ -268,6 +337,28 @@ const IMPORTADOR = (() => {
     ['cargas', 'ivaMO', 'herr', 'gg', 'util', 'it'].forEach(k => {
       if (typeof par[k] === 'number' && isFinite(par[k])) P.params[k] = par[k];
     });
+    /* cómo calculaba el archivo (ver MOTOR.precisionOrigen): porcentajes
+       float32 y la precisión del .STT */
+    P.calcOrigen = { pct32: true, precision: cab.precision || null };
+
+    /* la hoja B-2 del archivo: oficial por posición, o formato propio */
+    const avisosHoja = [];
+    let hoja = 'etiquetas';
+    if (esHojaOficial(par._todas)) {
+      hoja = 'oficial';
+      for (const i in SABS_PCT) P.params[SABS_PCT[i]] = single(par._todas[i].pct);
+    } else if (par._todas && par._todas.length) {
+      const r = formatoDesdeCFG(par._todas, cab.nombre);
+      if (r.formato) {
+        hoja = 'propia';
+        MOTOR.usarFormato(r.formato);
+        avisosHoja.push('La hoja B-2 del archivo no es la oficial: se cargó como formato propio «' +
+          r.formato.n + '», con las fórmulas del archivo (ver INCIDENCIAS).');
+      } else {
+        avisosHoja.push('La hoja B-2 del archivo no es la oficial y no se pudo leer como fórmulas (' + r.error +
+          '); se usan sus porcentajes sobre el formato oficial.');
+      }
+    }
 
     /* módulos: se respeta la numeración original (1..n) */
     const nMod = Math.max(mods.length, ...items.map(x => x.mod || 1), 1);
@@ -377,8 +468,10 @@ const IMPORTADOR = (() => {
         params: Object.assign({}, P.params),
         totalOrigen, totalRecalculado: MOTOR.totalProyecto(),
         totalOrigenB1, totalRecalculadoB1: MOTOR.totalGeneral(),
-        difs, difsPU, deArchivo, incoherentes, avisos: avisos.slice(0, 12),
-        filasCFG: par._filas || []
+        difs, difsPU, deArchivo, incoherentes, avisos: avisosHoja.concat(avisos).slice(0, 12),
+        filasCFG: par._filas || [],
+        hoja, precision: cab.precision || null,
+        precisionFabrica: !MOTOR.precisionOrigen()
       }
     };
   }

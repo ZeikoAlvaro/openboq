@@ -1524,8 +1524,9 @@
        última fila: esa es el precio unitario y ya tiene su propio renglón. */
     const cierrePropio = (a.cadena || []).filter(f => f.k !== 'ent')
       .slice(0, -1)
+      .filter(f => !f.vacia)                // filas en blanco de una hoja leída de un .ddp
       .map(f => `<div class="fila${f.k === 'sum' ? ' sub' : ''}">
-        <span>${f.i}. ${esc(f.n)}${f.k === 'pct' ? ` <b>${M.fmt(f.pct, 2)} %</b>` : ''}</span>
+        <span>${f.i}. ${esc(f.n)}${(f.k === 'pct' || f.k === 'imp') ? ` <b>${M.fmt(f.pct, 2)} %</b>` : ''}</span>
         <span class="val">${M.fmt(M.conv(M.r2(f.valor)))}</span></div>`).join('');
 
     h += `<div class="res" style="margin-top:18px">
@@ -1683,9 +1684,17 @@
    * Lee el campo «sobre qué»: «2, 4» → [2, 4]. Tolera espacios, punto y coma
    * y el signo +, que es como mucha gente escribe una suma de filas.
    */
-  function leerSobre(txt) {
-    return String(txt || '').split(/[^0-9]+/)
+  function leerSobre(txt, conSigno) {
+    if (!conSigno) return String(txt || '').split(/[^0-9]+/)
       .map(x => parseInt(x, 10)).filter(n => n > 0);
+    /* formato leído de un .ddp: «14, -1» o «14 - 1» resta la fila 1 */
+    const out = [], re = /([+-]?)\s*(\d+)/g;
+    let m;
+    while ((m = re.exec(String(txt || '')))) {
+      const n = parseInt(m[2], 10);
+      if (n > 0) out.push(m[1] === '-' ? -n : n);
+    }
+    return out;
   }
 
   /**
@@ -1702,12 +1711,19 @@
    * @param {Function} cambio qué hacer con el arreglo
    */
   function conReferenciasEstables(F, cambio) {
-    const ids = F.map(f => (f.sobre || []).map(n => (F[Number(n) - 1] || {}).id).filter(Boolean));
+    /* el signo (resta, en formatos leídos de un .ddp) viaja con la referencia */
+    const ids = F.map(f => (f.sobre || []).map(n => {
+      const x = F[Math.abs(Number(n)) - 1];
+      return x && x.id ? { id: x.id, neg: Number(n) < 0 } : null;
+    }).filter(Boolean));
     F.forEach((f, i) => { f._ref = ids[i]; });
     cambio();
     F.forEach(f => {
       if (!f._ref) return;
-      f.sobre = f._ref.map(id => F.findIndex(x => x.id === id) + 1).filter(n => n > 0);
+      f.sobre = f._ref.map(r => {
+        const k = F.findIndex(x => x.id === r.id) + 1;
+        return k > 0 ? (r.neg ? -k : k) : 0;
+      }).filter(n => n !== 0);
       delete f._ref;
     });
   }
@@ -1716,7 +1732,16 @@
   /** Nombre legible de la base de una fila: «(2 + 4)» o «todo lo anterior». */
   function baseEnPalabras(f, filas) {
     if (f.k === 'ent') return 'entrada del análisis';
-    const ns = (f.sobre || []).map(n => 'N° ' + n);
+    if ((f.sobre || []).some(n => Number(n) < 0)) {
+      /* formato leído de un .ddp con restas: «N° 14 − N° 1» */
+      const S = f.sobre;
+      const unir = fn => S.map((n, i) => {
+        const neg = Number(n) < 0;
+        return (i ? (neg ? ' − ' : ' + ') : (neg ? '− ' : '')) + fn(Math.abs(Number(n)));
+      }).join('');
+      return unir(n => 'N° ' + n) + '  ·  ' + unir(n => { const x = filas[n - 1]; return x ? x.n : '?'; });
+    }
+    const ns = (f.sobre || []).map(n =>'N° ' + n);
     if (!ns.length) return '—';
     const nom = (f.sobre || []).map(n => {
       const x = filas[Number(n) - 1];
@@ -1762,6 +1787,11 @@
         <ul class="fmt-ul">${listado}</ul>
         <button class="btn sec fmt-nuevo" data-acc="duplicarFormato">⧉ Duplicar el aplicado</button>
         <p class="mini">La copia arranca idéntica: duplicar no cambia ningún precio.</p>
+        <button class="btn sec fmt-nuevo" data-acc="agregarPlantilla">＋ Agregar desde plantilla</button>
+        <p class="mini">Estructuras de B-2 de uso común (completo con IVA e IT, sin impuestos, muy básico,
+        mejoramiento de barrios…). Se agregan al listado; aplicarlas es un clic aparte.</p>
+        <button class="btn sec fmt-nuevo" data-acc="calcularGastosGenerales">🧮 Calcular gastos generales</button>
+        <p class="mini">Desglose por rubros (pliegos, boletas, oficina central…) que escribe el % en su fila.</p>
       </aside>
 
       <section class="fmt-cadena">
@@ -1798,13 +1828,16 @@
           : `<select data-fmt="${nro}" data-f="k">
                <option value="pct"${f.k === 'pct' ? ' selected' : ''}>porcentaje</option>
                <option value="sum"${f.k === 'sum' ? ' selected' : ''}>subtotal</option>
+               <option value="imp"${f.k === 'imp' ? ' selected' : ''} title="Impuesto calculado sobre el precio que ya lo incluye: base × % ÷ (1 − suma de estos impuestos)">impuesto s/ precio final</option>
              </select>`);
       const sobre = esEnt ? '<span class="mini">materiales · mano de obra · equipo</span>'
         : (oficial
           ? `<span class="mini">${esc(f.ayuda || baseEnPalabras(f, filas))}</span>`
           : `<input class="txt mono" data-fmt="${nro}" data-f="sobre" value="${esc((f.sobre || []).join(', '))}"
-               placeholder="2, 4" title="Números de fila, separados por coma. Solo filas anteriores a esta.">`);
-      const pct = (f.k === 'pct')
+               placeholder="2, 4" title="${fmt.permiteAdelante
+                 ? 'Números de fila, separados por coma. Un número con signo menos resta esa fila (14, -1).'
+                 : 'Números de fila, separados por coma. Solo filas anteriores a esta.'}">`);
+      const pct = (f.k === 'pct' || f.k === 'imp')
         ? `<input type="number" step="0.01" inputmode="decimal" data-fmt="${nro}" data-f="pct" value="${f.pct}">`
         : '<span class="mini">—</span>';
       const acc = oficial ? '' : `<td class="ctr fmt-btn">${esEnt ? '' : `
@@ -3800,6 +3833,81 @@
       }]]);
     },
 
+    /** Agrega al listado un formato armado desde una plantilla. No lo aplica:
+        ningún precio cambia hasta que el usuario hace clic en él. */
+    agregarPlantilla() {
+      const L = M.PLANTILLAS_HOJA;
+      modal('Agregar desde plantilla', `<div class="form-g">
+        <label>Plantilla</label>
+        <select id="selPlantilla">${L.map(t => `<option value="${esc(t.id)}">${esc(t.n)}</option>`).join('')}</select>
+        <p class="mini" id="notaPlantilla">${esc(L[0].nota)}</p>
+        <label style="display:flex;gap:6px;align-items:center;margin-top:8px">
+          <input type="checkbox" id="aplPlantilla"> Aplicarla ahora al presupuesto</label>
+        <p class="mini">Sin marcar, queda en el <b>listado de incidencias</b> y el presupuesto no cambia.
+        Se edita entera, como cualquier formato propio. Los porcentajes son de referencia: revíselos.</p>
+      </div>`, [['Cancelar', null, 'sec'], ['Agregar', () => {
+        const f = M.formatoDesdePlantilla($('#selPlantilla').value);
+        if (!f) { alert('No se pudo armar la plantilla.'); return false; }
+        probando('incidencias');
+        M.guardarFormato(f);
+        if ($('#aplPlantilla').checked) M.usarFormato(f.id);
+        render(); irVista('incidencias');
+      }]]);
+      $('#selPlantilla').onchange = e => {
+        const t = L.find(x => x.id === e.target.value);
+        $('#notaPlantilla').textContent = t ? t.nota : '';
+      };
+    },
+
+    /** Desglose de gastos generales por rubros; el resultado se escribe en la
+        fila de porcentaje que se elija (por defecto, la de gastos generales). */
+    calcularGastosGenerales() {
+      const fmt = M.formato();
+      const oficial = M.formatoEsOficial();
+      const filasPct = (fmt.filas || []).map((f, i) => ({ f, i })).filter(x => x.f.k === 'pct');
+      if (!filasPct.length) return modal('Gastos generales', '<p>Este formato no tiene filas de porcentaje.</p>');
+      const pre = (filasPct.find(x => x.f.p === 'gg' || /GASTOS?\s+GENERAL/i.test(x.f.n)) || filasPct[0]).i;
+      const rubros = M.ggDesglose().map(x => ({ n: x.n, pct: x.pct }));
+      const pintar = () => {
+        $('#ggFilas').innerHTML = rubros.map((x, k) => `<tr>
+          <td><input class="txt" data-gg="${k}" data-c="n" value="${esc(x.n)}"></td>
+          <td style="width:90px"><input type="number" step="0.01" data-gg="${k}" data-c="pct" value="${x.pct}"></td>
+          <td style="width:30px"><button class="b-del" data-ggdel="${k}" title="Quitar">✕</button></td></tr>`).join('');
+        $('#ggTotal').textContent = M.fmt(M.sumaGg(rubros), 2) + ' %';
+      };
+      modal('Calcular gastos generales', `
+        <p class="mini">Cada rubro es un porcentaje sobre el costo directo. Los valores que aparecen la
+        primera vez son de referencia: ajústelos a la obra. El desglose se guarda en el proyecto.</p>
+        <table class="rej"><thead><tr><th>Rubro</th><th>%</th><th></th></tr></thead>
+          <tbody id="ggFilas"></tbody>
+          <tfoot><tr><td><b>Total</b></td><td class="num"><b id="ggTotal"></b></td><td></td></tr></tfoot></table>
+        <button class="btn sec" id="ggMas" style="margin:6px 0">＋ Rubro</button>
+        <div class="form-g"><label>Escribir el total en la fila</label>
+          <select id="ggDestino">${filasPct.map(x => `<option value="${x.i}"${x.i === pre ? ' selected' : ''}>${x.i + 1}. ${esc(x.f.n)}</option>`).join('')}</select></div>`,
+        [['Cancelar', null, 'sec'], ['Usar este total', () => {
+          const tot = M.sumaGg(rubros);
+          const f = (M.formato().filas || [])[Number($('#ggDestino').value)];
+          if (!f) return false;
+          probando('incidencias');
+          M.guardarGgDesglose(rubros);
+          if (oficial && f.p) M.proyecto().params[f.p] = tot;
+          else f.pct = tot;
+          render(); irVista('incidencias');
+        }]]);
+      pintar();
+      $('#ggFilas').oninput = e => {
+        const k = Number(e.target.dataset.gg); if (!rubros[k]) return;
+        if (e.target.dataset.c === 'n') rubros[k].n = e.target.value;
+        else rubros[k].pct = Number(e.target.value) || 0;
+        $('#ggTotal').textContent = M.fmt(M.sumaGg(rubros), 2) + ' %';
+      };
+      $('#ggFilas').onclick = e => {
+        const b = e.target.closest('[data-ggdel]'); if (!b) return;
+        rubros.splice(Number(b.dataset.ggdel), 1); pintar();
+      };
+      $('#ggMas').onclick = () => { rubros.push({ n: 'Rubro nuevo', pct: 0 }); pintar(); };
+    },
+
     /** Cambia el nombre de un formato propio del listado. */
     renombrarFormato(id) {
       const f = M.formatoPorId(id);
@@ -4600,8 +4708,13 @@
         <tr><td>Lugar</td><td>${esc(s.lugar || '—')}</td></tr>
         <tr><td>Módulos / ítems / insumos</td><td>${s.modulos} / ${s.items} / ${s.insumos}</td></tr>
         <tr><td>Tipo de cambio</td><td>${s.tc}</td></tr>
-        <tr><td>Recargos leídos del archivo</td><td>cargas ${s.params.cargas}% · IVA M.O. ${s.params.ivaMO}% ·
-            herramientas ${s.params.herr}% · G.G. ${s.params.gg}% · utilidad ${s.params.util}% · IT ${s.params.it}%</td></tr>
+        ${s.hoja === 'propia'
+          ? `<tr><td>Hoja B-2 del archivo</td><td>no es la oficial: se cargó como <b>formato propio</b> con sus fórmulas
+              (ver INCIDENCIAS)</td></tr>`
+          : `<tr><td>Recargos leídos del archivo</td><td>cargas ${s.params.cargas}% · IVA M.O. ${s.params.ivaMO}% ·
+            herramientas ${s.params.herr}% · G.G. ${s.params.gg}% · utilidad ${s.params.util}% · IT ${s.params.it}%</td></tr>`}
+        ${Array.isArray(s.precision) ? `<tr><td>Precisión de cálculo del archivo</td><td>${s.precision.join(' · ')}${s.precisionFabrica
+          ? ' (la de fábrica)' : ' — <b>distinta a la de fábrica</b>: OpenBOQ calcula con ella, igual que el original'}</td></tr>` : ''}
         <tr><td>Total según el archivo importado</td><td class="num"><b>${M.fmt(tOrig, 2)} Bs</b></td></tr>
         <tr><td>Total recalculado por OpenBOQ</td><td class="num"><b>${M.fmt(tRecal, 2)} Bs</b></td></tr>
         <tr><td>Diferencia</td><td class="num" style="color:${dif < 1 ? 'var(--ok)' : 'var(--err)'}"><b>${M.fmt(dif, 2)} Bs</b></td></tr>
@@ -4628,6 +4741,10 @@
            ${M.fmt(x.calc.m + x.calc.o + x.calc.e, 2)} — ${M.fmt(Math.abs(x.falta), 2)} Bs sin
            respaldo</li>`).join('')}</ul>` : ''}
       ${ok ? '' : '<ul style="font-size:12px;padding-left:16px">' + s.avisos.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul>'}
+      ${s.hoja === 'propia' ? `<div class="aviso-caja"><b>La hoja B-2 de este archivo no corresponde a las Normas
+        Básicas (DS 0181).</b><p class="mini" style="margin:4px 0 0">Se respetó tal cual —con ella el presupuesto
+        cierra igual que el original—. Si la entidad exige el formato oficial, use <b>Usar el formato oficial…</b>:
+        los precios unitarios se recalculan con la cadena del SABS y la hoja del archivo queda en el listado.</p></div>` : ''}
       <p class="mini">El archivo original no se modificó. Guarde este proyecto con
       <b>ARCHIVO → Guardar</b> para conservarlo como <code>.boq</code>.</p>
       <p class="mini">Cuando termine de editarlo puede devolverlo como .ddp con
@@ -4636,8 +4753,9 @@
       <p class="mini">Los ítems de un .ddp sirven para los proyectos que vengan: puede guardarlos
       como base de datos propia. Se propone una base nueva con el nombre del archivo —cada origen en
       su base— para no mezclarlos con lo que ya tenga guardado.</p>`,
-      [['Cerrar', null, 'sec'],
-      ['Guardar como base de datos…', () => setTimeout(() => ACC.proyectoABase(baseDeArchivo(archivo)), 80)]]);
+      [['Cerrar', null, 'sec']].concat(s.hoja === 'propia'
+        ? [['Usar el formato oficial…', () => setTimeout(() => ACC.volverFormatoOficial(), 80), 'sec']] : [])
+        .concat([['Guardar como base de datos…', () => setTimeout(() => ACC.proyectoABase(baseDeArchivo(archivo)), 80)]]));
   }
 
   /* Guarda el .ddp. Donde el navegador lo permite (Chrome, Edge) se abre el
@@ -5085,7 +5203,7 @@
         if (!f) return;
         if (campo === 'n') f.n = t.value;
         else if (campo === 'pct') f.pct = Number(t.value) || 0;
-        else if (campo === 'sobre') f.sobre = leerSobre(t.value);
+        else if (campo === 'sobre') f.sobre = leerSobre(t.value, !!M.formato().permiteAdelante);
       }
       /* se espera a que termine de escribir antes de recalcular */
       clearTimeout(tInc); tInc = setTimeout(() => {
@@ -5100,8 +5218,8 @@
       probando('incidencias');
       const f = M.formato().filas[nro - 1];
       if (!f) return;
-      f.k = e.target.value === 'sum' ? 'sum' : 'pct';
-      if (f.k === 'pct' && !isFinite(Number(f.pct))) f.pct = 0;
+      f.k = e.target.value === 'sum' ? 'sum' : (e.target.value === 'imp' ? 'imp' : 'pct');
+      if (f.k !== 'sum' && !isFinite(Number(f.pct))) f.pct = 0;
       render();
     });
     /* el listado de formatos: aplicar, renombrar, quitar */

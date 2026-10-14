@@ -173,27 +173,81 @@ const MOTOR = (() => {
    * @returns {{filas:Array, crudo:number, pu:number}} y los alias del B-2 clásico
    */
   function correrCadena(m, o, e) {
-    const F = formato().filas || [];
+    const fmt = formato();
+    const F = fmt.filas || [];
     const val = [];          // val[i] = valor de la fila i+1
     const filas = [];
     const entradas = [m, o, e];
-    let ent = 0;
+    const pct32 = pctComoArchivo();
+    const pctDe = f => { const p = Number(f.pct) || 0; return pct32 ? Math.fround(p) : p; };
+    /* Filas `imp`: impuestos sobre el PRECIO FINAL («cálculo de impuesto
+       mejorado» del programa de origen). Cada una vale base × % / (1 − T),
+       donde T es la suma de los porcentajes de todas las filas `imp`: así el
+       impuesto queda calculado sobre el precio que ya lo incluye. Con
+       IVA 13 % e IT 3 % sobre el parcial N, el precio unitario sale N / 0,84. */
+    const sumaImp = F.reduce((s, f) => (f.k === 'imp' && !f.vacia ? s + pctDe(f) : s), 0) / 100;
+    const valorFila = (f, base) => {
+      if (f.k === 'pct') return base * pctDe(f) / 100;
+      if (f.k === 'imp') return sumaImp < 1 ? base * pctDe(f) / 100 / (1 - sumaImp) : 0;
+      return base;
+    };
+    const conPct = f => f.k === 'pct' || f.k === 'imp';
 
-    F.forEach((f, i) => {
-      let v = 0;
-      if (f.k === 'ent') {
-        v = Number(entradas[ent++]) || 0;
-      } else {
-        const base = (f.sobre || []).reduce((s, n) => {
-          const k = Number(n) - 1;
-          return s + (k >= 0 && k < i ? (Number(val[k]) || 0) : 0);
-        }, 0);
-        v = f.k === 'pct' ? base * (Number(f.pct) || 0) / 100 : base;
-      }
-      val[i] = v;
-      filas.push({ i: i + 1, id: f.id, k: f.k, n: f.n, ayuda: f.ayuda || '', ref: f.ref || '',
-                   pct: f.k === 'pct' ? (Number(f.pct) || 0) : null, sobre: f.sobre || [], valor: v });
-    });
+    /* Un formato importado de un .ddp (`permiteAdelante`) se calcula como lo
+       calcula el programa de origen: una fila puede apoyarse en otra que está
+       más abajo —en el oficial, «TOTAL MANO DE OBRA = E+F+O», donde O es el
+       IVA— y un número negativo en `sobre` resta esa fila («N-A»). Se resuelve
+       por dependencias y un ciclo vale 0 en lugar de colgar el cálculo.
+       Los formatos de siempre siguen por el camino de abajo, idéntico al de
+       antes: ninguna fila mira hacia adelante y nada cambia de precio. */
+    if (fmt.permiteAdelante) {
+      const idxEnt = [];
+      F.forEach((f, i) => { if (f.k === 'ent') idxEnt.push(i); });
+      const estado = [];
+      const valor = i => {
+        if (i < 0 || i >= F.length) return 0;
+        if (estado[i] === 2) return val[i];
+        if (estado[i] === 1) return 0;
+        estado[i] = 1;
+        const f = F[i];
+        let v = 0;
+        if (f.k === 'ent') v = Number(entradas[idxEnt.indexOf(i)]) || 0;
+        else if (!f.vacia) {
+          const base = (f.sobre || []).reduce((s, n) => {
+            const x = Number(n);
+            if (!isFinite(x) || x === 0) return s;
+            return s + (x < 0 ? -1 : 1) * (Number(valor(Math.abs(x) - 1)) || 0);
+          }, 0);
+          v = valorFila(f, base);
+        }
+        val[i] = v;
+        estado[i] = 2;
+        return v;
+      };
+      F.forEach((f, i) => {
+        const v = valor(i);
+        filas.push({ i: i + 1, id: f.id, k: f.k, n: f.n, ayuda: f.ayuda || '', ref: f.ref || '',
+                     pct: conPct(f) ? (Number(f.pct) || 0) : null, sobre: f.sobre || [], valor: v,
+                     vacia: !!f.vacia });
+      });
+    } else {
+      let ent = 0;
+      F.forEach((f, i) => {
+        let v = 0;
+        if (f.k === 'ent') {
+          v = Number(entradas[ent++]) || 0;
+        } else {
+          const base = (f.sobre || []).reduce((s, n) => {
+            const k = Number(n) - 1;
+            return s + (k >= 0 && k < i ? (Number(val[k]) || 0) : 0);
+          }, 0);
+          v = valorFila(f, base);
+        }
+        val[i] = v;
+        filas.push({ i: i + 1, id: f.id, k: f.k, n: f.n, ayuda: f.ayuda || '', ref: f.ref || '',
+                     pct: conPct(f) ? (Number(f.pct) || 0) : null, sobre: f.sobre || [], valor: v });
+      });
+    }
 
     /* El precio unitario es la última fila. `crudo` es ese número sin
        redondear: sirve de huella del análisis para saber si sigue valiendo el
@@ -283,21 +337,189 @@ const MOTOR = (() => {
     const ent = F.filter(x => x.k === 'ent').length;
     if (ent !== 3) er.push('La cadena tiene que empezar con las tres entradas del análisis (materiales, mano de obra y equipo).');
     if (F.length < ent + 1) er.push('Falta al menos una fila después de las entradas: la última es el precio unitario.');
+    /* Un formato que vino de un .ddp (`permiteAdelante`) puede apoyarse en
+       filas posteriores y restar (número negativo), como el programa de
+       origen; ahí lo que no se permite es el ciclo. Sus filas en blanco
+       (`vacia`) están para ocupar el lugar y no se revisan. */
+    const adelante = !!(f && f.permiteAdelante);
     F.forEach((x, i) => {
-      if (x.k === 'ent') return;
+      if (x.k === 'ent' || (adelante && x.vacia)) return;
       const n = i + 1;
       const sobre = x.sobre || [];
       if (!sobre.length) er.push('Fila ' + n + ' («' + (x.n || 'sin nombre') + '»): no dice sobre qué se calcula.');
       sobre.forEach(v => {
-        const k = Number(v);
+        const s = Number(v);
+        const k = adelante ? Math.abs(s) : s;
         if (!isFinite(k) || k < 1 || k > F.length) er.push('Fila ' + n + ': la fila ' + v + ' no existe.');
-        else if (k >= n) er.push('Fila ' + n + ': no puede calcularse sobre la fila ' + k + ', que viene después.');
+        else if (k === n) er.push('Fila ' + n + ': no puede calcularse sobre sí misma.');
+        else if (!adelante && k > n) er.push('Fila ' + n + ': no puede calcularse sobre la fila ' + k + ', que viene después.');
       });
-      if (x.k === 'pct' && !isFinite(Number(x.pct))) er.push('Fila ' + n + ': el porcentaje no es un número.');
+      if ((x.k === 'pct' || x.k === 'imp') && !isFinite(Number(x.pct))) er.push('Fila ' + n + ': el porcentaje no es un número.');
       if (!String(x.n || '').trim()) er.push('Fila ' + n + ': falta el nombre.');
     });
+    const sumaImp = F.reduce((s, x) => (x.k === 'imp' && !x.vacia ? s + (Number(x.pct) || 0) : s), 0);
+    if (sumaImp >= 100) er.push('Los impuestos sobre el precio final suman ' + sumaImp + ' %: tienen que sumar menos de 100 %.');
+    if (adelante) {
+      /* ciclo: una fila que, siguiendo sus bases, vuelve a sí misma */
+      const est = [];
+      const visita = i => {
+        if (est[i] === 2) return false;
+        if (est[i] === 1) return true;
+        est[i] = 1;
+        const x = F[i] || {};
+        const hay = x.k !== 'ent' && !x.vacia && (x.sobre || []).some(v => {
+          const k = Math.abs(Number(v)) - 1;
+          return k >= 0 && k < F.length && visita(k);
+        });
+        est[i] = 2;
+        return hay;
+      };
+      for (let i = 0; i < F.length; i++) {
+        if (visita(i)) { er.push('La fila ' + (i + 1) + ' entra en un ciclo: termina calculándose sobre sí misma.'); break; }
+      }
+    }
     return { ok: !er.length, errores: er };
   }
+
+  /* ---------------- hojas B-2 escritas como el .CFG ----------------
+     Una hoja «a la manera del .ddp»: hasta 17 filas [nombre, %, fórmula],
+     con −1 en el % para las filas que suman, letras A-Q por fila, + y -, y
+     «*» para las tres entradas (materiales, mano de obra, equipo, en ese
+     orden). La usan el importador (la hoja de un .ddp) y las plantillas.
+     Un cuarto elemento 'imp' marca un impuesto sobre el precio final.     */
+
+  /**
+   * @param {Array} todas filas {n, pct, f, px?, imp?}
+   * @param {{nombre?:string, nota?:string}} [opc]
+   * @returns {{formato:Object}|{error:string}}
+   */
+  function formatoDesdeHoja(todas, opc) {
+    const o = opc || {};
+    if (!todas || !todas.length || todas.length > 17) return { error: 'la hoja no tiene entre 1 y 17 filas' };
+    const ENT = [['Materiales', 'mat'], ['Mano de obra', 'mo'], ['Equipo y maquinaria', 'eq']];
+    const norm = s => String(s || '').replace(/\s+/g, '').toUpperCase();
+    let ent = 0;
+    const filas = [];
+    for (let i = 0; i < todas.length; i++) {
+      const x = todas[i];
+      const f = norm(x.f);
+      const base = { id: nid(), pos: i };
+      if (Array.isArray(x.px) && x.px.length === 4) base.px = x.px.slice();
+      if (f === '*') {
+        if (ent >= 3) return { error: 'hay más de tres filas de entrada' };
+        filas.push(Object.assign(base, { k: 'ent', n: x.n || ENT[ent][0], ref: ENT[ent][1] }));
+        ent++;
+        continue;
+      }
+      if (!f) { filas.push(Object.assign(base, { k: 'sum', n: x.n || '', sobre: [], vacia: true })); continue; }
+      if (!/^[+-]?[A-Z]([+-][A-Z])*$/.test(f)) return { error: 'la fila ' + (i + 1) + ' tiene una fórmula que no se entiende: ' + x.f };
+      const sobre = [];
+      const re = /([+-]?)([A-Z])/g;
+      let m;
+      while ((m = re.exec(f))) {
+        const n = m[2].charCodeAt(0) - 64;
+        if (n > todas.length) return { error: 'la fila ' + (i + 1) + ' nombra una fila que no existe (' + m[2] + ')' };
+        sobre.push(m[1] === '-' ? -n : n);
+      }
+      const conPct = Number(x.pct) >= 0;
+      filas.push(Object.assign(base, {
+        k: conPct ? (x.imp ? 'imp' : 'pct') : 'sum', n: x.n || ('Fila ' + (i + 1)),
+        pct: conPct ? Number(x.pct) : 0, sobre
+      }));
+    }
+    if (ent !== 3) return { error: 'la hoja no tiene las tres filas de entrada' };
+    const ult = filas[filas.length - 1];
+    if (ult.vacia || ult.k === 'ent') return { error: 'la última fila no es el precio unitario' };
+    const formato = {
+      id: 'f' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
+      n: o.nombre || 'Hoja B-2', nota: o.nota || '', permiteAdelante: true, filas
+    };
+    if (o.origen) formato.origen = o.origen;
+    const v = validarFormato(formato);
+    if (!v.ok) return { error: v.errores[0] };
+    return { formato };
+  }
+
+  /* Plantillas de partida para INCIDENCIAS: las estructuras de B-2 que se
+     usan en el medio —las mismas que trae el programa de presupuestos más
+     difundido en Bolivia— más una con los impuestos sobre el precio final.
+     Se agregan al listado como formato propio; aplicarlas es un clic aparte. */
+  const PLANTILLAS_HOJA = [
+    { id: 'completo-iva', n: 'Completo con IVA e IT',
+      nota: 'Mano de obra indirecta y beneficios sociales sobre la mano de obra; IVA sobre el parcial e IT sobre el parcial menos materiales.',
+      filas: [['Material', -1, '*'], ['Obrero', -1, '*'], ['Equipo', -1, '*'], ['Total materiales', -1, 'A'],
+        ['Mano de obra indirecta', 5, 'B'], ['Beneficios sociales', 55, 'B'], ['Total mano de obra', -1, 'B+E+F'],
+        ['Herramientas menores', 6, 'B'], ['Total herramientas y equipo', -1, 'C+H'], ['Sub total', -1, 'D+G+I'],
+        ['', -1, ''], ['Gastos generales', 10, 'J'], ['Utilidad', 10, 'J'], ['Parcial', -1, 'J+L+M'],
+        ['IVA', 13, 'N'], ['IT', 3, 'N-A'], ['Total ítem', -1, 'N+O+P']] },
+    { id: 'completo-sin-iva', n: 'Completo sin impuestos',
+      nota: 'Igual al completo, sin IVA ni IT: el total es el parcial.',
+      filas: [['Material', -1, '*'], ['Obrero', -1, '*'], ['Equipo', -1, '*'], ['Total materiales', -1, 'A'],
+        ['Mano de obra indirecta', 5, 'B'], ['Beneficios sociales', 55, 'B'], ['Total mano de obra', -1, 'B+E+F'],
+        ['Herramientas menores', 6, 'B'], ['Total herramientas y equipo', -1, 'C+H'], ['Sub total', -1, 'D+G+I'],
+        ['', -1, ''], ['Gastos generales', 10, 'J'], ['Utilidad', 10, 'J'], ['Parcial', -1, 'J+L+M'],
+        ['', -1, ''], ['', -1, ''], ['Total ítem', -1, 'N']] },
+    { id: 'muy-basico', n: 'Muy básico',
+      nota: 'Solo herramientas menores, gastos generales y utilidad.',
+      filas: [['Material', -1, '*'], ['Obrero', -1, '*'], ['Equipo', -1, '*'], ['Total materiales', -1, 'A'],
+        ['', -1, ''], ['', -1, ''], ['Total mano de obra', -1, 'B'], ['Herramientas menores', 6, 'B'],
+        ['Total herramientas y equipo', -1, 'C+H'], ['Sub total', -1, 'D+G+I'], ['', -1, ''],
+        ['Gastos generales', 10, 'J'], ['Utilidad', 10, 'J'], ['Parcial', -1, 'J+L+M'],
+        ['', -1, ''], ['', -1, ''], ['Total ítem', -1, 'N']] },
+    { id: 'mejoramiento-barrios', n: 'Mejoramiento de barrios',
+      nota: 'Beneficios sociales e IVA sobre la mano de obra; los costos indirectos se agrupan en una fila.',
+      filas: [['Material', -1, '*'], ['Mano de obra', -1, '*'], ['Equipo y maquinaria', -1, '*'],
+        ['Total materiales', -1, 'A'], ['Mano de obra indirecta', 0, 'B'], ['Beneficios sociales', 20, 'B'],
+        ['Total mano de obra', -1, 'B'], ['Herramientas menores', 5, 'B'], ['Total equipo y maquinaria', -1, 'C+H'],
+        ['Total costo directo', -1, 'D+G+I'], ['', -1, ''], ['Gastos generales', 10, 'J'], ['Utilidad', 10, 'J'],
+        ['Total gastos generales y administrativos', -1, 'F+L+M+O'], ['Impuesto al valor agregado', 13, 'B'],
+        ['Impuesto a las transacciones', 3, 'J+N'], ['Total ítem', -1, 'J+N+P']] },
+    { id: 'clasico-2000', n: 'Clásico 2000',
+      nota: 'Herramientas sobre la mano de obra; IVA e IT sobre el subtotal con gastos generales y utilidad.',
+      filas: [['Materiales', -1, '*'], ['Mano de obra', -1, '*'], ['Equipo y maquinaria', -1, '*'],
+        ['Herramientas menores', 5, 'B'], ['', -1, ''], ['', -1, ''], ['Total materiales', -1, 'A'],
+        ['Total mano de obra', -1, 'B+E'], ['Total herramientas y equipo', -1, 'C+D'], ['Parcial ítem', -1, 'G+H+I'],
+        ['Gastos generales', 10, 'J'], ['Utilidad', 10, 'J'], ['Subtotal', -1, 'J+K+L'],
+        ['IVA', 13, 'M'], ['IT', 3, 'M'], ['', -1, ''], ['Total ítem', -1, 'M+N+O']] },
+    { id: 'impuestos-precio-final', n: 'Impuestos sobre el precio final',
+      nota: 'Como el oficial, pero sin IVA sobre la mano de obra: IVA e IT se calculan sobre el precio que ya los incluye (parcial ÷ (1 − IVA − IT)).',
+      filas: [['Materiales', -1, '*'], ['Mano de obra', -1, '*'], ['Equipo, maquinaria y herramientas', -1, '*'],
+        ['Total materiales', -1, 'A'], ['Subtotal mano de obra', -1, 'B'], ['Cargas sociales', 55, 'E'],
+        ['Total mano de obra', -1, 'E+F'], ['Herramientas', 5, 'G'], ['Total equipo, maquinaria y herramientas', -1, 'C+H'],
+        ['Sub total', -1, 'D+G+I'], ['', -1, ''], ['Gastos generales y administrativos', 10, 'J'],
+        ['Utilidad', 10, 'J+L'], ['Parcial', -1, 'J+L+M'], ['IVA sobre el precio final', 13, 'N', 'imp'],
+        ['IT sobre el precio final', 3, 'N', 'imp'], ['Total precio unitario', -1, 'N+O+P']] }
+  ];
+
+  /** Formato nuevo (sin aplicar) armado desde una plantilla. */
+  function formatoDesdePlantilla(id) {
+    const t = PLANTILLAS_HOJA.find(x => x.id === id);
+    if (!t) return null;
+    const r = formatoDesdeHoja(t.filas.map(a => ({ n: a[0], pct: a[1], f: a[2], imp: a[3] === 'imp' })),
+      { nombre: t.n, nota: t.nota, origen: 'plantilla:' + t.id });
+    return r.formato || null;
+  }
+
+  /* ---------------- desglose de gastos generales ----------------
+     Los gastos generales no son un número que se elige: salen de sumar
+     rubros. Valores de referencia que trae el programa de presupuestos de
+     uso común (suman 15 %); cada proyecto guarda el suyo en `P.ggDesglose`. */
+  const GG_RUBROS = [
+    ['Compra de pliegos', 0.10], ['Inspección del lugar', 0.05],
+    ['Costos profesionales de preparación de propuesta', 0.30],
+    ['Documentos legales de preparación de propuestas', 0.10], ['Boletas y contratos', 2.40],
+    ['Operación de oficina central', 7.80], ['Administrativos de obra', 2.75],
+    ['Gastos profesionales y especiales', 0.25], ['Riesgos e imprevistos', 0.35],
+    ['Movilización y desmovilización', 0.90]
+  ];
+  const ggDesglose = () => (P && Array.isArray(P.ggDesglose) && P.ggDesglose.length)
+    ? P.ggDesglose : GG_RUBROS.map(([n, pct]) => ({ n, pct }));
+  function guardarGgDesglose(lista) {
+    P.ggDesglose = (lista || []).filter(x => x && String(x.n || '').trim())
+      .map(x => ({ n: String(x.n).trim().slice(0, 80), pct: Number(x.pct) || 0 }));
+    return P.ggDesglose;
+  }
+  const sumaGg = lista => Math.round((lista || []).reduce((s, x) => s + (Number(x.pct) || 0), 0) * 10000) / 10000;
 
   /* ---------------- cronograma: supuestos de obra ----------------
      La duración de cada actividad sale de las horas de mano de obra de su
@@ -362,6 +584,37 @@ const MOTOR = (() => {
     return Math.round((Number(v) || 0) * f + Number.EPSILON * 1e6) / f;
   }
   function r2(v) { return Math.round((Number(v) || 0) * 100 + Number.EPSILON * 1e6) / 100; }
+
+  /* ---------------- cómo calculaba el archivo de origen ----------------
+     Un .ddp trae, además de los datos, DOS cosas sobre CÓMO se calcularon
+     sus precios, y el importador (desde el 14/10/2026) las deja en
+     `P.calcOrigen`:
+
+     · `pct32`: los porcentajes del B-2 se guardan como float32 y el
+       programa de origen calcula con ese valor (14,94 es 14,9399995…). En un
+       precio que cae justo en el medio centavo eso decide para qué lado va.
+     · `precision`: cuatro enteros del .STT (bytes 712-719). De fábrica son
+       4,3,4,2. Medido sobre 25 proyectos reales: con los de fábrica no hay
+       redondeos intermedios —el cálculo de siempre—; con otros valores el
+       programa redondea el rendimiento a p0, el precio del insumo a p2 y el
+       parcial de cada renglón a p1 (un proyecto real con 4,2,2,2: de 21 a
+       56 de 56 precios unitarios reproducidos).
+
+     Los proyectos que no traen `calcOrigen` —todos los propios y los .boq
+     importados antes de esto— calculan exactamente igual que siempre. */
+  const PRECISION_FABRICA = [4, 3, 4, 2];
+  const pctComoArchivo = () => !!(P && P.calcOrigen && P.calcOrigen.pct32 === true);
+  function precisionOrigen() {
+    const q = P && P.calcOrigen && P.calcOrigen.precision;
+    if (!Array.isArray(q) || q.length !== 4) return null;
+    return q.every((v, i) => v === PRECISION_FABRICA[i]) ? null : q;
+  }
+  /** Parcial de un renglón del análisis (rendimiento × precio). */
+  function renglon(rend, p) {
+    const q = precisionOrigen();
+    if (!q) return Number(rend || 0) * Number(p || 0);
+    return r(r(rend, q[0]) * r(p, q[2]), q[1]);
+  }
 
   /* ---------------- insumos del proyecto ---------------- */
   function claveIns(t, d, u) {
@@ -627,7 +880,7 @@ const MOTOR = (() => {
       /* el parcial se muestra con 2 decimales, pero los subtotales se
          acumulan sin redondear: así se calculan los subtotales en los archivos
          .PRE que importa la aplicación */
-      const bruto = Number(c.rend || 0) * Number(ins.p || 0);
+      const bruto = renglon(c.rend, ins.p);
       const fila = { ins, rend: Number(c.rend || 0), pu: Number(ins.p || 0), parcial: r2(bruto), ref: c };
       g[ins.t] ? g[ins.t].push(fila) : g.M.push(fila);
       if (ins.t === 'O') o += bruto; else if (ins.t === 'E') e += bruto; else m += bruto;
@@ -677,6 +930,10 @@ const MOTOR = (() => {
      —se probó redondeo por renglón, solo totales, toda la cadena en float32 y
      redondeo hacia arriba—, ni siquiera partiendo de los subtotales que el
      propio archivo guarda. La información no está en el archivo.
+     (14/10/2026: en parte SÍ estaba, en la precisión del .STT —ver
+     `precisionOrigen`—. Con ella un proyecto pasó de 21 a 56 de 56 y el ítem
+     que en otro «no cuadraba consigo mismo» cuadra al milésimo. Quedan 13
+     ítems de ese proyecto sin reproducir: conservan el P.U. del archivo.)
 
      Por eso, en un proyecto importado manda el precio unitario del archivo:
      es el del documento aprobado, y así el presupuesto cierra en 0,00 contra
@@ -701,7 +958,7 @@ const MOTOR = (() => {
     const g = { m: 0, o: 0, e: 0 };
     (it.comp || []).forEach(c => {
       const ins = P.insumos[c.ins]; if (!ins) return;
-      const v = Number(c.rend || 0) * Number(ins.p || 0);
+      const v = renglon(c.rend, ins.p);
       if (ins.t === 'O') g.o += v; else if (ins.t === 'E') g.e += v; else g.m += v;
     });
     it.puArchivo = { pu: Math.round((Number(pu) || 0) * 100) / 100,
@@ -1251,14 +1508,35 @@ const MOTOR = (() => {
     p.trenes.forEach(t => { t.n = sTxt(t.n); t.rec = sNum(t.rec, REC_DEF); });
     p.formatos.forEach(f => {
       f.n = sTxt(f.n);
+      if (f.permiteAdelante !== undefined) f.permiteAdelante = f.permiteAdelante === true;
       f.filas = (Array.isArray(f.filas) ? f.filas : []).filter(x => x && typeof x === 'object');
       f.filas.forEach(x => {
         x.n = sTxt(x.n);
-        x.k = (x.k === 'pct' || x.k === 'sum' || x.k === 'ent') ? x.k : 'pct';
+        x.k = (x.k === 'pct' || x.k === 'sum' || x.k === 'ent' || x.k === 'imp') ? x.k : 'pct';
         x.pct = sNum(x.pct, 0);
         x.sobre = (Array.isArray(x.sobre) ? x.sobre : []).map(sTxt);
+        if (x.vacia !== undefined) x.vacia = x.vacia === true;
+        if (x.pos !== undefined) { const v = Math.round(sNum(x.pos, -1)); if (v >= 0 && v < 17) x.pos = v; else delete x.pos; }
+        if (x.px !== undefined) {
+          if (Array.isArray(x.px) && x.px.length === 4) x.px = x.px.map(b => Math.min(255, Math.max(0, Math.round(sNum(b, 0)))));
+          else delete x.px;
+        }
       });
     });
+    /* cómo calculaba el archivo de origen (ver `precisionOrigen`) */
+    if (p.calcOrigen !== undefined) {
+      const c = p.calcOrigen && typeof p.calcOrigen === 'object' ? p.calcOrigen : {};
+      const q = Array.isArray(c.precision) && c.precision.length === 4 &&
+        c.precision.every(v => Number.isInteger(Number(v)) && Number(v) >= 0 && Number(v) <= 8)
+        ? c.precision.map(Number) : null;
+      p.calcOrigen = { pct32: c.pct32 === true, precision: q };
+    }
+    /* desglose de gastos generales (ver `ggDesglose`) */
+    if (p.ggDesglose !== undefined) {
+      p.ggDesglose = (Array.isArray(p.ggDesglose) ? p.ggDesglose : [])
+        .filter(x => x && typeof x === 'object').slice(0, 60)
+        .map(x => ({ n: sTxt(x.n).slice(0, 80), pct: sNum(x.pct, 0) }));
+    }
     Object.keys(p.insumos).forEach(k => {
       const x = p.insumos[k];
       x.t = sTxt(x.t).slice(0, 2) || 'M';
@@ -2413,7 +2691,9 @@ const MOTOR = (() => {
     subtotalGeneral, totalGeneral, parcialGeneral, r2par,
     formato, formatos, formatoPorId, formatoSABS, formatoEsOficial, ID_SABS, FILAS_ENTRADA,
     usarFormato, duplicarFormato, guardarFormato, renombrarFormato, eliminarFormato,
-    validarFormato,
+    validarFormato, precisionOrigen, PRECISION_FABRICA,
+    formatoDesdeHoja, PLANTILLAS_HOJA, formatoDesdePlantilla,
+    GG_RUBROS, ggDesglose, guardarGgDesglose, sumaGg,
     fijarPuDeArchivo, soltarPuDeArchivo, conPuDeArchivo,
     totalComputos, parcialComputo, MEDIDAS_COMPUTO, requerimiento,
     buscarEnBase, buscarInsumosEnBase, costoBase, importarApu, importarApuEditado,
