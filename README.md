@@ -1,7 +1,7 @@
 # OpenBOQ
 
 **Presupuestos de obra en el navegador:** análisis de precios unitarios, cómputos métricos,
-formularios B-1, B-2 y B-3, cronograma y curva S. Gratis, sin instalar y pensado para Bolivia.
+formularios B-1, B-2 y B-3, computos metricos, cronograma y curva S. Plataforma web gratuita, de acceso directo y sin necesidad de instalación, desarrollada con un enfoque técnico adaptado a los requerimientos y prácticas del sector de la construcción en Bolivia. Inspirada en herramientas tradicionales de presupuestación de obras utilizadas en el país, surge como una alternativa tecnológica basada en los principios del software libre, orientada a promover la soberanía tecnológica, reducir la dependencia de soluciones propietarias y facilitar la adopción de herramientas digitales en las entidades públicas de la región.
 
 **Probarlo:** <https://openboq.pages.dev>
 
@@ -15,7 +15,7 @@ formularios B-1, B-2 y B-3, cronograma y curva S. Gratis, sin instalar y pensado
 | **Presupuesto** | Ítems por módulos con cantidad, precio unitario, parcial y desglose material / mano de obra / equipo. El total se recalcula solo. |
 | **Base de datos** | Análisis de precios unitarios de referencia de 15 bases iniciales. Se busca el ítem, se ve su análisis, se trae al presupuesto y se edita sin restricciones. |
 | **Análisis (B-2)** | Materiales, mano de obra y equipo, con la cadena de incidencias: cargas sociales, IVA de mano de obra, herramientas menores, gastos generales, utilidad e IT. |
-| **Insumos (B-3)** | Precios elementales del proyecto. Cambiar un precio recalcula todos los ítems que lo usan; doble clic muestra dónde se usa. |
+| **Insumos (B-3)** | Precios elementales del proyecto. |
 | **Cómputos** | Planilla de cómputos métricos que vuelca la cantidad al ítem. |
 | **Cronograma** | Duraciones, predecesoras, diagrama de barras y curva S, desde el mismo presupuesto. |
 | **Reportes** | B-1, B-2, B-3, requerimiento de insumos, cómputos, cronograma y resumen por módulos, para imprimir o guardar en PDF. |
