@@ -435,19 +435,29 @@ const IMPORTADOR = (() => {
          abrir el archivo: cuando algo no cierra al centavo, la pregunta
          siempre es «¿de dónde salió ese número?». */
       it._dirOrigen = { m: x.mat, o: x.mo, e: x.eq };
+    });
+
+    /* Cómo redondeaba la instalación de origen lo que el .STT no dice (filas
+       del B-2): se deduce contra los P.U. del archivo (MOTOR.elegirReceta).
+       Va antes de fijar los P.U., porque la huella del análisis depende de
+       la receta. */
+    const receta = MOTOR.elegirReceta();
+
+    P.modulos.forEach(m => m.items.forEach(it => {
       /* El precio unitario del archivo pasa a mandar mientras el análisis no
          se toque (MOTOR.fijarPuDeArchivo). Así el presupuesto importado
          imprime exactamente lo mismo que el programa de origen. */
       MOTOR.fijarPuDeArchivo(it, it._puOrigen);
       /* El P.U. calculado se redondea con MOTOR.r2, igual que el del archivo:
          los dos lados de la comparación tienen que venir del mismo redondeo. */
+      const a = MOTOR.analisis(it);
       if (MOTOR.r2(a.puCalculado) !== it._puOrigen) {
         difsPU++;
         deArchivo++;
-        avisos.push(`«${x.d}»: precio unitario del archivo ${it._puOrigen.toFixed(2)} — ` +
+        avisos.push(`«${it.desc}»: precio unitario del archivo ${it._puOrigen.toFixed(2)} — ` +
           `calculado ${MOTOR.r2(a.puCalculado).toFixed(2)}; se conserva el del archivo`);
       }
-    });
+    }));
 
     /* El total del archivo se arma como lo imprime el Formulario B-1: cada ítem
        redondeado a 2 decimales y recién después la suma. */
@@ -470,7 +480,7 @@ const IMPORTADOR = (() => {
         totalOrigenB1, totalRecalculadoB1: MOTOR.totalGeneral(),
         difs, difsPU, deArchivo, incoherentes, avisos: avisosHoja.concat(avisos).slice(0, 12),
         filasCFG: par._filas || [],
-        hoja, precision: cab.precision || null,
+        hoja, precision: cab.precision || null, receta,
         precisionFabrica: !MOTOR.precisionOrigen()
       }
     };

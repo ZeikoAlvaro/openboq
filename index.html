@@ -142,10 +142,10 @@
 
 <!-- ?v=N en cada archivo propio: sin eso el navegador puede seguir usando el
      .css o .js viejo de su caché. Al publicar, subir N acá y en sw.js. -->
-<link rel="stylesheet" href="css/estilo.css?v=92">
+<link rel="stylesheet" href="css/estilo.css?v=93">
 <!-- Capa v2: solo armazón y color, cargada después para pisar lo anterior.
      Los identificadores no cambian, así que ui.js sigue igual. -->
-<link rel="stylesheet" href="css/ui2.css?v=92">
+<link rel="stylesheet" href="css/ui2.css?v=93">
 </head>
 <body>
 
@@ -515,20 +515,20 @@
      opcional y siempre lo fue.                                              -->
 <!-- Tauri bridge — emula window.OPENBOQ_ESCRITORIO si está en Tauri. Carga ANTES de cualquier otro script. -->
 <script src="tauri-bridge.js" onerror="console.log('tauri-bridge.js: no en Tauri o error')"></script>
-<script src="js/cifrado.js?v=92" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.obq.js?v=92" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.js?v=92" onerror="window.__sinCatalogo=1"></script>
+<script src="js/cifrado.js?v=93" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.obq.js?v=93" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.js?v=93" onerror="window.__sinCatalogo=1"></script>
 <!-- Cuenta, respaldo de la biblioteca, aportes anónimos y reportes.
      nube-config.js lleva la dirección del servidor y la clave pública; si
      falta, la aplicación funciona igual, solo sin cuenta. -->
-<script src="js/nube-config.js?v=92" onerror="window.__sinNube=1"></script>
-<script src="js/nube.js?v=92"></script>
-<script src="js/drive.js?v=92"></script>
+<script src="js/nube-config.js?v=93" onerror="window.__sinNube=1"></script>
+<script src="js/nube.js?v=93"></script>
+<script src="js/drive.js?v=93"></script>
 <!-- Pone al día la Base de Datos con lo que cambió en el repositorio
      central desde que se generó el catálogo. Si no está o falla, la
      aplicación funciona igual con el catálogo que trae. -->
-<script src="js/sync.js?v=92" onerror="window.__sinSincro=1"></script>
-<script src="js/acceso.js?v=92"></script>
+<script src="js/sync.js?v=93" onerror="window.__sinSincro=1"></script>
+<script src="js/acceso.js?v=93"></script>
 <script>
   /* ---------- arranque ----------
      El resto de la aplicación se carga DESPUÉS de que `window.OPENBOQ_DB`
@@ -544,7 +544,7 @@
   (function () {
     /* el mismo número que los ?v= de arriba: estuvo fijo en '62' desde la v2.6
        y motor.js, ui.js y los demás se pedían siempre con ?v=62 */
-    var V = '92';
+    var V = '93';
     var RESTO = ['js/motor.js', 'js/importador.js', 'js/exportador.js', 'js/xlsx.js',
                  'js/reportes.js', 'js/ui.js', 'js/ui2.js'];
 

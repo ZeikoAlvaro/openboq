@@ -4715,6 +4715,11 @@
             herramientas ${s.params.herr}% · G.G. ${s.params.gg}% · utilidad ${s.params.util}% · IT ${s.params.it}%</td></tr>`}
         ${Array.isArray(s.precision) ? `<tr><td>Precisión de cálculo del archivo</td><td>${s.precision.join(' · ')}${s.precisionFabrica
           ? ' (la de fábrica)' : ' — <b>distinta a la de fábrica</b>: OpenBOQ calcula con ella, igual que el original'}</td></tr>` : ''}
+        ${s.receta && s.receta.receta !== 'base' ? `<tr><td>Redondeo de la instalación de origen</td><td>${
+          ({ filas3: 'filas del B-2 a 3 decimales', filas2: 'filas del B-2 a 2 decimales', crudo: 'renglones sin redondear',
+             crudoFilas3: 'renglones sin redondear, filas del B-2 a 3 decimales',
+             crudoFilas2: 'renglones sin redondear, filas del B-2 a 2 decimales' })[s.receta.receta] || s.receta.receta
+          } — deducido de los precios del archivo (${s.receta.antes} → ${s.receta.despues} de ${s.receta.items} reproducidos)</td></tr>` : ''}
         <tr><td>Total según el archivo importado</td><td class="num"><b>${M.fmt(tOrig, 2)} Bs</b></td></tr>
         <tr><td>Total recalculado por OpenBOQ</td><td class="num"><b>${M.fmt(tRecal, 2)} Bs</b></td></tr>
         <tr><td>Diferencia</td><td class="num" style="color:${dif < 1 ? 'var(--ok)' : 'var(--err)'}"><b>${M.fmt(dif, 2)} Bs</b></td></tr>

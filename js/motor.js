@@ -186,10 +186,12 @@ const MOTOR = (() => {
        impuesto queda calculado sobre el precio que ya lo incluye. Con
        IVA 13 % e IT 3 % sobre el parcial N, el precio unitario sale N / 0,84. */
     const sumaImp = F.reduce((s, f) => (f.k === 'imp' && !f.vacia ? s + pctDe(f) : s), 0) / 100;
+    const decFilas = recetaOrigen().filas;
     const valorFila = (f, base) => {
-      if (f.k === 'pct') return base * pctDe(f) / 100;
-      if (f.k === 'imp') return sumaImp < 1 ? base * pctDe(f) / 100 / (1 - sumaImp) : 0;
-      return base;
+      let v = base;
+      if (f.k === 'pct') v = base * pctDe(f) / 100;
+      else if (f.k === 'imp') v = sumaImp < 1 ? base * pctDe(f) / 100 / (1 - sumaImp) : 0;
+      return decFilas === null ? v : r(v, decFilas);
     };
     const conPct = f => f.k === 'pct' || f.k === 'imp';
 
@@ -609,9 +611,57 @@ const MOTOR = (() => {
     if (!Array.isArray(q) || q.length !== 4) return null;
     return q.every((v, i) => v === PRECISION_FABRICA[i]) ? null : q;
   }
+  /* La receta: lo que la precisión del .STT no alcanza a decir. Hay ajustes
+     de la instalación del programa de origen (campos 4-9 de su
+     `decimales.cfg`) que no viajan en el archivo; el importador los deduce
+     probando las recetas de RECETAS_ORIGEN contra los P.U. que trae el
+     archivo y se queda con la que más reproduce.
+       · `renglon`: 'stt' (de la precisión, lo de siempre) o 'crudo' (sin
+         redondeo intermedio aunque la precisión no sea la de fábrica).
+       · `filas`: decimales de cada fila calculada del B-2, o null.
+     Sin receta —propios, .boq viejos, importados antes de esto— es 'stt' y
+     null: exactamente el cálculo de antes. */
+  const RECETAS_ORIGEN = {
+    base:        { renglon: 'stt',   filas: null },
+    filas3:      { renglon: 'stt',   filas: 3 },
+    filas2:      { renglon: 'stt',   filas: 2 },
+    crudo:       { renglon: 'crudo', filas: null },
+    crudoFilas3: { renglon: 'crudo', filas: 3 },
+    crudoFilas2: { renglon: 'crudo', filas: 2 }
+  };
+  function recetaOrigen() {
+    const k = P && P.calcOrigen && P.calcOrigen.receta;
+    return RECETAS_ORIGEN[k] || RECETAS_ORIGEN.base;
+  }
+  /**
+   * Deduce la receta de un proyecto recién importado: prueba cada una de
+   * RECETAS_ORIGEN y se queda con la que reproduce más precios unitarios del
+   * archivo (`it._puOrigen`). Cambia solo si gana estrictamente a la de
+   * siempre; en empate queda la de siempre. No toca precios mostrados: en un
+   * importado manda el P.U. del archivo; esto decide cómo se recalcula al editar.
+   * Medido el 15/10/2026 sobre 27 .ddp: un proyecto con filas del B-2 a 3
+   * decimales pasa de 36 a 43 de 43; ningún otro cambia.
+   * @returns {{receta:string, antes:number, despues:number, items:number}}
+   */
+  function elegirReceta() {
+    const its = todosItems().map(x => x.i).filter(it => typeof it._puOrigen === 'number');
+    const c = P.calcOrigen || (P.calcOrigen = { pct32: false, precision: null });
+    const cuenta = () => its.filter(it => r2(analisis(it).puCalculado) === it._puOrigen).length;
+    delete c.receta;
+    const antes = cuenta();
+    let mejor = 'base', max = antes;
+    Object.keys(RECETAS_ORIGEN).forEach(k => {
+      if (k === 'base') return;
+      c.receta = k;
+      const n = cuenta();
+      if (n > max) { max = n; mejor = k; }
+    });
+    if (mejor === 'base') delete c.receta; else c.receta = mejor;
+    return { receta: mejor, antes, despues: max, items: its.length };
+  }
   /** Parcial de un renglón del análisis (rendimiento × precio). */
   function renglon(rend, p) {
-    const q = precisionOrigen();
+    const q = recetaOrigen().renglon === 'crudo' ? null : precisionOrigen();
     if (!q) return Number(rend || 0) * Number(p || 0);
     return r(r(rend, q[0]) * r(p, q[2]), q[1]);
   }
@@ -1530,6 +1580,8 @@ const MOTOR = (() => {
         c.precision.every(v => Number.isInteger(Number(v)) && Number(v) >= 0 && Number(v) <= 8)
         ? c.precision.map(Number) : null;
       p.calcOrigen = { pct32: c.pct32 === true, precision: q };
+      if (typeof c.receta === 'string' && c.receta !== 'base' && RECETAS_ORIGEN[c.receta])
+        p.calcOrigen.receta = c.receta;
     }
     /* desglose de gastos generales (ver `ggDesglose`) */
     if (p.ggDesglose !== undefined) {
@@ -2691,7 +2743,7 @@ const MOTOR = (() => {
     subtotalGeneral, totalGeneral, parcialGeneral, r2par,
     formato, formatos, formatoPorId, formatoSABS, formatoEsOficial, ID_SABS, FILAS_ENTRADA,
     usarFormato, duplicarFormato, guardarFormato, renombrarFormato, eliminarFormato,
-    validarFormato, precisionOrigen, PRECISION_FABRICA,
+    validarFormato, precisionOrigen, PRECISION_FABRICA, RECETAS_ORIGEN, elegirReceta,
     formatoDesdeHoja, PLANTILLAS_HOJA, formatoDesdePlantilla,
     GG_RUBROS, ggDesglose, guardarGgDesglose, sumaGg,
     fijarPuDeArchivo, soltarPuDeArchivo, conPuDeArchivo,
