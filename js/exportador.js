@@ -54,8 +54,10 @@ const EXPORTADOR = (() => {
   const SLOT0 = { M: 0, O: 30, E: 40 };
   const NOMBRE_TIPO = { M: 'materiales', O: 'mano de obra', E: 'equipo' };
 
-  /* Archivos que OpenBOQ genera; el resto viaja igual que en el original. */
-  const GENERADOS = ['PRE', 'IND', 'DAT', 'MOD', 'STT', 'CFG', 'TIE'];
+  /* Archivos que OpenBOQ genera; el resto viaja igual que en el original.
+     El .CMM se genera desde el 22/10/2026: copiado tal cual, sus filas se
+     enganchaban por id a ítems que ya no eran los mismos. */
+  const GENERADOS = ['PRE', 'IND', 'DAT', 'MOD', 'STT', 'CFG', 'TIE', 'CMM'];
 
   /* =====================================================================
      TEXTO — el formato guarda en Windows-1252, no en UTF-8
@@ -335,10 +337,18 @@ const EXPORTADOR = (() => {
       for (let i = 0; i < 60; i++) push(0, 0);
       f.ptr = base + 1;
 
-      const a = MOTOR.analisis(it);
+      /* Los renglones van en el orden en que el usuario los cargó (it.comp),
+         no en el alfabético de la pantalla: es el orden que muestra el
+         programa de origen. */
+      const grupos = { M: [], O: [], E: [] };
+      (it.comp || []).forEach(c => {
+        const ins = P.insumos[c.ins];
+        if (!ins) return;
+        (grupos[ins.t] || grupos.M).push({ ins, rend: c.rend });
+      });
       const nuevos = [];
       ['M', 'O', 'E'].forEach(t => {
-        const g = a.grupos[t] || [];
+        const g = grupos[t];
         if (g.length > LIM[t]) {
           errores.push(`«${it.desc}»: ${g.length} renglones de ${NOMBRE_TIPO[t]}; ` +
             `el formato .ddp admite ${LIM[t]} por análisis.`);
@@ -378,27 +388,49 @@ const EXPORTADOR = (() => {
     let cortados = 0;
     orden.forEach((ins, k) => {
       const o = k * 92;
-      ind[o] = 0; ind[o + 1] = 0;
+      const px = ins.px || {};
+      /* marca de baja, grupo y fecha de cotización: los del archivo de
+         origen si los trae; si no, la fecha del precio fijada en OpenBOQ o la
+         del proyecto */
+      dvI.setInt16(o, px.baja ? -1 : 0, true);
       ind[o + 2] = byte1252((ins.t === 'O' || ins.t === 'E') ? ins.t : 'M');
       if (texto(ind, o + 3, ins.d, 70)) cortados++;
-      ind[o + 73] = 0; ind[o + 74] = 0;
+      dvI.setInt16(o + 73, Number(px.grp) || 0, true);
       texto(ind, o + 75, ins.u, 5);
-      dvI.setFloat64(o + 80, fecha, true);
+      dvI.setFloat64(o + 80, (px.f || ins.f) ? fechaDelphi(px.f || ins.f) : fecha, true);
       dvI.setInt32(o + 88, ptrIns[ins.id] || 0, true);
     });
+
+    /* --- id de cada ítem (PRE 456): es la clave de los cómputos (.CMM).
+       Se conserva el que trajo el archivo; los ítems nuevos —o un duplicado
+       que heredó el id de otro— reciben uno libre. --- */
+    const usadosId = new Set();
+    let sigId = filas.reduce((m, f) => Math.max(m, Number(f.it.px && f.it.px.id) || 0), 0);
+    filas.forEach(f => {
+      const v = Number(f.it.px && f.it.px.id);
+      if (Number.isInteger(v) && v > 0 && v < 65536 && !usadosId.has(v)) f.id = v;
+      else f.id = ++sigId;
+      usadosId.add(f.id);
+    });
+    if (sigId > 65535) errores.push('Demasiados ítems para el formato .ddp (el id del ítem pasa de 65.535).');
+
+    /* --- cronograma: fechas absolutas desde el inicio de obra --- */
+    const ini0 = P.inicioObra ? fechaDelphi(P.inicioObra) : 0;
 
     /* --- .PRE --- */
     const pre = new Uint8Array(filas.length * 460);
     const dvP = new DataView(pre.buffer);
     filas.forEach((f, k) => {
       const o = k * 460, it = f.it, a = MOTOR.analisis(it);
+      const px = it.px || {};
       pre.fill(0, o, o + 460);
       dvP.setUint16(o + 2, f.mod, true);
       if (texto(pre, o + 4, it.desc, 70)) cortados++;
+      dvP.setInt16(o + 74, Number(px.grp) || 0, true);
       texto(pre, o + 76, it.und, 5);
       dvP.setInt32(o + 81, f.ptr, true);
       dvP.setFloat64(o + 85, Number(it.cant) || 0, true);
-      texto(pre, o + 93, '', 15);
+      texto(pre, o + 93, it.cod || '', 15);
       /* Los subtotales van SIN redondear (`matX`, no `mat`).
          `a.mat` es el subtotal ya llevado a 2 decimales para imprimirlo, y
          escribir eso perdía precisión que el formato sí guarda: los archivos
@@ -408,19 +440,73 @@ const EXPORTADOR = (() => {
          no daban, y aparecía como «no cuadra consigo mismo» sin que nadie
          hubiera tocado nada. El precio unitario sí va a 2 decimales, que es
          como lo guarda el formato. */
+      /* Un ítem importado que nadie tocó devuelve los subtotales que traía:
+         el programa de origen los guarda con su propio redondeo (17,5912
+         donde el recálculo da 17,591) y no hay por qué cambiárselos. */
+      const crudo = a.cadena && a.cadena.length ? a.cadena[a.cadena.length - 1].valor : NaN;
+      const d0 = it._dirOrigen;
+      const intactoAn = !!(d0 && it.puArchivo && Math.abs(crudo - it.puArchivo.crudo) < 1e-9);
       dvP.setFloat64(o + 108, a.pu, true);
-      dvP.setFloat64(o + 116, a.matX, true);
-      dvP.setFloat64(o + 124, a.moX, true);
-      dvP.setFloat64(o + 132, a.eqX, true);
-      dvP.setFloat64(o + 140, a.pu / tc, true);
-      dvP.setFloat64(o + 148, a.matX / tc, true);
-      dvP.setFloat64(o + 156, a.moX / tc, true);
-      dvP.setFloat64(o + 164, a.eqX / tc, true);
-      dvP.setFloat64(o + 172, Number(it.dias) || 0, true);
-      dvP.setUint16(o + 180, 1, true);
-      texto(pre, o + 182, '', 256);
-      dvP.setUint16(o + 456, k + 1, true);
+      dvP.setFloat64(o + 116, intactoAn ? Number(d0.m) || 0 : a.matX, true);
+      dvP.setFloat64(o + 124, intactoAn ? Number(d0.o) || 0 : a.moX, true);
+      dvP.setFloat64(o + 132, intactoAn ? Number(d0.e) || 0 : a.eqX, true);
+      const us = intactoAn && Array.isArray(d0.us) && d0.us.length === 4 && Number(P.tc) === Number(d0.tc || P.tc)
+        ? d0.us.map(Number) : [a.pu / tc, a.matX / tc, a.moX / tc, a.eqX / tc];
+      us.forEach((v, j) => dvP.setFloat64(o + 140 + 8 * j, Number(v) || 0, true));
+      /* [172] horas por unidad y [180] cuadrillas: las del archivo de
+         origen; en un ítem hecho acá, las horas de la especialidad que más
+         trabaja por unidad (MOTOR.horasManoObra) y una cuadrilla. Antes se
+         escribían acá los DÍAS del cronograma: otro dato. */
+      const q = Number(it.cant) || 0;
+      const hU = px.h !== undefined ? Number(px.h) || 0
+        : (q > 0 && MOTOR.horasManoObra ? MOTOR.horasManoObra(it).mayor / q : 0);
+      dvP.setFloat64(o + 172, hU, true);
+      dvP.setUint16(o + 180, Number(px.cuad) > 0 ? Number(px.cuad) : 1, true);
+      texto(pre, o + 182, px.espec || '', 256);
+      /* [438]/[446] fechas: las del cronograma de OpenBOQ (inicio de obra +
+         día de comienzo; el último día incluido). [454] predecesora: el
+         n.º de actividad de OpenBOQ es el n.º de orden en el .PRE. */
+      const dias = Number(it.dias) || 0;
+      if (dias > 0 && ini0) {
+        const fi = ini0 + (Number(it.inicio) || 0);
+        /* si el cronograma no se tocó, la fecha de fin vuelve tal cual
+           (hay archivos con el fin un día antes del inicio) */
+        const intacto = px.fIni === fi && dias === Math.max(px.fFin || 0, px.fIni) - px.fIni + 1;
+        dvP.setFloat64(o + 438, fi, true);
+        dvP.setFloat64(o + 446, intacto && px.fFin ? px.fFin : fi + dias - 1, true);
+      }
+      const pr = (MOTOR.leerPredecesoras ? MOTOR.leerPredecesoras(it.pred) : [])
+        .find(x => x.n >= 1 && x.n <= filas.length && x.n !== k + 1);
+      dvP.setInt16(o + 454, pr ? pr.n : (Number(px.p454) < 0 ? -1 : 0), true);
+      dvP.setUint16(o + 456, f.id, true);
       dvP.setUint16(o + 458, k + 1, true);
+    });
+
+    /* --- .CMM: los cómputos métricos de cada ítem, enganchados por su id.
+       Una fila de OpenBOQ puede traer área o volumen además de largo, ancho y
+       alto; el formato tiene tres medidas, así que lo que sobra se multiplica
+       en la tercera (el producto es el mismo). --- */
+    const filasCmm = [];
+    filas.forEach(f => (f.it.computos || []).forEach(c => {
+      const med = ['l', 'a', 'h', 'ar', 'vo'].map(k => Number(c[k]) || 0).filter(v => v);
+      const xyz = [med[0] || 0, med[1] || 0, med.slice(2).reduce((s, v) => s * v, med.length > 2 ? 1 : 0)];
+      filasCmm.push({ id: f.id, d: c.d, xyz, v: Number(c.n) || 0 });
+    }));
+    const cmm = new Uint8Array(filasCmm.length * 62);
+    const dvM = new DataView(cmm.buffer);
+    filasCmm.forEach((x, k) => {
+      const o = k * 62;
+      dvM.setInt16(o, x.id, true);
+      texto(cmm, o + 2, x.d, 30);
+      x.xyz.forEach((v, j) => dvM.setFloat32(o + 32 + 4 * j, v, true));
+      dvM.setFloat32(o + 44, x.v, true);
+    });
+
+    /* --- especificaciones técnicas (RTF): una por ítem, numeradas con el
+       n.º de orden con que sale el ítem --- */
+    const especs = [];
+    filas.forEach((f, k) => {
+      if (f.it.px && f.it.px.rtf) especs.push({ n: String(k + 1).padStart(5, '0') + '.RTF', datos: deB64(f.it.px.rtf) });
     });
     if (cortados) avisos.push(cortados + ' descripción(es) se recortaron: el formato .ddp guarda 70 caracteres.');
 
@@ -438,7 +524,11 @@ const EXPORTADOR = (() => {
     texto(stt, 130, P.entidad, 60);
     dvS.setFloat64(190, fecha, true);
     dvS.setFloat32(200, tc, true);
-    if (stt.length >= 572) texto(stt, 532, P.entidad, 40);   // primera línea del membrete
+    /* [532] primera línea del membrete: QUIEN ELABORA el presupuesto
+       («NOMADARQ», «BRAMOL»…), no la entidad. Si el proyecto vino de un .ddp
+       se respeta la del archivo; solo un proyecto nacido acá la llena, con la
+       entidad, que es lo único que se tiene. */
+    if (stt.length >= 572 && !(plantilla && plantilla.stt)) texto(stt, 532, P.entidad, 40);
     /* la precisión con la que se calculó el proyecto (ver MOTOR.precisionOrigen):
        si vino de un .ddp vuelve la misma; si no, queda la de la plantilla */
     const prec = P.calcOrigen && P.calcOrigen.precision;
@@ -460,10 +550,10 @@ const EXPORTADOR = (() => {
     });
 
     /* --- lo que OpenBOQ no toca --- */
-    const out = { PRE: pre, IND: ind, DAT: dat, MOD: mod, STT: stt, CFG: cfg, TIE: tie };
+    const out = { PRE: pre, IND: ind, DAT: dat, MOD: mod, STT: stt, CFG: cfg, TIE: tie, CMM: cmm };
     const extras = {};
     const guardados = (plantilla && plantilla.archivos) || {};
-    ['ADI', 'CEQ', 'CMM', 'GRP', 'PLA', 'IMP'].forEach(e => {
+    ['ADI', 'CEQ', 'GRP', 'PLA', 'IMP'].forEach(e => {
       out[e] = guardados[e] !== undefined ? deB64(guardados[e]) : deFabrica(e);
     });
     Object.keys((plantilla && plantilla.otros) || {}).forEach(n => {
@@ -471,7 +561,7 @@ const EXPORTADOR = (() => {
     });
 
     return {
-      archivos: out, extras, avisos, errores,
+      archivos: out, extras, especs, avisos, errores,
       resumen: {
         items: filas.length, insumos: orden.length, modulos: P.modulos.length,
         pares: cod.length, total: MOTOR.totalProyecto(),
@@ -638,6 +728,8 @@ const EXPORTADOR = (() => {
     ['ADI', 'CEQ', 'CFG', 'CMM', 'DAT', 'GRP', 'IMP', 'IND', 'MOD', 'PLA', 'PRE', 'STT', 'TIE']
       .forEach(e => entradas.push({ nombre: carpeta + base + '.' + e, datos: r.archivos[e] || new Uint8Array(0) }));
     Object.keys(r.extras).forEach(n => entradas.push({ nombre: carpeta + n, datos: r.extras[n] }));
+    /* las especificaciones van en la carpeta <NOMBRE>_ET, con el nombre elegido */
+    (r.especs || []).forEach(e => entradas.push({ nombre: carpeta + base + '_ET/' + e.n, datos: e.datos }));
     return Object.assign({ datos: await zip(entradas), nombre: base }, r);
   }
 

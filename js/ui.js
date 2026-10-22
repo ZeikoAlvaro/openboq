@@ -742,7 +742,7 @@
      de precios común. Eso va ANÓNIMO —la tabla no guarda quién lo mandó— y
      desfasado en el tiempo, para que no se pueda cruzar con el respaldo.
      ===================================================================== */
-  const VERSION = '2.7';
+  const VERSION = '2.8';
   const hayNube = () => typeof NUBE !== 'undefined' && NUBE.hay();
 
   /* Al entrar con la cuenta: versión y perfil para el panel de administración
@@ -2005,7 +2005,7 @@
           <td class="ctr mini" title="${M.esTrenBase(M.trenDe(it))
             ? 'Tren base: esta actividad no está en ninguna cuadrilla propia y lleva su propio % de recursos (pestaña RECURSOS)'
             : 'Cuadrilla que hace esta actividad; sus recursos se definen en la pestaña RECURSOS'}">${esc(M.trenDe(it).n)}</td>
-          <td class="num">${M.fmt(M.conv(M.analisis(it).total))}</td>
+          <td class="num">${M.fmt(M.conv(M.parcialGeneral(it)))}</td>
           <td class="celda" colspan="${semanas}" style="${rejilla}">${barraCrono(it.inicio, it.dias, diasEscala)}</td></tr>`;
       });
     });
@@ -2147,8 +2147,12 @@
       ['Recalcular los precios unitarios del archivo importado…', 'recalcularPU'],
       ['—'], ['Fusionar análisis…', 'fusionarApus'],
       ['Crear ítems en lote…', 'itemsEnLote'],
+      /* vive en HERRAMIENTAS y no en ARCHIVO: es una conversión de lo que
+         trae otro, no la forma de abrir un proyecto (pedido de Alvaro, 22/10) */
+      ['—'], ['Importar presupuesto desde Excel (B-1 + B-2)…', 'importarExcel'],
       ['—'], ['Verificar consistencia del proyecto', 'verificar'],
       ['Comparar con otro proyecto (.boq)…', 'compararProyecto'],
+      ['—'], ['Administración directa (dividir M.O. y materiales)…', 'adminDirecta'],
       ['—'], ['Crear una base de datos…', 'nuevaBasePropia'],
       ['Guardar el presupuesto como base de datos…', 'proyectoABase'],
       ['Mis bases de datos…', 'misBases'],
@@ -2183,7 +2187,8 @@
   (() => {
     const fuera = new Set([
       ...(HAY_IMPORTADOR ? [] : ['importarDDP', 'importarSueltos', 'recalcularPU']),
-      ...(HAY_EXPORTADOR ? [] : ['exportarDdp'])
+      ...(HAY_EXPORTADOR ? [] : ['exportarDdp']),
+      ...(typeof IMPORTAR_EXCEL !== 'undefined' ? [] : ['importarExcel'])
     ]);
     if (!fuera.size) return;
     Object.keys(MENUS).forEach(k => {
@@ -2757,6 +2762,12 @@
     /* No pasa por confirmarDescartar: no reemplaza nada, solo mira el otro
        archivo. Tampoco toca `manejo`, así «Guardar» sigue apuntando al
        archivo del proyecto abierto. */
+    /* js/directa.js: el mismo proyecto partido en contrato de M.O. + equipo y
+       compra de materiales. Va solo por este menú; la rejilla no cambia. */
+    adminDirecta() {
+      if (typeof DIRECTA === 'undefined') { alert('Falta el módulo de administración directa (js/directa.js).'); return; }
+      DIRECTA.abrir({ modal, cerrar: cerrarModal, esc, cambio: () => { tocar(); historiaRevisar(); } });
+    },
     async compararProyecto() {
       if (typeof window.showOpenFilePicker === 'function') {
         try {
@@ -2829,6 +2840,37 @@
     /* --- importación de archivos externos --- */
     importarDDP() {
       confirmarDescartar('Importar un proyecto .ddp', () => $('#fileDDP').click());
+    },
+    /* Dos caminos: el Excel que OpenBOQ reconoce solo, o una IA por MCP para
+       el que no. Es una ventana que elige; la interfaz principal no cambia. */
+    importarExcel() {
+      modal('Importar presupuesto desde Excel', `
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div class="aviso-caja" style="flex:1;min-width:240px;margin:0">
+            <b>1. Importar el Excel</b>
+            <p class="mini" style="margin:4px 0">Sin inteligencia artificial. Elija <b>todos</b> los archivos de la obra
+            juntos (.xls o .xlsx): el presupuesto general y los análisis de precios unitarios; los desgloses de insumos
+            si los tiene. OpenBOQ reconoce los formatos más comunes (el Excel que exporta PRESCOM, una hoja por ítem,
+            hojas de «Actividad», secciones (A) a (G), en Bs o en dólares) y le dice qué no cuadra.</p>
+          </div>
+          <div class="aviso-caja" style="flex:1;min-width:240px;margin:0">
+            <b>2. Usar una IA (MCP)</b>
+            <p class="mini" style="margin:4px 0">Si el formato no se reconoce, o quiere armar el presupuesto
+            conversando: una IA usa OpenBOQ, y el motor de OpenBOQ calcula. Puede ser una gratuita.
+            Le mostramos cómo conectarla.</p>
+          </div>
+        </div>`,
+        [['Cancelar', null, 'sec'],
+         ['2. Usar una IA (MCP)…', () => setTimeout(() => ACC.ayudaMcp(), 80), 'sec'],
+         ['1. Importar el Excel…', () => setTimeout(() =>
+           confirmarDescartar('Importar un presupuesto desde Excel', () => $('#fileExcel').click()), 80)]]);
+    },
+    ayudaMcp() {
+      modal('Usar OpenBOQ con una IA (MCP)', typeof AYUDA_MCP !== 'undefined' ? AYUDA_MCP.html(esc)
+        : `<p>Una IA puede usar OpenBOQ por MCP: el servidor está en la carpeta <code>mcp/</code> del código de
+           OpenBOQ, con las instrucciones en su LEEME.</p>`,
+        [['Cerrar', null, 'sec']]);
+      $('#overlay').classList.add('ancho');
     },
     importarSueltos() {
       confirmarDescartar('Importar archivos sueltos', () => ACC.importarSueltosPaso2());
@@ -4763,6 +4805,60 @@
         .concat([['Guardar como base de datos…', () => setTimeout(() => ACC.proyectoABase(baseDeArchivo(archivo)), 80)]]));
   }
 
+  /* Resultado de importar un presupuesto desde Excel (js/importar_excel.js).
+     Lo primero que se ve es lo que el evaluador tiene que mirar: errores del
+     archivo que cambian plata. Después, el cuadre contra el total del Excel. */
+  const FORMATO_EXCEL = {
+    prescom: 'Excel exportado por PRESCOM', actividad: 'análisis por «Actividad»',
+    hoja: 'una hoja por ítem (Formulario B-2)', letras: 'análisis con secciones (A) a (G)'
+  };
+  function trasImportarExcel(r, archivos) {
+    const s = r.resumen;
+    manejo = null; sinGuardar = false; sinArchivo = true;
+    M.guardarLocal(); render(); irVista('presupuesto');
+    marcarGuardado('Importado ' + hora());
+    const tOrig = isFinite(s.totalOrigen) ? s.totalOrigen : null;
+    const dif = tOrig === null ? null : M.r2(s.totalRecalculado - tOrig);
+    const lista = (l, f, n) => l.length ? '<ul style="font-size:12px;padding-left:16px;margin:4px 0">' +
+      l.slice(0, n || 8).map(x => '<li>' + f(x) + '</li>').join('') +
+      (l.length > (n || 8) ? `<li>… y ${l.length - (n || 8)} más</li>` : '') + '</ul>' : '';
+    const graves = s.monedaCruzada || [];
+    modal('Presupuesto importado desde Excel', `
+      <p><b>${esc(s.nombre || '')}</b></p>
+      ${graves.length ? `<div class="aviso-caja" style="border-color:var(--err)"><b style="color:var(--err)">
+        ${graves.length} ítem(s) con el precio en bolivianos copiado en la columna de dólares</b>
+        ${lista(graves, x => `Ítem ${esc(x.cod)} «${esc(x.desc)}»: el presupuesto lleva ${M.fmt(x.archivo, 2)} Bs y su
+          análisis da ${M.fmt(x.calculado, 2)} Bs (${s.tc} veces menos). Exceso: <b>${M.fmt(x.exceso, 2)} Bs</b>.`)}
+        <p class="mini" style="margin:4px 0 0">Se conservó el precio del archivo. Corregirlo es decisión del evaluador.</p></div>` : ''}
+      <table class="rej" style="margin:10px 0"><tbody>
+        <tr><td>Archivo(s)</td><td>${archivos.map(esc).join('<br>')}</td></tr>
+        <tr><td>Formato reconocido</td><td>${esc(FORMATO_EXCEL[s.formato] || s.formato)}${s.enDolares ? ' · en dólares, pasado a Bs' : ''}</td></tr>
+        <tr><td>Módulos / ítems / insumos</td><td>${s.modulos} / ${s.items} / ${s.insumos}</td></tr>
+        <tr><td>Recargos</td><td>cargas ${s.params.cargas}% · IVA M.O. ${s.params.ivaMO}% · herramientas ${s.params.herr}% ·
+          G.G. ${s.params.gg}% · utilidad ${s.params.util}% · IT ${s.params.it}%</td></tr>
+        ${s.b3 ? `<tr><td>Desglose de insumos (B-3)</td><td>${s.b3} insumos leídos para controlar precios</td></tr>` : ''}
+        <tr><td>Total según el Excel</td><td class="num"><b>${tOrig === null ? '—' : M.fmt(tOrig, 2) + ' Bs'}</b></td></tr>
+        <tr><td>Total calculado por OpenBOQ</td><td class="num"><b>${M.fmt(s.totalRecalculado, 2)} Bs</b></td></tr>
+        ${dif === null ? '' : `<tr><td>Diferencia</td><td class="num" style="color:${Math.abs(dif) < 1 ? 'var(--ok)' : 'var(--err)'}"><b>${M.fmt(dif, 2)} Bs</b></td></tr>`}
+      </tbody></table>
+      ${dif !== null && Math.abs(dif) >= 0.01 && s.enDolares ? `<p class="mini">La diferencia viene de pasar a bolivianos: el Excel
+        multiplica por ${s.tc} los parciales en dólares sin redondear, y el B-1 redondea cada precio unitario y cada parcial al centavo.</p>` : ''}
+      <p style="color:${s.deArchivo.length ? 'var(--err)' : 'var(--ok)'}"><b>${s.deArchivo.length
+        ? s.deArchivo.length + ' de ' + s.items + ' ítems conservan el precio unitario del archivo: su análisis no da ese precio.'
+        : 'Los ' + s.items + ' ítems dan, con sus propios análisis, el mismo precio unitario que el Excel.'}</b></p>
+      ${lista(s.deArchivo, x => `${esc(x.cod)} «${esc(x.desc)}»: archivo ${M.fmt(x.archivo, 2)} — análisis ${M.fmt(x.calculado, 2)}`)}
+      ${s.incoherentes.length ? `<p class="mini" style="color:var(--err)"><b>${s.incoherentes.length} análisis no suman lo
+        que dicen sus propios totales</b> (faltan o sobran filas en el Excel):</p>
+        ${lista(s.incoherentes, x => `${esc(x.cod)} «${esc(x.desc)}»: diferencia M ${M.fmt(x.falta.m, 2)} · O ${M.fmt(x.falta.o, 2)} ·
+          E ${M.fmt(x.falta.e, 2)}${x.sinCosto && x.sinCosto.length ? ` — renglón con cantidad y precio pero sin costo:
+          ${x.sinCosto.map(esc).join(', ')}` : ''}`)}` : ''}
+      ${s.avisos.length ? '<p class="mini"><b>Avisos de la lectura</b></p>' + lista(s.avisos.filter(a => !/^Ítem .* columna de dólares/.test(a)), esc, 12) : ''}
+      <p class="mini">Los Excel no se modificaron. Guarde este proyecto con <b>ARCHIVO → Guardar</b> para
+      conservarlo como <code>.boq</code>${HAY_EXPORTADOR ? ', o expórtelo con <b>ARCHIVO → Exportar a formato .ddp</b>' : ''}.
+      Mientras no se edite el análisis de un ítem, manda el precio unitario del archivo.</p>`,
+      [['Cerrar', null, 'sec']].concat(HAY_EXPORTADOR ? [['Exportar a .ddp…', () => setTimeout(() => ACC.exportarDdp(), 80)]] : []));
+  }
+
   /* Guarda el .ddp. Donde el navegador lo permite (Chrome, Edge) se abre el
      diálogo «Guardar como» del sistema y el nombre que el usuario elige ahí
      es el que se escribe adentro del contenedor: es la única forma de que el
@@ -4895,6 +4991,7 @@
 
   /* ===================== NAVEGACIÓN ===================== */
   function irVista(v) {
+    if (v !== vista && typeof METRICAS !== 'undefined') METRICAS.vista(v);
     vista = v;
     $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
     /* En el celular las pestañas son una fila que se desplaza: la activa podía
@@ -4938,6 +5035,7 @@
       // (por ejemplo «Agregar insumo» abriendo ya la pestaña de mano de obra)
       if (!a || !ACC[a.dataset.acc]) return;
       cerrarMenus();
+      if (typeof METRICAS !== 'undefined') METRICAS.accion(a.dataset.acc);
       ACC[a.dataset.acc](a.dataset.accArg);
     });
 
@@ -5404,6 +5502,18 @@
         const r = await IMPORTADOR.importarDDP(await f.arrayBuffer());
         trasImportar(r, f.name);
       } catch (err) { alert('No se pudo leer el proyecto:\n' + err.message); }
+    });
+
+    // importar un presupuesto desde Excel (B-1 + B-2, y el B-3 si viene)
+    $('#fileExcel').addEventListener('change', async e => {
+      const fs = Array.from(e.target.files); e.target.value = '';
+      if (!fs.length) return;
+      try {
+        marcarGuardado('Leyendo ' + fs.length + ' archivo(s) de Excel…');
+        const arch = [];
+        for (const f of fs) arch.push({ nombre: f.name, datos: await f.arrayBuffer() });
+        trasImportarExcel(await IMPORTAR_EXCEL.importar(M, arch), fs.map(f => f.name));
+      } catch (err) { alert('No se pudo importar el presupuesto:\n' + err.message); }
     });
 
     // abrir archivos sueltos .PRE/.IND/.DAT/…

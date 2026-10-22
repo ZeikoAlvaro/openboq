@@ -31,11 +31,11 @@
      ====================================================================== -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
-  script-src 'self' 'unsafe-inline';
+  script-src 'self' 'unsafe-inline' https://plausible.io;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob:;
   font-src 'self' data:;
-  connect-src 'self' https://ejqcdkyyqekmoorrrady.supabase.co https://www.googleapis.com https://openboq-drive.alvaroedwin76.workers.dev;
+  connect-src 'self' https://ejqcdkyyqekmoorrrady.supabase.co https://www.googleapis.com https://openboq-drive.alvaroedwin76.workers.dev https://plausible.io;
   object-src 'none';
   base-uri 'none';
   form-action 'self';
@@ -142,10 +142,10 @@
 
 <!-- ?v=N en cada archivo propio: sin eso el navegador puede seguir usando el
      .css o .js viejo de su caché. Al publicar, subir N acá y en sw.js. -->
-<link rel="stylesheet" href="css/estilo.css?v=93">
+<link rel="stylesheet" href="css/estilo.css?v=95">
 <!-- Capa v2: solo armazón y color, cargada después para pisar lo anterior.
      Los identificadores no cambian, así que ui.js sigue igual. -->
-<link rel="stylesheet" href="css/ui2.css?v=93">
+<link rel="stylesheet" href="css/ui2.css?v=95">
 </head>
 <body>
 
@@ -156,7 +156,7 @@
 <aside class="lateral">
   <div class="lat-marca">
     <div class="logo">BQ</div>
-    <div class="txt"><b>Open BOQ</b><small>v2.7</small></div>
+    <div class="txt"><b>Open BOQ</b><small>v2.8</small></div>
     <!-- pliega la barra a una tira de íconos; lo maneja js/ui2.js -->
     <button class="lat-plegar" id="btnLateral" aria-expanded="true"
       aria-controls="tabs" title="Plegar el menú">☰</button>
@@ -199,7 +199,7 @@
   <div class="m" data-menu="herramientas">HERRAMIENTAS</div>
   <div class="m" data-menu="config">CONFIGURACIÓN</div>
   <div class="m" data-menu="ayuda">AYUDA</div>
-  <div class="marca">Open<span class="bq">BOQ</span> <small>v2.7</small></div>
+  <div class="marca">Open<span class="bq">BOQ</span> <small>v2.8</small></div>
 </div>
 
 <!-- ===================== CABECERA DE PROYECTO =====================
@@ -498,6 +498,7 @@
 <input type="file" id="fileComparar" accept=".boq,.json" style="display:none">
 <input type="file" id="fileDDP" accept=".ddp,.DDP" style="display:none">
 <input type="file" id="fileSueltos" multiple style="display:none">
+<input type="file" id="fileExcel" multiple accept=".xls,.xlsx,.XLS,.XLSX" style="display:none">
 
 <!-- ===================== LA BASE DE DATOS DE PRECIOS =====================
      Se publica CIFRADA (data/catalogo.obq.js). No es un candado: la clave va
@@ -515,20 +516,24 @@
      opcional y siempre lo fue.                                              -->
 <!-- Tauri bridge — emula window.OPENBOQ_ESCRITORIO si está en Tauri. Carga ANTES de cualquier otro script. -->
 <script src="tauri-bridge.js" onerror="console.log('tauri-bridge.js: no en Tauri o error')"></script>
-<script src="js/cifrado.js?v=93" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.obq.js?v=93" onerror="window.__sinCifrado=1"></script>
-<script src="data/catalogo.js?v=93" onerror="window.__sinCatalogo=1"></script>
+<script src="js/cifrado.js?v=95" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.obq.js?v=95" onerror="window.__sinCifrado=1"></script>
+<script src="data/catalogo.js?v=95" onerror="window.__sinCatalogo=1"></script>
 <!-- Cuenta, respaldo de la biblioteca, aportes anónimos y reportes.
      nube-config.js lleva la dirección del servidor y la clave pública; si
      falta, la aplicación funciona igual, solo sin cuenta. -->
-<script src="js/nube-config.js?v=93" onerror="window.__sinNube=1"></script>
-<script src="js/nube.js?v=93"></script>
-<script src="js/drive.js?v=93"></script>
+<script src="js/nube-config.js?v=95" onerror="window.__sinNube=1"></script>
+<script src="js/nube.js?v=95"></script>
+<script src="js/drive.js?v=95"></script>
 <!-- Pone al día la Base de Datos con lo que cambió en el repositorio
      central desde que se generó el catálogo. Si no está o falla, la
      aplicación funciona igual con el catálogo que trae. -->
-<script src="js/sync.js?v=93" onerror="window.__sinSincro=1"></script>
-<script src="js/acceso.js?v=93"></script>
+<script src="js/sync.js?v=95" onerror="window.__sinSincro=1"></script>
+<script src="js/acceso.js?v=95"></script>
+<!-- Métricas de uso con Plausible (sin cookies), también de quien no inició
+     sesión. Va después de nube.js porque marca cada evento con cuenta si/no.
+     Si falta o lo frena un bloqueador, la aplicación funciona igual. -->
+<script src="js/metricas.js?v=95" onerror="window.__sinMetricas=1"></script>
 <script>
   /* ---------- arranque ----------
      El resto de la aplicación se carga DESPUÉS de que `window.OPENBOQ_DB`
@@ -544,9 +549,10 @@
   (function () {
     /* el mismo número que los ?v= de arriba: estuvo fijo en '62' desde la v2.6
        y motor.js, ui.js y los demás se pedían siempre con ?v=62 */
-    var V = '93';
+    var V = '95';
     var RESTO = ['js/motor.js', 'js/importador.js', 'js/exportador.js', 'js/xlsx.js',
-                 'js/reportes.js', 'js/ui.js', 'js/ui2.js'];
+                 'js/lector_excel.js', 'js/importar_excel.js', 'js/ayuda_mcp.js',
+                 'js/reportes.js', 'js/directa.js', 'js/ui.js', 'js/ui2.js'];
 
     function cargar(i) {
       if (i >= RESTO.length) {
@@ -559,7 +565,7 @@
       s.onload = function () { cargar(i + 1); };
       s.onerror = function () {
         /* el módulo del formato .ddp es opcional: sin él la aplicación oculta sus opciones */
-        if (/importador|exportador/.test(RESTO[i])) console.info('OpenBOQ: sin ' + RESTO[i] + ' (módulo .ddp no incluido)');
+        if (/importador|exportador|ayuda_mcp/.test(RESTO[i])) console.info('OpenBOQ: sin ' + RESTO[i] + ' (módulo .ddp no incluido)');
         else console.error('OpenBOQ: no se pudo cargar ' + RESTO[i]);
         cargar(i + 1);
       };

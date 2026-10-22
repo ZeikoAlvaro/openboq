@@ -86,7 +86,7 @@ const INCLUIR = [
   'css/estilo.css',
   /* acceso.js va incluido, pero en la versión portable no hace nada: al
      abrirse con file:// no hay servidor contra el cual verificar. */
-  'js/motor.js', 'js/acceso.js', 'js/importador.js', 'js/exportador.js', 'js/xlsx.js', 'js/reportes.js', 'js/ui.js',
+  'js/motor.js', 'js/acceso.js', 'js/importador.js', 'js/exportador.js', 'js/xlsx.js', 'js/lector_excel.js', 'js/importar_excel.js', 'js/ayuda_mcp.js', 'js/reportes.js', 'js/directa.js', 'js/ui.js',
   'ejemplos/demo-aula-escolar.boq'
 ];
 

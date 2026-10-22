@@ -1,0 +1,28 @@
+{
+  "name": "openboq-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenBOQ como servidor MCP: que una IA arme presupuestos contra la Base de Datos de OpenBOQ, con el mismo motor de cálculo que la aplicación.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "armar": "node armar_motor.mjs",
+    "local": "node armar_motor.mjs && node local.mjs",
+    "probar": "node armar_motor.mjs && node prueba.mjs",
+    "remoto:dev": "node armar_motor.mjs && wrangler dev -c remoto/wrangler.jsonc",
+    "remoto:desplegar": "node armar_motor.mjs && wrangler deploy -c remoto/wrangler.jsonc"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^0.8.3",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "agents": "^0.24.0",
+    "hono": "^4.13.9",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "wrangler": "^4.140.0"
+  }
+}

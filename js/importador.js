@@ -30,6 +30,20 @@
            [0..49] etiqueta · [50..53] float32 % (−1 = suma) · [54..68]
            fórmula (letras A-Q = filas, + y -, «*» = entrada)
            [69..72] int16 id + int16 negrita. Ver formatoDesdeCFG.
+
+   Campos descifrados el 22/10/2026 (informe de ingeniería inversa §10). Se
+   leen para devolverlos al exportar —sin ellos el proyecto vuelve al programa
+   de origen con los cómputos en otros ítems y sin especificaciones—:
+   .PRE  [74] int16 grupo del ítem · [93..107] código · [172] double horas
+         por unidad · [180] uint16 cuadrillas · [182..437] especificación
+         corta · [438]/[446] double fechas de inicio y fin · [454] int16
+         predecesora (n.º de orden; 0 o −1 = ninguna) · [456] uint16 ID DEL
+         ÍTEM, que es la clave del .CMM · [458] n.º de orden
+   .IND  [0..1] int16 −1 = registro dado de baja · [73..74] int16 grupo ·
+         [80..87] double fecha de cotización
+   .CMM  cómputos métricos, 62 bytes: [0] int16 id del ítem (PRE 456) ·
+         [2..31] descripción · [32..47] float32 X, Y, Z, veces
+   <NOMBRE>_ET/NNNNN.RTF  especificación técnica del ítem n.º NNNNN
    ========================================================================= */
 'use strict';
 
@@ -111,9 +125,33 @@ const IMPORTADOR = (() => {
       nombre: txt(u, 0, 70) || 'Proyecto importado',
       lugar: txt(u, 70, 60),
       cliente: txt(u, 130, 60),
+      fecha: b.byteLength >= 198 ? fechaOLE(dv.getFloat64(190, true)) : '',
       tc: Math.round(dv.getFloat32(200, true) * 10000) / 10000 || 6.96,
       precision
     };
+  }
+
+  /** Fecha OLE (días desde el 30/12/1899) a 'AAAA-MM-DD'; vacío si no es una fecha razonable. */
+  function fechaOLE(d) {
+    if (!isFinite(d) || d < 2 || d > 120000) return '';
+    const t = new Date(Date.UTC(1899, 11, 30) + Math.round(d) * 86400000);
+    return t.toISOString().slice(0, 10);
+  }
+  const diaOLE = d => (isFinite(d) && d > 2 && d < 120000) ? Math.round(d) : 0;
+
+  /** .CMM: filas de cómputo agrupadas por id de ítem (PRE 456). */
+  function leerCMM(b) {
+    const out = new Map();
+    if (!b) return out;
+    const u = new Uint8Array(b), dv = new DataView(b), R = 62;
+    for (let k = 0; (k + 1) * R <= u.length; k++) {
+      const o = k * R;
+      const id = dv.getInt16(o, true);
+      const f = [0, 1, 2, 3].map(j => single(dv.getFloat32(o + 32 + 4 * j, true)));
+      if (!out.has(id)) out.set(id, []);
+      out.get(id).push({ d: txt(u, o + 2, 30), x: f[0], y: f[1], z: f[2], v: f[3] });
+    }
+    return out;
   }
 
   function leerMOD(b) {
@@ -139,9 +177,12 @@ const IMPORTADOR = (() => {
       const ptr = dv.getInt32(o + 88, true);
       out.push({
         seq: k + 1,
+        baja: dv.getInt16(o, true) === -1,
         t: String.fromCharCode(u[o + 2]),
         d: txt(u, o + 3, 70),
+        grp: dv.getInt16(o + 73, true),
         u: txt(u, o + 75, 5),
+        f: fechaOLE(dv.getFloat64(o + 80, true)),
         p: (ptr > 0 && ptr <= dat.n) ? single(dat.v[ptr - 1]) : 0
       });
     }
@@ -162,13 +203,30 @@ const IMPORTADOR = (() => {
         mat: dv.getFloat64(o + 116, true),
         mo: dv.getFloat64(o + 124, true),
         eq: dv.getFloat64(o + 132, true),
+        us: [140, 148, 156, 164].map(x => dv.getFloat64(o + x, true)),
+        pos: k + 1,
+        px: {
+          id: dv.getUint16(o + 456, true),
+          grp: dv.getInt16(o + 74, true),
+          h: dv.getFloat64(o + 172, true),
+          cuad: dv.getUint16(o + 180, true),
+          espec: txt(u, o + 182, 256),
+          fIni: diaOLE(dv.getFloat64(o + 438, true)),
+          fFin: diaOLE(dv.getFloat64(o + 446, true)),
+          p454: dv.getInt16(o + 454, true)
+        },
+        cod: txt(u, o + 93, 15),
         comp: []
       };
       if (!it.d) continue;
+      if (!isFinite(it.px.h)) it.px.h = 0;
+      /* Un renglón con rendimiento 0 también es parte del análisis (el
+         programa de origen lo muestra): se conserva. Solo se descartan los
+         pares vacíos y los que apuntan fuera del índice. */
       for (let j = ptr - 1; j < ptr - 1 + 60 && j < dat.n; j++) {
         if (j < 0) continue;
         const c = dat.c[j], v = dat.v[j];
-        if (c <= 0 || c > ins.length || !v) continue;
+        if (c <= 0 || c > ins.length) continue;
         it.comp.push({ seq: c, rend: single(v) });
       }
       out.push(it);
@@ -272,7 +330,8 @@ const IMPORTADOR = (() => {
       if (ext === 'PRE') base = arch.replace(/\.[^.]+$/, '');
     }
     const r = construir(por);
-    guardarPlantilla(r.proyecto, zip, base);
+    guardarPlantilla(r.proyecto, zip, base, r.porPos);
+    delete r.porPos;
     return r;
   }
 
@@ -281,7 +340,8 @@ const IMPORTADOR = (() => {
     const r = construir(por);
     const zip = {};
     for (const ext in por) zip[(nombres && nombres[ext]) || ('proyecto.' + ext)] = por[ext];
-    guardarPlantilla(r.proyecto, zip, '');
+    guardarPlantilla(r.proyecto, zip, '', r.porPos);
+    delete r.porPos;
     return r;
   }
 
@@ -294,7 +354,7 @@ const IMPORTADOR = (() => {
      base64, así viajan también en el .boq) para devolverlos intactos.
      Los siete que se regeneran no se guardan: serían peso muerto.
      --------------------------------------------------------------------- */
-  function guardarPlantilla(P, zip, base) {
+  function guardarPlantilla(P, zip, base, porPos) {
     if (!P || typeof btoa !== 'function') return;
     const regen = (typeof EXPORTADOR !== 'undefined' && EXPORTADOR.GENERADOS) ||
       ['PRE', 'IND', 'DAT', 'MOD', 'STT', 'CFG', 'TIE'];
@@ -307,6 +367,15 @@ const IMPORTADOR = (() => {
     for (const ruta in zip) {
       const arch = ruta.split('/').pop();
       const ext = (arch.split('.').pop() || '').toUpperCase();
+      /* Especificaciones técnicas: <NOMBRE>_ET/NNNNN.RTF, donde NNNNN es el
+         n.º de orden del ítem. Se guardan EN EL ÍTEM, así siguen a su ítem
+         aunque se reordene o se agreguen otros; el exportador las vuelve a
+         numerar y a meter en la carpeta con el nombre nuevo. */
+      const et = /_ET\/(\d+)\.RTF$/i.exec(ruta);
+      if (et && porPos && porPos[Number(et[1])]) {
+        porPos[Number(et[1])].px.rtf = b64(zip[ruta]);
+        continue;
+      }
       if (ext === 'STT') { plant.stt = b64(zip[ruta].slice(190)); continue; }
       if (ext === 'CFG') { plant.cfg = b64(zip[ruta]); continue; }        // la hoja original, para devolverla igual
       if (ext === 'TIE') { plant.archivos.TIE = b64(zip[ruta]); continue; }   // por las fechas de cada módulo
@@ -332,6 +401,7 @@ const IMPORTADOR = (() => {
     P.entidad = cab.cliente || '';
     P.ubicacion = cab.lugar || '';
     P.tc = cab.tc || 6.96;
+    if (cab.fecha) P.fecha = cab.fecha;          // fecha del proyecto (STT 190), no la de hoy
     /* los totales que se muestran e imprimen redondean como el programa de origen (MOTOR.totalGeneral) */
     P.redondeoPrescom = true;
     ['cargas', 'ivaMO', 'herr', 'gg', 'util', 'it'].forEach(k => {
@@ -367,23 +437,61 @@ const IMPORTADOR = (() => {
       P.modulos.push({ id: MOTOR.nid(), n: mods[k] || ('MÓDULO # ' + (k + 1)), items: [] });
     P.moduloActivo = 0;
 
-    /* insumos: se conserva el precio exacto del archivo original */
+    /* insumos: se conserva el precio exacto del archivo original.
+       Los DADOS DE BAJA (IND 0-1 = −1: «borrar registros», «borrar
+       repetidos», «eliminar insumos no requeridos») que ningún ítem usa no
+       entran: para el programa de origen ya no existen. Si algún ítem todavía
+       los usa, entran —el precio unitario depende de ellos— y conservan la
+       marca para devolverla igual. Grupo y fecha de cotización viajan en
+       `px`; la fecha NO pasa a `f` (fecha decidida en OpenBOQ, ver
+       MOTOR.fijarPrecio): es la que traía el archivo y vuelve igual. */
+    const usados = new Set();
+    items.forEach(x => x.comp.forEach(c => usados.add(c.seq)));
     const mapIns = {};
+    let deBaja = 0;
     ins.forEach(i => {
+      if (i.baja && !usados.has(i.seq)) { deBaja++; return; }
       const t = (i.t === 'O' || i.t === 'E') ? i.t : 'M';
-      mapIns[i.seq] = MOTOR.agregarInsumo(t, i.d || ('INSUMO ' + i.seq), i.u || 'pza', i.p);
+      const x = MOTOR.agregarInsumo(t, i.d || ('INSUMO ' + i.seq), i.u || 'pza', i.p);
+      if (!x.px) {
+        const px = {};
+        if (i.grp) px.grp = i.grp;
+        if (i.f) px.f = i.f;
+        if (i.baja) px.baja = true;
+        if (Object.keys(px).length) x.px = px;
+      }
+      mapIns[i.seq] = x;
     });
+    const cmm = leerCMM(por.CMM);
 
     /* ítems */
     const avisos = [];
     const incoherentes = [];
     let difs = 0, difsPU = 0, deArchivo = 0;
+    const porPos = {};                 // n.º de orden en el .PRE -> ítem (RTF y predecesoras)
+    let conComputo = 0;
     items.forEach(x => {
       const it = MOTOR.itemNuevo({
         desc: x.d, und: x.u || 'glb',
         cant: Math.round((x.cant || 0) * 1e6) / 1e6,
+        cod: x.cod || '',
         origen: 'importado · ' + (cab.nombre || '')
       });
+      /* lo que el programa de origen guarda del ítem y OpenBOQ no usa para
+         calcular: vuelve tal cual al exportar (EXPORTADOR, .PRE) */
+      const px = { id: x.px.id, h: x.px.h, cuad: x.px.cuad };
+      ['grp', 'fIni', 'fFin', 'p454'].forEach(k => { if (x.px[k]) px[k] = x.px[k]; });
+      if (x.px.espec) px.espec = x.px.espec;
+      it.px = px;
+      porPos[x.pos] = it;
+      /* cómputos métricos: el .CMM se enlaza por el ID del ítem (PRE 456),
+         no por su posición. X, Y, Z → largo, ancho, alto; una medida en
+         cero queda vacía (no multiplica), igual que en el programa de origen */
+      const filas = cmm.get(x.px.id);
+      if (filas && filas.length) {
+        conComputo++;
+        it.computos = filas.map(f => ({ d: f.d, n: f.v, l: f.x || '', a: f.y || '', h: f.z || '', ar: '', vo: '' }));
+      }
       x.comp.forEach(c => {
         const i = mapIns[c.seq];
         if (i) it.comp.push({ ins: i.id, rend: c.rend });
@@ -435,7 +543,34 @@ const IMPORTADOR = (() => {
          abrir el archivo: cuando algo no cierra al centavo, la pregunta
          siempre es «¿de dónde salió ese número?». */
       it._dirOrigen = { m: x.mat, o: x.mo, e: x.eq };
+      /* las columnas en dólares: el programa de origen las calcula aparte
+         (cada precio ÷ T.C., con su redondeo); vuelven iguales si no se toca */
+      if (x.us.every(v => isFinite(v))) { it._dirOrigen.us = x.us; it._dirOrigen.tc = P.tc; }
     });
+
+    /* CRONOGRAMA del archivo: fechas de inicio y fin de cada ítem y la
+       predecesora (PRE 438/446/454). Si el archivo trae fechas, pasan al
+       cronograma de OpenBOQ —día relativo al inicio de obra, días calendario
+       con el último incluido, predecesora por n.º de actividad—; si no trae,
+       el cronograma queda como siempre, para calcularlo acá. */
+    const nAct = new Map(MOTOR.actividades().map(a => [a.it, a.n]));
+    Object.values(porPos).forEach(it => {
+      const q = it.px.p454 > 0 ? porPos[it.px.p454] : null;
+      if (q && q !== it && nAct.has(q)) it.pred = String(nAct.get(q));
+    });
+    const conFecha = Object.values(porPos).filter(it => it.px.fIni > 0);
+    if (conFecha.length) {
+      const ini0 = Math.min(...conFecha.map(it => it.px.fIni));
+      P.inicioObra = fechaOLE(ini0) || P.inicioObra;
+      let fin = 1;
+      conFecha.forEach(it => {
+        const f1 = Math.max(it.px.fFin || it.px.fIni, it.px.fIni);
+        it.inicio = it.px.fIni - ini0;
+        it.dias = f1 - it.px.fIni + 1;
+        fin = Math.max(fin, it.inicio + it.dias);
+      });
+      P.plazo = fin;
+    }
 
     /* Cómo redondeaba la instalación de origen lo que el .STT no dice (filas
        del B-2): se deduce contra los P.U. del archivo (MOTOR.elegirReceta).
@@ -472,9 +607,11 @@ const IMPORTADOR = (() => {
 
     return {
       proyecto: P,
+      porPos,
       resumen: {
         nombre: cab.nombre, cliente: cab.cliente, lugar: cab.lugar, tc: cab.tc,
         modulos: P.modulos.length, items: items.length, insumos: ins.length,
+        insumosDeBaja: deBaja, itemsConComputo: conComputo, itemsConFechas: conFecha.length,
         params: Object.assign({}, P.params),
         totalOrigen, totalRecalculado: MOTOR.totalProyecto(),
         totalOrigenB1, totalRecalculadoB1: MOTOR.totalGeneral(),

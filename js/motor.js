@@ -931,7 +931,7 @@ const MOTOR = (() => {
          acumulan sin redondear: así se calculan los subtotales en los archivos
          .PRE que importa la aplicación */
       const bruto = renglon(c.rend, ins.p);
-      const fila = { ins, rend: Number(c.rend || 0), pu: Number(ins.p || 0), parcial: r2(bruto), ref: c };
+      const fila = { ins, rend: Number(c.rend || 0), pu: Number(ins.p || 0), parcial: r2(bruto), bruto, ref: c };
       g[ins.t] ? g[ins.t].push(fila) : g.M.push(fila);
       if (ins.t === 'O') o += bruto; else if (ins.t === 'E') e += bruto; else m += bruto;
     });
@@ -1295,21 +1295,88 @@ const MOTOR = (() => {
   }
   function parcialComputo(c) { return r2(brutoComputo(c)); }
 
-  /* ---------------- requerimiento total de insumos ---------------- */
+  /* ---------------- requerimiento total de insumos ----------------
+     Con la precisión de fábrica es lo de siempre: cantidad × precio.
+     Si el proyecto vino de un .ddp calculado con otra precisión
+     (`precisionOrigen`), el B-2 redondea rendimiento, precio y renglón; el
+     requerimiento usa ESOS mismos valores —el monto de cada insumo es la suma
+     de sus renglones × cantidad del ítem—, porque si no el costo directo del
+     B-3 no cerraba con el de los B-2 (proyecto real de 70 ítems: 310 Bs, 22/10/2026). */
   function requerimiento() {
+    const q0 = recetaOrigen().renglon === 'crudo' ? null : precisionOrigen();
     const acc = {};
     P.modulos.forEach(m => m.items.forEach(it => {
       const q = Number(it.cant) || 0;
       (it.comp || []).forEach(c => {
         const ins = P.insumos[c.ins]; if (!ins) return;
         if (!acc[ins.id]) acc[ins.id] = { ins, cant: 0, monto: 0 };
-        acc[ins.id].cant += q * (Number(c.rend) || 0);
+        acc[ins.id].cant += q * (q0 ? r(Number(c.rend) || 0, q0[0]) : (Number(c.rend) || 0));
+        if (q0) acc[ins.id].monto += q * renglon(c.rend, ins.p);
       });
     }));
     const L = Object.values(acc);
-    L.forEach(x => { x.cant = r(x.cant, 4); x.monto = r2(x.cant * x.ins.p); });
+    L.forEach(x => {
+      x.cant = r(x.cant, 4);
+      x.p = q0 ? r(Number(x.ins.p) || 0, q0[2]) : Number(x.ins.p) || 0;   // precio con que calcula el B-2
+      x.monto = q0 ? r2(x.monto) : r2(x.cant * x.ins.p);
+    });
     L.sort((a, b) => cmpIns(a.ins, b.ins));
     return L;
+  }
+
+  /* =====================================================================
+     RESUMEN GENERAL POR PARÁMETRO (directos e indirectos)
+
+     Cada fila del B-2 sumada sobre todos los ítems: valor de la fila por
+     unidad × cantidad. Dos maneras de hacer esa suma:
+
+       'exacto'   el valor de la fila sin redondear. Los porcentajes salen
+                  exactos (cargas 55 %, IT 3,09 %…).
+       'impreso'  el valor tal como se imprime en cada B-2, a 2 decimales,
+                  × cantidad, redondeado por ítem. Es lo que puede rehacer
+                  cualquiera con los B-2 en la mano, y es EXACTAMENTE como lo
+                  arma PRESCOM (14/14 filas al centavo contra su reporte del
+                  CHORO T-2, 22/10/2026): sus porcentajes salen corridos
+                  (cargas 54,44 % en un camino con partidas de centavos por
+                  unidad y cantidades de cientos de miles).
+
+     Ninguna de las dos suma el total del presupuesto: el total es Σ P.U. ×
+     cantidad con el P.U. ya redondeado, y en una partida de 641.365 m³·km
+     el medio centavo del P.U. son 3.000 Bs. Antes el reporte callaba esa
+     diferencia; ahora va como fila propia, «Diferencia por redondeo del
+     precio unitario», y el resumen cierra al centavo con el B-1.
+     (Informe de ingeniería inversa §10.4-bis, 22/10/2026.)
+     ===================================================================== */
+  function resumenParametros(modo) {
+    const impreso = modo === 'impreso';
+    const F = formato().filas || [];
+    const ac = F.map(() => 0);
+    P.modulos.forEach(m => m.items.forEach(it => {
+      const a = analisis(it), q = Number(it.cant) || 0;
+      /* 'impreso' = la regla de PRESCOM, confirmada al centavo en las 14
+         filas de un camino de 50.628.586,64 Bs (22/10/2026): fila del B-2 a
+         2 decimales, × cantidad, otra vez a 2 decimales por ítem, y la suma */
+      (a.cadena || []).forEach((x, i) => { ac[i] += impreso ? r2(r2(x.valor) * q) : x.valor * q; });
+    }));
+    const total = totalGeneral();
+    const filas = F.map((x, i) => ({
+      i: i + 1, n: x.n, k: x.k, pct: (x.k === 'pct' || x.k === 'imp') ? Number(x.pct) || 0 : null,
+      sobre: x.sobre || [], monto: r2(ac[i]), parametro: x.k !== 'sum' && !x.vacia
+    }));
+    const suma = r2(filas.reduce((s, f) => s + (f.parametro ? f.monto : 0), 0));
+    filas.forEach(f => { f.inc = total ? f.monto / total * 100 : 0; });
+    /* las partidas que más pesan en la diferencia: (P.U. − valor sin
+       redondear) × cantidad. Responden «¿de dónde salen estos miles?» */
+    const mayores = [];
+    P.modulos.forEach(m => m.items.forEach(it => {
+      const a = analisis(it), q = Number(it.cant) || 0;
+      const crudo = a.cadena && a.cadena.length ? a.cadena[a.cadena.length - 1].valor : a.pu;
+      const v = (parcialGeneral(it) / (q || 1)) - crudo;
+      if (q) mayores.push({ desc: it.desc, cant: q, pu: a.pu, crudo, aporte: r2(v * q) });
+    }));
+    mayores.sort((x, y) => Math.abs(y.aporte) - Math.abs(x.aporte));
+    return { modo: impreso ? 'impreso' : 'exacto', filas, suma, redondeo: r2(total - suma), total,
+             mayores: mayores.slice(0, 5) };
   }
 
   /* =====================================================================
@@ -1547,9 +1614,21 @@ const MOTOR = (() => {
       it.comp = (Array.isArray(it.comp) ? it.comp : []).filter(c => c && typeof c === 'object');
       it.comp.forEach(c => { c.ins = sTxt(c.ins); c.rend = sNum(c.rend, 0); });
       it.computos = (Array.isArray(it.computos) ? it.computos : []).filter(c => c && typeof c === 'object');
+      /* datos del .ddp de origen que viajan con el ítem (ver EXPORTADOR) */
+      if (it.px !== undefined) {
+        const x = it.px && typeof it.px === 'object' && !Array.isArray(it.px) ? it.px : {};
+        const q = {};
+        ['id', 'grp', 'h', 'cuad', 'fIni', 'fFin', 'p454'].forEach(k => {
+          if (x[k] !== undefined && Number.isFinite(Number(x[k]))) q[k] = Number(x[k]);
+        });
+        if (x.espec) q.espec = sTxt(x.espec).slice(0, 256);
+        if (typeof x.rtf === 'string' && /^[A-Za-z0-9+/=\s]*$/.test(x.rtf)) q.rtf = x.rtf;
+        it.px = q;
+      }
       it.computos.forEach(c => {
         c.d = sTxt(c.d);
-        ['n', 'l', 'a', 'h'].forEach(k => {
+        ['n', 'l', 'a', 'h', 'ar', 'vo'].forEach(k => {
+          if ((k === 'ar' || k === 'vo') && !(k in c)) return;   // los .boq viejos no los traen
           if (c[k] === '' || c[k] === null || c[k] === undefined) { c[k] = ''; return; }
           c[k] = sNum(c[k], '');
         });
@@ -1595,6 +1674,14 @@ const MOTOR = (() => {
       x.d = sTxt(x.d); x.u = sTxt(x.u) || 'pza';
       x.p = sNum(x.p, 0);
       if (x.f !== undefined) { const f = sFecha(x.f); if (f) x.f = f; else delete x.f; }
+      if (x.px !== undefined) {
+        const s = x.px && typeof x.px === 'object' && !Array.isArray(x.px) ? x.px : {};
+        const q = {};
+        if (Number.isFinite(Number(s.grp)) && Number(s.grp)) q.grp = Number(s.grp);
+        const f = sFecha(s.f); if (f) q.f = f;
+        if (s.baja === true) q.baja = true;
+        x.px = q;
+      }
     });
     return p;
   }
@@ -2710,7 +2797,7 @@ const MOTOR = (() => {
     const n = nPeriodos || Math.max(1, Math.ceil(plazo / 30));
     const per = new Array(n).fill(0);
     P.modulos.forEach(m => m.items.forEach(it => {
-      const monto = analisis(it).total;
+      const monto = parcialGeneral(it);   // el mismo parcial del B-1
       const ini = Number(it.inicio) || 0, dur = Math.max(1, Number(it.dias) || 1);
       for (let d = 0; d < dur; d++) {
         const k = Math.min(n - 1, Math.floor((ini + d) / (plazo / n)));
@@ -2747,7 +2834,7 @@ const MOTOR = (() => {
     formatoDesdeHoja, PLANTILLAS_HOJA, formatoDesdePlantilla,
     GG_RUBROS, ggDesglose, guardarGgDesglose, sumaGg,
     fijarPuDeArchivo, soltarPuDeArchivo, conPuDeArchivo,
-    totalComputos, parcialComputo, MEDIDAS_COMPUTO, requerimiento,
+    totalComputos, parcialComputo, MEDIDAS_COMPUTO, requerimiento, resumenParametros,
     buscarEnBase, buscarInsumosEnBase, costoBase, importarApu, importarApuEditado,
     norm, cargarCatalogo, revisarDescripcion, aplicarDelta,
     ID_PROPIA, payloadApu, payloadItem, guardarEnBD, resumenBDU, limpiarBDU,

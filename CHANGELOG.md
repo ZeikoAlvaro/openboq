@@ -5,6 +5,28 @@ La versión en línea siempre es la de <https://openboq.pages.dev>.
 
 ---
 
+## 2.8 · octubre 2026
+
+**Aplicación**
+- **Importar presupuesto desde Excel** (HERRAMIENTAS): el presupuesto general y los análisis de precios
+  unitarios, en .xls o .xlsx, pasan a un proyecto sin rearmar nada. Reconoce el Excel que exporta PRESCOM,
+  una hoja por ítem, hojas de «Actividad» y secciones (A) a (G), en bolivianos o en dólares. Avisa lo que
+  no cuadra en el archivo: análisis que no suman su propio total, renglones sin costo y precios en
+  bolivianos copiados en la columna de dólares.
+- La misma ventana explica cómo usar OpenBOQ con una IA por MCP, para los formatos que no reconoce.
+- **Administración directa** (HERRAMIENTAS): del mismo proyecto salen dos, el contrato de mano de obra
+  y equipo y los materiales que compra la entidad a costo directo, con su comparativo contra la
+  modalidad delegada y la planilla de adquisición. Se descargan los dos en formato PRESCOM o como .boq.
+- La ida y vuelta con el formato .ddp conserva los cómputos en su ítem, las especificaciones técnicas,
+  el cronograma y los grupos; el resumen por parámetro cierra con el total.
+- Métricas de uso sin cookies, preparadas y apagadas hasta configurarlas.
+
+**Repositorio**
+- Servidor MCP local en `mcp/`: una IA arma presupuestos o importa un Excel y el motor de OpenBOQ
+  calcula.
+
+---
+
 ## 2.7 · octubre 2026
 
 **Repositorio**

@@ -220,7 +220,7 @@ const REP = (() => {
         '<th style="width:92px">MONTO</th><th style="width:56px">% OBRA</th></tr></thead><tbody>';
       g.forEach((x, k) => {
         h += '<tr><td class="c">' + (k + 1) + '</td><td>' + esc(x.ins.d) + '</td><td class="c">' + esc(x.ins.u) +
-          '</td><td class="n">' + MOTOR.fmt(x.cant, 3) + '</td><td class="n">' + f(x.ins.p) +
+          '</td><td class="n">' + MOTOR.fmt(x.cant, 3) + '</td><td class="n">' + f(x.p) +
           '</td><td class="n">' + f(x.monto) + '</td><td class="n">' +
           (tot ? (x.monto / tot * 100).toFixed(2) : '0.00') + '</td></tr>';
       });
@@ -284,7 +284,7 @@ const REP = (() => {
   function crono() {
     const P = MOTOR.proyecto();
     const S = MOTOR.curvaS();
-    const tot = MOTOR.totalProyecto();
+    const tot = MOTOR.totalGeneral();   // el total del B-1
     let h = encabezado('CRONOGRAMA DE EJECUCIÓN Y CURVA "S"');
     h += '<h2>CRONOGRAMA DE ACTIVIDADES</h2>';
     h += '<table><thead><tr><th style="width:26px">N°</th><th style="width:34px">EDT</th><th>ACTIVIDAD</th>' +
@@ -300,7 +300,7 @@ const REP = (() => {
     MOTOR.estructuraCrono().forEach(mod => {
       const fm = MOTOR.fechasDe(mod.inicio, mod.dias);
       h += '<tr style="background:#e8e5de;font-weight:bold"><td></td><td class="c">' + mod.edt + '</td><td>' +
-        esc(mod.m.n) + '</td><td class="n">' + f(MOTOR.totalModulo(mod.m)) + '</td><td class="c">' +
+        esc(mod.m.n) + '</td><td class="n">' + f(MOTOR.subtotalGeneral(mod.m)) + '</td><td class="c">' +
         (mod.hijas.length ? mod.dias : '—') + '</td><td class="c">' +
         (mod.hijas.length ? MOTOR.fmtFecha(fm.ini) : '—') + '</td><td class="c">' +
         (mod.hijas.length ? MOTOR.fmtFecha(fm.fin) : '—') + '</td><td></td>' +
@@ -308,7 +308,7 @@ const REP = (() => {
       mod.hijas.forEach(a => {
         const it = a.it, fa = MOTOR.fechasDe(it.inicio, it.dias);
         h += '<tr><td class="c">' + a.n + '</td><td class="c">' + a.edt + '</td><td>' + esc(it.desc) +
-          '</td><td class="n">' + f(MOTOR.analisis(it).total) + '</td><td class="c">' +
+          '</td><td class="n">' + f(MOTOR.parcialGeneral(it)) + '</td><td class="c">' +
           Math.max(1, Number(it.dias) || 1) + '</td><td class="c">' + MOTOR.fmtFecha(fa.ini) +
           '</td><td class="c">' + MOTOR.fmtFecha(fa.fin) + '</td><td class="c">' + esc(it.pred || '') + '</td>' +
           barra(it.inicio, it.dias) + '</tr>';
@@ -522,7 +522,7 @@ const REP = (() => {
       let st = 0;
       g.forEach(x => {
         s += x.monto; st += x.monto;
-        h.fila([cel(x.ins.d), cel(x.ins.u, EST.ctr), num(x.cant, EST.num4), xn(x.ins.p),
+        h.fila([cel(x.ins.d), cel(x.ins.u, EST.ctr), num(x.cant, EST.num4), xn(x.p),
           xn(x.monto), cel(NOMGRUPO[x.ins.t]), num(x.monto / tot * 100)]);
       });
       h.fila([cel('Subtotal ' + NOMGRUPO[t], EST.subT, 4), xn(st, EST.subN),
@@ -551,7 +551,10 @@ const REP = (() => {
         if (!arr.length) { h.fila([cel('(sin insumos)', EST.nota, 5)]); return; }
         let st = 0;
         arr.forEach(x => {
-          const c = x.rend * q, parcial = MOTOR.r2(c * x.pu);
+          /* el parcial sale del renglón del B-2 (`bruto`, con la precisión
+             del archivo si la tiene), así el costo directo del ítem es el
+             mismo que en su análisis */
+          const c = x.rend * q, parcial = MOTOR.r2(x.bruto * q);
           s += parcial; st += parcial;
           h.fila([cel(x.ins.d), cel(x.ins.u, EST.ctr), xn(x.pu), num(c, EST.num4), xn(parcial)]);
         });
@@ -567,38 +570,65 @@ const REP = (() => {
 
   /* --- 7. Resumen general (parámetros) --- */
   function hResumenGeneral() {
-    const P = MOTOR.proyecto();
-    const FM = MOTOR.formato().filas || [];
-    /* Se acumula fila por fila de la cadena, sea la oficial o una propia: cada
-       ítem aporta el valor de esa fila por su cantidad. Antes estaban las seis
-       incidencias escritas a mano, y con un formato propio no habría qué
-       mostrar. Las filas de subtotal no se listan: son sumas de las anteriores
-       y repetirlas aquí daría un total que no cierra. */
-    const ac = FM.map(() => 0);
-    P.modulos.forEach(m => m.items.forEach(it => {
-      const a = MOTOR.analisis(it), q = Number(it.cant) || 0;
-      (a.cadena || []).forEach((x, i) => { ac[i] += x.valor * q; });
-    }));
-    const h = nuevaHoja('Resumen general', 'Resumen general por parámetro', [50, 20, 30]);
-    encabezados(h, ['Parámetro', 'Monto', 'Fórmula']);
-    const f = (p, v, fo) => h.fila([cel(p), xn(v), cel(fo)]);
+    /* Fila por fila de la cadena, sea la oficial o una propia: cada ítem
+       aporta el valor de esa fila por su cantidad (MOTOR.resumenParametros).
+       Dos columnas de monto: la exacta y la del B-2 impreso (cada fila a 2
+       decimales por unidad × cantidad, como la arma PRESCOM). Ninguna suma el
+       total —el total sale del P.U. ya redondeado—, así que la diferencia va
+       como fila propia y el resumen cierra con el B-1. Los subtotales se
+       muestran para leerlo igual que el B-2, pero no entran en la suma. */
+    const ex = MOTOR.resumenParametros('exacto'), im = MOTOR.resumenParametros('impreso');
+    const h = nuevaHoja('Resumen general', 'Resumen general por parámetro', [6, 44, 26, 18, 10, 18, 10]);
+    encabezados(h, ['Nº', 'Parámetro', 'Fórmula', 'Monto', 'Inc. %', 'Monto (como PRESCOM)', 'Inc. %']);
     const LETRA = ['A', 'B', 'C'];
-    FM.forEach((x, i) => {
-      if (x.k === 'sum') return;
-      const formula = x.k === 'ent' ? LETRA[i] || ''
+    let ent = 0;
+    ex.filas.forEach((x, i) => {
+      if (x.k !== 'ent' && x.k !== 'sum' && !x.parametro) return;      // fila en blanco
+      const y = im.filas[i];
+      const formula = x.k === 'ent' ? LETRA[ent++] || ''
+        : x.k === 'sum' ? 'subtotal: ' + (x.sobre || []).map((n, j) => (Number(n) < 0 ? (j ? ' − ' : '−') : (j ? ' + ' : '')) +
+            'Nº' + Math.abs(Number(n))).join('')
         : (x.pct + ' % × (' + (x.sobre || []).map((n, j) => (Number(n) < 0 ? (j ? ' − ' : '−') : (j ? ' + ' : '')) +
             'Nº' + Math.abs(Number(n))).join('') + ')' + (x.k === 'imp' ? ' ÷ (1 − impuestos sobre el precio final)' : ''));
-      f(x.n + ((x.k === 'pct' || x.k === 'imp') ? ' (' + x.pct + '%)' : ''), ac[i], formula);
+      const sub = x.k === 'sum';
+      h.fila([num(x.i, EST.ctr), cel(x.n + (x.pct !== null ? ' (' + x.pct + '%)' : ''), sub ? EST.subT : undefined),
+        cel(formula), xn(x.monto, sub ? EST.subN : undefined), num(x.inc), xn(y.monto, sub ? EST.subN : undefined), num(y.inc)]);
     });
-    h.fila([cel('Total presupuesto:', EST.totT), xn(MOTOR.totalProyecto(), EST.totN), cel('', EST.totT)]);
+    h.fila([cel('', EST.subT), cel('Suma de los parámetros (sin subtotales)', EST.subT), cel('', EST.subT),
+      xn(ex.suma, EST.subN), num(ex.total ? ex.suma / ex.total * 100 : 0, EST.subN),
+      xn(im.suma, EST.subN), num(im.total ? im.suma / im.total * 100 : 0, EST.subN)]);
+    h.fila([cel(''), cel('Diferencia por redondeo del precio unitario'),
+      cel('Σ P.U. redondeado × cant. − suma de parámetros'),
+      xn(ex.redondeo), num(ex.total ? ex.redondeo / ex.total * 100 : 0),
+      xn(im.redondeo), num(im.total ? im.redondeo / im.total * 100 : 0)]);
+    h.fila([cel('', EST.totT), cel('Total presupuesto:', EST.totT), cel('', EST.totT),
+      xn(ex.total, EST.totN), num(100, EST.totN), xn(im.total, EST.totN), num(100, EST.totN)]);
+    h.blanco();
+    h.fila([cel('El total es la suma de precio unitario × cantidad, con cada precio unitario redondeado a ' +
+      '2 decimales. Por eso los parámetros solos no lo alcanzan, aquí ni en PRESCOM: la diferencia queda ' +
+      'a la vista en su propia fila. «Como PRESCOM» suma cada fila tal como se imprime en el análisis ' +
+      '(a 2 decimales por unidad, × cantidad, redondeado por ítem): da los mismos montos que el resumen ' +
+      'general de PRESCOM, y por eso sus porcentajes salen corridos.', EST.nota, 7)]);
+    /* de dónde sale la diferencia: las partidas que más aportan */
+    const may = (ex.mayores || []).filter(x => Math.abs(x.aporte) >= 0.01);
+    if (Math.abs(ex.redondeo) >= 1 && may.length) {
+      h.blanco();
+      h.fila([cel('Partidas que más aportan a la diferencia por redondeo (columna exacta)', EST.grupo, 7)]);
+      /* sin `encabezados`: movería el panel inmovilizado hasta acá */
+      h.fila(['', 'Ítem', 'Cantidad', 'P.U.', 'P.U. sin redondear', 'Aporte', '% de la dif.'].map(c => cel(c, EST.encab)));
+      may.forEach(x => h.fila([cel(''), cel(x.desc), num(x.cant, EST.num4), xn(x.pu), num(x.crudo, EST.num4),
+        xn(x.aporte), num(ex.redondeo ? x.aporte / ex.redondeo * 100 : 0)]));
+    }
     return h;
   }
 
   /* --- 8. Resumen por incidencia --- */
   function hIncidencia() {
-    const P = MOTOR.proyecto(), tot = MOTOR.totalProyecto() || 1;
+    /* los parciales y el total del B-1 (MOTOR.totalGeneral): el mismo número
+       que el presupuesto impreso, también en un proyecto importado */
+    const P = MOTOR.proyecto(), tot = MOTOR.totalGeneral() || 1;
     const L = [];
-    P.modulos.forEach(m => m.items.forEach(it => L.push({ m, it, v: MOTOR.analisis(it).total })));
+    P.modulos.forEach(m => m.items.forEach(it => L.push({ m, it, v: MOTOR.parcialGeneral(it) })));
     L.sort((a, b) => b.v - a.v);
     const h = nuevaHoja('Resumen por incidencia', 'Resumen por incidencia económica', [6, 52, 28, 17, 13, 14]);
     encabezados(h, ['Nº', 'Descripción ítem', 'Módulo', 'Parcial', 'Incidencia %', 'Acumulado %']);
@@ -644,11 +674,14 @@ const REP = (() => {
     let n = 0;
     P.modulos.forEach(m => m.items.forEach(it => {
       n++;
-      h.fila([num(n, EST.ctr), cel(it.desc), xn(MOTOR.analisis(it).total),
-        cel(dia(it.inicio), EST.ctr), cel(dia((it.inicio || 0) + (it.dias || 0)), EST.ctr),
-        num(it.dias || 0, EST.ctr)]);
+      /* el último día INCLUIDO, igual que el cronograma en pantalla y en el
+         HTML (MOTOR.fechasDe); antes acá salía un día más tarde */
+      const dur = Math.max(1, Number(it.dias) || 1);
+      h.fila([num(n, EST.ctr), cel(it.desc), xn(MOTOR.parcialGeneral(it)),
+        cel(dia(it.inicio), EST.ctr), cel(dia((Number(it.inicio) || 0) + dur - 1), EST.ctr),
+        num(dur, EST.ctr)]);
     }));
-    h.fila([cel('Plazo total:', EST.totT, 2), xn(MOTOR.totalProyecto(), EST.totN),
+    h.fila([cel('Plazo total:', EST.totT, 2), xn(MOTOR.totalGeneral(), EST.totN),
       cel(P.plazo + ' días calendario', EST.totT, 2), cel('', EST.totT)]);
     h.blanco();
     const S = MOTOR.curvaS();
@@ -830,7 +863,7 @@ const REP = (() => {
     const nom = { M: 'MATERIAL', O: 'MANO DE OBRA', E: 'EQUIPO' };
     L.forEach(x => {
       c += [nom[x.ins.t], '"' + x.ins.d.replace(/"/g, "'") + '"', x.ins.u,
-      x.cant, x.ins.p, x.ins.f || '', x.monto].join(';') + '\n';
+      x.cant, x.p, x.ins.f || '', x.monto].join(';') + '\n';
     });
     descargar(nombreArchivo(MOTOR.proyecto().nombre) + '_insumos.csv', '﻿' + c, 'text/csv;charset=utf-8');
   }
