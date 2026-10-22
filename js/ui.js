@@ -2135,6 +2135,8 @@
       ['Formulario B-3 · Precios elementales', 'repElementales'], ['—'],
       ['Requerimiento total de insumos', 'repInsumos'], ['Planilla de cómputos métricos', 'repComputos'],
       ['Cronograma y curva S', 'repCrono'], ['Resumen por módulos', 'repResumen'], ['—'],
+      ['Resumen general por parámetro', 'repParametros'],
+      ['Resumen de costos directos', 'repDirectos'], ['Resumen de costos indirectos', 'repIndirectos'], ['—'],
       ['Exportar a Excel (libro completo)', 'exportarXls'],
       ['Exportar a Excel (elegir reportes)…', 'exportarXlsSel'],
       ['Exportar insumos a CSV', 'exportarCsvIns']
@@ -2165,6 +2167,7 @@
          la pestaña o por el botón del B-2. Acá abre la misma pestaña. */
       ['Incidencias del proyecto…', 'paramsGlobal'],
       ['Moneda, tipo de cambio y decimales…', 'formatoNumeros'],
+      ['Encabezado de los reportes…', 'membreteReportes'],
       ['Tema claro / oscuro', 'tema'],
       ['Interfaz simple / completa', 'cambiarModo'],
       ['—'], ['Base de Datos al día…', 'estadoSincro'],
@@ -4039,6 +4042,21 @@
     repComputos() { REP.computos(); },
     repCrono() { REP.crono(); },
     repResumen() { REP.resumen(); },
+    repParametros() { REP.parametros(); },
+    /* el bloque de arriba a la izquierda de cada reporte: es de quien
+       imprime (empresa, profesional, teléfono), no del proyecto */
+    membreteReportes() {
+      modal('Encabezado de los reportes', `
+        <p class="mini" style="margin:0 0 6px">Va arriba a la izquierda en todos los reportes impresos o guardados en PDF.
+        Hasta 6 líneas: empresa o profesional, matrícula, teléfono, ciudad. La primera va en negrita.
+        Se guarda en este navegador.</p>
+        <textarea id="txtMembrete" rows="6" style="width:100%;font:13px Arial">${esc(REP.membrete())}</textarea>`,
+        [['Cancelar', null, 'sec'],
+         ['Volver al de OpenBOQ', () => { REP.membrete(''); marcarGuardado('Encabezado de los reportes: el de OpenBOQ'); }, 'sec'],
+         ['Guardar', () => { REP.membrete($('#txtMembrete').value); marcarGuardado('Encabezado de los reportes guardado'); }]]);
+    },
+    repDirectos() { REP.directos(); },
+    repIndirectos() { REP.indirectos(); },
 
     /* --- bases de datos propias ---
        Además de la base publicada, cada usuario puede armar las suyas: quedan

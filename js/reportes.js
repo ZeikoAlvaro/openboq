@@ -5,38 +5,168 @@
 
 const REP = (() => {
 
+  /* Presentación de los reportes: la de los impresos de PRESCOM —el formato
+     que conocen quienes revisan presupuestos—. Blanco y negro, título
+     centrado, cabecera del proyecto en dos columnas, tabla con un solo marco
+     en el encabezado, módulos en franja gris con «>», y «Pág. N de M» al pie.
+     La cabecera va en el <thead> de una tabla que envuelve todo el reporte:
+     así el navegador la repite en cada hoja al imprimir. */
   const CSS = `
+  <style id="tamHoja">@page{size:letter}</style>
   <style>
-    @page{size:A4;margin:14mm 12mm}
-    body{font-family:"Segoe UI",Arial,sans-serif;font-size:10.5px;color:#111;margin:0}
-    h1{font-size:15px;margin:0 0 2px;text-align:center;letter-spacing:.5px}
-    h2{font-size:12px;margin:14px 0 4px;background:#3d3d3d;color:#fff;padding:3px 6px}
-    .enc{border:1.5px solid #c00000;padding:6px 8px;margin-bottom:8px}
-    .enc .g{display:grid;grid-template-columns:repeat(4,1fr);gap:2px 12px;font-size:10px}
-    .enc b{color:#c00000}
+    @page{margin:12mm 12mm 14mm;
+      @bottom-right{content:"Pág. " counter(page) " de " counter(pages);font:9px Arial,sans-serif}}
+    *{box-sizing:border-box}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:#000;margin:0;background:#fff}
+    .cred{font-size:8px;line-height:1.25;margin-bottom:6px}
+    .cred b{font-size:11px}
+    h1{font-size:17px;margin:4px 0 8px;text-align:center;font-weight:700}
+    .datos{font-size:11px;margin:0 0 8px 0;line-height:1.45}
+    .datos div{display:flex;justify-content:space-between;gap:16px}
+    .datos span:last-child{text-align:right;white-space:nowrap}
+    h2{font-size:11px;margin:12px 0 3px;background:#e6e6e6;padding:2px 5px;font-weight:700}
     table{border-collapse:collapse;width:100%;margin-bottom:6px}
-    th{background:#c00000;color:#fff;border:1px solid #8c0000;padding:3px 4px;font-size:9.5px}
-    td{border:1px solid #bbb;padding:2px 4px;font-size:10px;vertical-align:top}
+    th{background:#fff;color:#000;border:1px solid #000;padding:2px 4px;font-size:10px;font-weight:700}
+    td{border:0;padding:1px 4px;font-size:10px;vertical-align:top}
     td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
     td.c{text-align:center}
-    tr.g td{background:#eee;font-weight:700}
-    tfoot td{background:#f0ece4;font-weight:700}
-    .tot{background:#c00000;color:#fff;font-weight:700}
-    .apu{page-break-inside:avoid;margin-bottom:14px;border:1px solid #999;padding:6px}
-    .apu h3{font-size:11px;margin:0 0 4px;color:#c00000}
-    .pie{margin-top:16px;font-size:9px;color:#666;text-align:center}
-    .firmas{margin-top:34px;display:flex;justify-content:space-around;font-size:10px;text-align:center}
-    .firmas div{border-top:1px solid #333;padding-top:3px;width:200px}
+    tr.g td{background:#ececec;font-weight:700}
+    tr.mod td:first-child::before{content:"> "}
+    tfoot td{background:#ececec;font-weight:700}
+    /* el total de una tabla va UNA vez, al final: impreso, un <tfoot> se
+       repite al pie de cada hoja y parecía un total a mitad de la lista */
+    table:not(.marco)>tfoot{display:table-row-group}
+    .tot td,.tot{background:#ececec;color:#000;font-weight:700}
+    .apu{page-break-inside:avoid;margin-bottom:14px;border-top:1px solid #000;padding-top:4px}
+    .apu h3{font-size:11px;margin:0 0 4px}
+    .b2{border-top:0;padding-top:0}
+    .b2+.b2{page-break-before:always;break-before:page}
+    .itemcab{display:flex;justify-content:space-between;gap:12px;font-size:11px;margin:2px 0 6px}
+    .apuT td{padding:1px 4px}
+    .apuT td.frm{font-size:8.5px}
+    .son{font-size:10.5px;margin:6px 0 0}
+    h2.salto{page-break-before:always;break-before:page}
+    .nota{font-size:9px;color:#333;margin:6px 0}
+    .fuera{color:#a1281c;font-weight:700}
+    .pie{margin-top:12px;font-size:8.5px;color:#555;text-align:left}
+    .firmas{margin-top:34px;display:flex;justify-content:space-around;font-size:10px;text-align:center;page-break-inside:avoid}
+    .firmas div{border-top:1px solid #000;padding-top:3px;width:200px}
     svg{width:100%;height:300px}
+    table.marco{margin:0}
+    table.marco>thead>tr>td,table.marco>tbody>tr>td,table.marco>tfoot>tr>td{padding:0;border:0;background:none;font-weight:400}
+    /* pantalla: hoja sobre fondo gris y barra de herramientas */
+    @media screen{
+      body{background:#8a8f96;padding:52px 0 24px}
+      .barra{position:fixed;top:0;left:0;right:0;height:42px;display:flex;align-items:center;gap:10px;padding:0 14px;
+        background:#2b2f36;color:#fff;font:13px Arial,sans-serif;z-index:5;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+      .barra .esp{flex:1}
+      .barra button,.barra select{font:13px Arial,sans-serif;padding:5px 12px;border-radius:3px;border:1px solid #666;
+        background:#40464f;color:#fff;cursor:pointer}
+      .barra button.pri{background:#1a4b8c;border-color:#1a4b8c}
+      .aviso-pdf{position:fixed;top:48px;right:14px;max-width:340px;background:#fff8e1;color:#222;border:1px solid #e0c060;
+        border-radius:4px;padding:8px 10px;font:12px Arial,sans-serif;z-index:6;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+      .papel{background:#fff;width:216mm;min-height:279mm;margin:0 auto;padding:12mm;box-shadow:0 2px 12px rgba(0,0,0,.45)}
+      .papel[data-hoja="A4"]{width:210mm;min-height:297mm}
+      .papel[data-hoja="legal"]{min-height:330mm}
+    }
+    @media print{ .barra,.aviso-pdf{display:none} }
   </style>`;
 
+  /* la cabecera del reporte que se está armando (la pone `encabezado`) */
+  let CAB = null;
+
+  /* ---------------- encabezado propio ----------------
+     El bloque de arriba a la izquierda (en PRESCOM, el de ROMSOFT): cada
+     persona pone el suyo —empresa o profesional, matrícula, teléfono,
+     ciudad—. Es de quien imprime, no del proyecto: se guarda en este
+     navegador y vale para todos los reportes. La primera línea va en negrita. */
+  const CLAVE_MEMBRETE = 'openboq_membrete';
+  const SALTO = String.fromCharCode(10);
+  const MEMBRETE_DEF = ['OpenBOQ', 'Presupuestos de obra · software libre', 'openboq.pages.dev'].join(SALTO);
+  function membrete(nuevo) {
+    try {
+      if (nuevo !== undefined) {
+        const t = String(nuevo).split(SALTO).map(x => x.trim()).filter(Boolean).slice(0, 6).join(SALTO);
+        if (t && t !== MEMBRETE_DEF) localStorage.setItem(CLAVE_MEMBRETE, t); else localStorage.removeItem(CLAVE_MEMBRETE);
+      }
+      return localStorage.getItem(CLAVE_MEMBRETE) || MEMBRETE_DEF;
+    } catch (e) { return MEMBRETE_DEF; }
+  }
+  const membreteHTML = () => membrete().split(SALTO).map((l, i) => i ? esc(l) : '<b>' + esc(l) + '</b>').join('<br>');
+
+  function cabecera(titulo) {
+    const P = MOTOR.proyecto();
+    const lugar = P.ubicacion ? '&nbsp;&nbsp;&nbsp;Lugar: ' + esc(P.ubicacion) : '';
+    return '<div class="cred">' + membreteHTML() + '</div>' +
+      '<h1>' + esc(titulo) + '</h1><div class="datos">' +
+      '<div><span>Proyecto: ' + esc(P.nombre) + '</span><span>Fecha: ' + fFecha(P.fecha) + '</span></div>' +
+      '<div><span>Cliente: ' + esc(P.entidad || '—') + lugar + '</span><span>Tipo de cambio: ' +
+      esc(P.tc) + ' · Moneda: ' + esc(P.moneda) + '</span></div></div>';
+  }
+
+  /** Abre el reporte en una ventana aparte, con su barra: imprimir o guardar
+      en PDF, tamaño de hoja y cerrar. Los botones se enganchan desde acá —no
+      con onclick en el HTML— porque la ventana hereda la política de
+      seguridad de la aplicación, que no deja correr código escrito adentro. */
   function abrir(titulo, html) {
     const w = window.open('', '_blank');
     if (!w) { alert('El navegador bloqueó la ventana emergente. Habilite las ventanas emergentes para este archivo.'); return; }
+    const cab = CAB !== null ? cabecera(CAB) : '';
+    CAB = null;
     w.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>' +
-      esc(titulo) + '</title>' + CSS + '</head><body>' + html +
-      '<div class="pie">Generado con OpenBOQ · ' + new Date().toLocaleString('es-BO') + '</div></body></html>');
+      esc(titulo) + '</title>' + CSS + '</head><body>' +
+      '<div class="barra"><b>' + esc(titulo) + '</b><span class="esp"></span>' +
+      '<label>Hoja <select id="repHoja"><option value="letter">Carta</option><option value="A4">A4</option>' +
+      '<option value="legal">Oficio</option></select></label>' +
+      '<button id="repMembrete">Encabezado</button>' +
+      '<button id="repImprimir">Imprimir</button><button class="pri" id="repPdf">Guardar en PDF</button>' +
+      '<button id="repCerrar">Cerrar</button></div>' +
+      '<div class="papel" data-hoja="letter"><table class="marco"><thead><tr><td>' + cab + '</td></tr></thead>' +
+      '<tbody><tr><td>' + html + '</td></tr></tbody>' +
+      '<tfoot><tr><td><div class="pie">Generado con OpenBOQ · ' + new Date().toLocaleString('es-BO') +
+      '</div></td></tr></tfoot></table></div></body></html>');
     w.document.close();
+    const d = w.document;
+    if (typeof d.getElementById !== 'function') return;
+    const $d = id => d.getElementById(id);
+    if ($d('repImprimir')) $d('repImprimir').addEventListener('click', () => { w.focus(); w.print(); });
+    /* El navegador no deja elegir el destino desde la página: se abre el
+       mismo diálogo y se avisa qué tocar. El nombre del archivo sale del
+       título de la ventana. */
+    if ($d('repPdf')) $d('repPdf').addEventListener('click', () => {
+      if (!$d('avisoPdf')) {
+        const a = d.createElement('div');
+        a.id = 'avisoPdf'; a.className = 'aviso-pdf';
+        a.innerHTML = 'En el cuadro de impresión, en <b>Destino</b>, elija <b>Guardar como PDF</b> y pulse <b>Guardar</b>.';
+        d.body.appendChild(a);
+        setTimeout(() => { if (a.parentNode) a.parentNode.removeChild(a); }, 9000);
+      }
+      setTimeout(() => { w.focus(); w.print(); }, 350);
+    });
+    if ($d('repCerrar')) $d('repCerrar').addEventListener('click', () => w.close());
+    /* editar el encabezado propio sin salir del reporte */
+    if ($d('repMembrete')) $d('repMembrete').addEventListener('click', () => {
+      let caja = $d('cajaMembrete');
+      if (caja) { caja.remove(); return; }
+      caja = d.createElement('div');
+      caja.id = 'cajaMembrete'; caja.className = 'aviso-pdf';
+      caja.innerHTML = '<b>Encabezado de sus reportes</b><br><span style="font-size:11px">Hasta 6 líneas: empresa o ' +
+        'profesional, matrícula, teléfono, ciudad. La primera va en negrita. Se guarda en este navegador.</span>' +
+        '<textarea rows="5" style="width:100%;margin:6px 0;font:12px Arial"></textarea>' +
+        '<div style="display:flex;gap:6px;justify-content:flex-end"><button data-m="def">Volver al de OpenBOQ</button>' +
+        '<button data-m="ok" style="background:#1a4b8c;color:#fff;border:0;padding:4px 10px">Guardar</button></div>';
+      d.body.appendChild(caja);
+      const ta = caja.querySelector('textarea');
+      ta.value = membrete();
+      const poner = () => d.querySelectorAll('.cred').forEach(c => { c.innerHTML = membreteHTML(); });
+      caja.querySelector('[data-m="ok"]').addEventListener('click', () => { membrete(ta.value); poner(); caja.remove(); });
+      caja.querySelector('[data-m="def"]').addEventListener('click', () => { membrete(''); poner(); caja.remove(); });
+      ta.focus();
+    });
+    if ($d('repHoja')) $d('repHoja').addEventListener('change', e => {
+      $d('tamHoja').textContent = '@page{size:' + e.target.value + '}';
+      d.querySelector('.papel').dataset.hoja = e.target.value;
+    });
   }
 
   /* Escapa TODO lo que puede romper el HTML, no solo los signos de mayor y
@@ -52,20 +182,12 @@ const REP = (() => {
   const esc = s => String(s === undefined || s === null ? '' : s)
     .replace(/[&<>"']/g, c => MAPA_ESC[c]);
 
+  /** Anota el título del reporte; la cabecera la arma `abrir`, dentro del
+      encabezado que se repite en cada hoja. Devuelve '' para que los
+      reportes sigan escribiéndose igual que antes (`let h = encabezado(…)`). */
   function encabezado(sub) {
-    const P = MOTOR.proyecto();
-    return '<h1>' + esc(P.nombre.toUpperCase()) + '</h1>' +
-      '<h1 style="font-size:12px;font-weight:400">' + esc(sub) + '</h1>' +
-      '<div class="enc"><div class="g">' +
-      '<div><b>Entidad:</b> ' + esc(P.entidad || '—') + '</div>' +
-      '<div><b>Ubicación:</b> ' + esc(P.ubicacion || '—') + '</div>' +
-      '<div><b>Fecha:</b> ' + esc(P.fecha) + '</div>' +
-      '<div><b>Moneda:</b> ' + esc(P.moneda) + (P.moneda === '$US' ? ' (T/C ' + P.tc + ')' : '') + '</div>' +
-      '<div><b>Plazo:</b> ' + esc(P.plazo) + ' días calendario</div>' +
-      '<div><b>Módulos:</b> ' + P.modulos.length + '</div>' +
-      '<div><b>Ítems:</b> ' + P.modulos.reduce((s, m) => s + m.items.length, 0) + '</div>' +
-      '<div><b>Insumos:</b> ' + Object.keys(P.insumos).length + '</div>' +
-      '</div></div>';
+    CAB = sub;
+    return '';
   }
 
   const f = (v, d) => MOTOR.fmt(MOTOR.conv(v), d);
@@ -82,7 +204,7 @@ const REP = (() => {
     let n = 0;
     const gran = MOTOR.totalGeneral();
     P.modulos.forEach(m => {
-      if (P.modulos.length > 1) h += '<tr class="g"><td colspan="6">' + esc(m.n) + '</td></tr>';
+      if (P.modulos.length > 1) h += '<tr class="g mod"><td colspan="6">' + esc(m.n) + '</td></tr>';
       m.items.forEach(it => {
         const a = MOTOR.analisis(it); n++;
         h += '<tr><td class="c">' + n + '</td><td>' + esc(it.desc) + '</td><td class="c">' + esc(it.und) +
@@ -106,11 +228,15 @@ const REP = (() => {
     const P = MOTOR.proyecto();
     const lista = unItem ? [unItem] : P.modulos.flatMap(m => m.items);
     if (!lista.length) return alert('No hay ítems en el presupuesto.');
-    let h = encabezado('FORMULARIO B-2 · ANÁLISIS DE PRECIOS UNITARIOS');
+    let h = encabezado('Formulario B-2 · Análisis de precios unitarios');
     let n = 0;
     lista.forEach(it => {
       n++;
       const a = MOTOR.analisis(it);
+      /* Con el formato oficial, la hoja de PRESCOM: letras A a Q y la fórmula
+         de cada fila, un análisis por hoja y sin los huecos en blanco que deja
+         el original entre secciones. */
+      if (MOTOR.formatoEsOficial()) { h += b2Oficial(it, a, n, P); return; }
       h += '<div class="apu"><h3>ÍTEM N° ' + n + ' · ' + esc(it.desc) + '</h3>' +
         '<table><tr><td><b>Unidad:</b> ' + esc(it.und) + '</td><td><b>Cantidad:</b> ' +
         MOTOR.fmt(it.cant, 2) + '</td><td><b>Moneda:</b> ' + P.moneda + '</td>' +
@@ -168,6 +294,49 @@ const REP = (() => {
   }
   const fila = (t, v) => '<tr><td colspan="5" class="n">' + t + '</td><td class="n">' + f(v) + '</td></tr>';
 
+  /* Un análisis con la forma del B-2 de PRESCOM (formato oficial). */
+  function b2Oficial(it, a, n, P) {
+    const p = P.params, f4 = v => MOTOR.fmt(MOTOR.conv(v), 4), pc = v => MOTOR.fmt(v, 2) + '% de';
+    let h = '<div class="apu b2"><div class="itemcab"><span><b>Ítem ' + n + ':</b> ' + esc(it.desc) + '</span>' +
+      '<span>Unidad: ' + esc(it.und) + ' · Cantidad: ' + MOTOR.fmt(it.cant, 2) + '</span></div>';
+    h += '<table class="apuT"><thead><tr><th style="width:24px">Nº</th><th style="width:18px">P.</th><th>Insumo / parámetro</th>' +
+      '<th style="width:44px">Und.</th><th style="width:66px">Cant.</th><th style="width:70px">Unit. (' + esc(P.moneda) + ')</th>' +
+      '<th style="width:62px"></th><th style="width:84px">Parcial (' + esc(P.moneda) + ')</th></tr></thead><tbody>';
+    const sec = (l, t) => { h += '<tr><td></td><td class="c">' + l + '</td><td colspan="6">' + t + '</td></tr>'; };
+    const ins = arr => arr.forEach((x, k) => {
+      h += '<tr><td class="c">' + (k + 1) + '</td><td class="c">-</td><td>' + esc(x.ins.d) + '</td><td class="c">' + esc(x.ins.u) +
+        '</td><td class="n">' + MOTOR.fmt(x.rend, 4) + '</td><td class="n">' + MOTOR.fmt(MOTOR.conv(x.pu), 3) +
+        '</td><td></td><td class="n">' + f4(x.bruto) + '</td></tr>';
+    });
+    const par = (l, t, pct, form, v, g) => {
+      h += '<tr' + (g ? ' class="g"' : '') + '><td></td><td class="c">' + l + '</td><td>' + t + '</td><td></td><td class="n">' +
+        (pct === null ? '' : pc(pct)) + '</td><td></td><td class="n frm">' + form + '</td><td class="n">' + f4(v) + '</td></tr>';
+    };
+    sec('A', 'MATERIALES'); ins(a.grupos.M);
+    par('D', 'TOTAL MATERIALES', null, '(A) =', a.matX, 1);
+    sec('B', 'MANO DE OBRA'); ins(a.grupos.O);
+    par('E', 'SUBTOTAL MANO DE OBRA', null, '(B) =', a.moX, 1);
+    const cad = (a.cadena || []).map(x => x.valor);
+    par('F', 'CARGAS SOCIALES', p.cargas, '(E) =', cad[3]);
+    par('O', 'IMPUESTOS IVA', p.ivaMO, '(E+F) =', cad[4]);
+    par('G', 'TOTAL MANO DE OBRA', null, '(E+F+O) =', cad[5], 1);
+    sec('C', 'EQUIPO, MAQUINARIA Y HERRAMIENTAS'); ins(a.grupos.E);
+    par('H', 'HERRAMIENTAS', p.herr, '(G) =', cad[6]);
+    par('I', 'TOTAL EQUIPO, MAQUINARIA Y HERRAMIENTAS', null, '(C+H) =', cad[7], 1);
+    par('J', 'SUB TOTAL', null, '(D+G+I) =', cad[8], 1);
+    par('L', 'GASTOS GENERALES Y ADMINISTRATIVOS', p.gg, '(J) =', cad[9]);
+    par('M', 'UTILIDAD', p.util, '(J+L) =', cad[11]);
+    par('N', 'PARCIAL', null, '(J+L+M) =', cad[12], 1);
+    par('P', 'IMPUESTOS IT', p.it, '(N) =', cad[13]);
+    if (a.ajuste) par('', 'REDONDEO DEL ARCHIVO DE ORIGEN', null, '', a.ajuste);
+    h += '<tr class="tot"><td></td><td class="c">Q</td><td>TOTAL PRECIO UNITARIO</td><td colspan="3"></td><td class="n frm">(N+P) =</td>' +
+      '<td class="n">' + f4(cad[14] !== undefined && !a.ajuste ? cad[14] : a.pu) + '</td></tr>' +
+      '<tr class="tot"><td></td><td></td><td>PRECIO ADOPTADO:</td><td colspan="4"></td><td class="n">' + f(a.pu) + '</td></tr>';
+    h += '</tbody></table><p class="son">Son: ' + literal(MOTOR.conv(a.pu)) + ' ' +
+      (P.moneda === 'Bs' ? 'Bolivianos' : 'Dólares americanos') + '</p></div>';
+    return h;
+  }
+
   /** Fecha del precio para los impresos: dd/mm/aaaa, o un guión si no la tiene. */
   function fFecha(v) {
     if (!v) return '—';
@@ -209,13 +378,16 @@ const REP = (() => {
     const L = MOTOR.requerimiento();
     if (!L.length) return alert('No hay insumos en el presupuesto.');
     const tot = L.reduce((s, x) => s + x.monto, 0);
-    let h = encabezado('REQUERIMIENTO TOTAL DE INSUMOS DE LA OBRA');
+    let h = encabezado('Desglose de insumos general');
     const nom = { M: 'MATERIALES', O: 'MANO DE OBRA', E: 'EQUIPO, MAQUINARIA Y HERRAMIENTAS' };
+    let sec = 0;
     ['M', 'O', 'E'].forEach(t => {
       const g = L.filter(x => x.ins.t === t);
       if (!g.length) return;
       const st = g.reduce((s, x) => s + x.monto, 0);
-      h += '<h2>' + nom[t] + '</h2><table><thead><tr><th style="width:34px">N°</th><th>INSUMO</th>' +
+      /* cada tipo en su hoja, como los desgloses de PRESCOM, pero con su
+         subtotal y su peso en la obra (el original termina sin total) */
+      h += '<h2' + (sec++ ? ' class="salto"' : '') + '>Desglose de insumos general: ' + nom[t] + '</h2><table><thead><tr><th style="width:34px">N°</th><th>INSUMO</th>' +
         '<th style="width:50px">UND.</th><th style="width:90px">CANTIDAD</th><th style="width:80px">P. UNIT.</th>' +
         '<th style="width:92px">MONTO</th><th style="width:56px">% OBRA</th></tr></thead><tbody>';
       g.forEach((x, k) => {
@@ -278,6 +450,213 @@ const REP = (() => {
       '</td><td class="n">100.00</td></tr></tfoot></table>';
     h += firmas();
     abrir('Resumen por módulos', h);
+  }
+
+  /* ---------------- RESUMEN GENERAL POR PARÁMETRO ----------------
+     El mismo de la hoja «Resumen general» del Excel (MOTOR.resumenParametros,
+     columna exacta): fila por fila de la cadena del B-2, por su cantidad. */
+  function filasParametros() {
+    const ex = MOTOR.resumenParametros('exacto');
+    const LETRA = ['A', 'B', 'C'];
+    let ent = 0;
+    const sobre = x => (x.sobre || []).map((n, j) => (Number(n) < 0 ? (j ? ' − ' : '−') : (j ? ' + ' : '')) +
+      'Nº' + Math.abs(Number(n))).join('');
+    const filas = ex.filas.filter(x => x.k === 'ent' || x.k === 'sum' || x.parametro).map(x => ({
+      i: x.i, n: x.n + (x.pct !== null ? ' (' + x.pct + '%)' : ''), sub: x.k === 'sum', monto: x.monto, inc: x.inc,
+      formula: x.k === 'ent' ? LETRA[ent++] || '' : x.k === 'sum' ? 'subtotal: ' + sobre(x)
+        : x.pct + ' % × (' + sobre(x) + ')' + (x.k === 'imp' ? ' ÷ (1 − impuestos sobre el precio final)' : '')
+    }));
+    return { ex, filas };
+  }
+  function parametros() {
+    const P = MOTOR.proyecto();
+    const { ex, filas } = filasParametros();
+    const pc = v => (ex.total ? v / ex.total * 100 : 0).toFixed(2);
+    let h = encabezado('Resumen general por parámetro');
+    h += '<table><thead><tr><th style="width:30px">Nº</th><th>Parámetro</th><th style="width:30%">Fórmula</th>' +
+      '<th style="width:110px">Monto (' + esc(P.moneda) + ')</th><th style="width:56px">Inc. %</th></tr></thead><tbody>';
+    filas.forEach(x => {
+      h += '<tr' + (x.sub ? ' class="g"' : '') + '><td class="c">' + x.i + '</td><td>' + esc(x.n) + '</td><td>' +
+        esc(x.formula) + '</td><td class="n">' + f(x.monto) + '</td><td class="n">' + x.inc.toFixed(2) + '</td></tr>';
+    });
+    h += '</tbody><tfoot>' +
+      '<tr><td></td><td colspan="2">Suma de los parámetros (sin subtotales)</td><td class="n">' + f(ex.suma) +
+      '</td><td class="n">' + pc(ex.suma) + '</td></tr>' +
+      '<tr><td></td><td>Diferencia por redondeo del precio unitario</td><td>Σ P.U. redondeado × cant. − suma de parámetros</td>' +
+      '<td class="n">' + f(ex.redondeo) + '</td><td class="n">' + pc(ex.redondeo) + '</td></tr>' +
+      '<tr><td></td><td colspan="2">Total presupuesto:</td><td class="n">' + f(ex.total) + '</td><td class="n">100.00</td></tr>' +
+      '</tfoot></table>';
+    h += firmas();
+    abrir('Resumen general por parámetro', h);
+  }
+
+  /* ---------------- COSTOS DIRECTOS E INDIRECTOS ----------------
+     Criterio (decisión de Alvaro, 22/10/2026, sobre el material de
+     Ingeniería de Costos de la maestría, Temas 4 y 5): costo directo =
+     materiales + mano de obra con sus cargas sociales + equipo, maquinaria y
+     herramientas menores. Costo indirecto = gastos generales + utilidad +
+     IMPUESTOS, y los impuestos son el IT y el IVA de la mano de obra. Por eso
+     el costo directo es el «subtotal» del B-2 MENOS el IVA. El criterio del
+     Formulario B-2 (IVA dentro de la mano de obra) se muestra como variante.
+
+     Cada fila de la cadena del B-2 se clasifica por su NOMBRE, no por su
+     posición: así sirve también con un formato de incidencias propio. Se
+     suma fila × cantidad sin redondear, como la columna exacta del resumen
+     por parámetro; la diferencia con el B-1 es el redondeo del P.U. */
+  function claseFila(x, ent) {
+    const n = MOTOR.norm ? MOTOR.norm(x.n).toLowerCase() : String(x.n).toLowerCase();
+    if (x.k === 'ent') return ['mat', 'mo', 'eq'][ent] || 'otroD';
+    if (x.k === 'sum' || x.vacia) return null;
+    if (/gastos? generales/.test(n)) return 'gg';
+    if (/utilidad/.test(n)) return 'util';
+    if (/\biva\b/.test(n)) return 'iva';
+    if (/impuesto|transacciones|\bi\.?\s?t\b/.test(n)) return 'it';
+    if (/cargas|beneficios sociales/.test(n)) return 'cargas';
+    if (/herramienta/.test(n)) return 'herr';
+    return 'otroD';
+  }
+  const DIRECTOS = ['mat', 'mo', 'cargas', 'eq', 'herr', 'otroD'];
+  const INDIRECTOS = ['gg', 'util', 'it', 'iva'];
+
+  function desgloseCostos() {
+    const P = MOTOR.proyecto();
+    const cero = () => ({ mat: 0, mo: 0, cargas: 0, iva: 0, eq: 0, herr: 0, otroD: 0, gg: 0, util: 0, it: 0, b1: 0 });
+    const pct = {};
+    const mods = P.modulos.map(m => {
+      const s = cero();
+      m.items.forEach(it => {
+        const a = MOTOR.analisis(it), q = Number(it.cant) || 0;
+        let ent = 0;
+        (a.cadena || []).forEach(x => {
+          const c = claseFila(x, x.k === 'ent' ? ent++ : ent);
+          if (!c) return;
+          s[c] += (Number(x.valor) || 0) * q;
+          if (x.pct !== null && x.pct !== undefined && x.k !== 'ent' && pct[c] === undefined) pct[c] = Number(x.pct);
+        });
+        s.b1 += MOTOR.parcialGeneral(it);
+      });
+      return { n: m.n, s };
+    });
+    const t = cero();
+    mods.forEach(x => Object.keys(t).forEach(k => { t[k] += x.s[k]; }));
+    const cd = s => DIRECTOS.reduce((v, k) => v + s[k], 0);
+    const ci = s => INDIRECTOS.reduce((v, k) => v + s[k], 0);
+    const total = MOTOR.totalGeneral();
+    /* con ítems que conservan el P.U. de un archivo importado, la diferencia
+       no es solo redondeo: incluye lo que ese precio difiere de su análisis */
+    const deArchivo = MOTOR.conPuDeArchivo ? MOTOR.conPuDeArchivo().conAjuste : 0;
+    const etiqueta = deArchivo ? 'Diferencia por redondeo y por ' + deArchivo + ' P.U. del archivo de origen'
+      : 'Diferencia por redondeo del precio unitario';
+    return { P, mods, t, cd, ci, pct, total, redondeo: MOTOR.r2(total - cd(t) - ci(t)), etiqueta };
+  }
+
+  const pctTxt = (D, k) => D.pct[k] !== undefined ? ' (' + D.pct[k] + '%)' : '';
+  const porc = (v, base) => (base ? v / base * 100 : 0).toFixed(2);
+
+  function directos() {
+    const D = desgloseCostos(), { P, t } = D;
+    const CD = D.cd(t);
+    if (!CD) return alert('El presupuesto todavía no tiene costos.');
+    const mo = s => s.mo + s.cargas, eq = s => s.eq + s.herr;
+    let h = encabezado('Resumen de costos directos');
+    h += '<h2>Composición del costo directo</h2>';
+    h += '<table><thead><tr><th style="width:30px">Nº</th><th>Componente</th><th style="width:120px">Monto (' + esc(P.moneda) +
+      ')</th><th style="width:80px">% del C.D.</th><th style="width:90px">% del presupuesto</th></tr></thead><tbody>';
+    const r = (n, txt, v, g) => '<tr' + (g ? ' class="g"' : '') + '><td class="c">' + n + '</td><td>' + txt + '</td><td class="n">' +
+      f(v) + '</td><td class="n">' + porc(v, CD) + '</td><td class="n">' + porc(v, D.total) + '</td></tr>';
+    h += r(1, 'Materiales', t.mat);
+    h += r(2, 'Mano de obra', t.mo);
+    h += r(3, 'Cargas sociales' + pctTxt(D, 'cargas'), t.cargas);
+    h += r(4, 'Total mano de obra (2 + 3)', mo(t), 1);
+    h += r(5, 'Equipo y maquinaria', t.eq);
+    h += r(6, 'Herramientas menores' + pctTxt(D, 'herr'), t.herr);
+    h += r(7, 'Total equipo, maquinaria y herramientas (5 + 6)', eq(t), 1);
+    if (Math.abs(t.otroD) >= 0.005) h += r(8, 'Otros costos directos del formato propio', t.otroD);
+    h += '</tbody><tfoot><tr><td></td><td>COSTO DIRECTO TOTAL (1 + 4 + 7)</td><td class="n">' + f(CD) +
+      '</td><td class="n">100.00</td><td class="n">' + porc(CD, D.total) + '</td></tr></tfoot></table>';
+
+    h += '<h2>Costo directo por módulo</h2>';
+    h += '<table><thead><tr><th style="width:30px">Nº</th><th>Módulo</th><th style="width:96px">Materiales</th>' +
+      '<th style="width:96px">Mano de obra</th><th style="width:96px">Equipo y herram.</th><th style="width:104px">Costo directo</th>' +
+      '<th style="width:56px">%</th></tr></thead><tbody>';
+    D.mods.forEach((m, k) => {
+      const c = D.cd(m.s);
+      h += '<tr><td class="c">' + (k + 1) + '</td><td>' + esc(m.n) + '</td><td class="n">' + f(m.s.mat) + '</td><td class="n">' +
+        f(mo(m.s)) + '</td><td class="n">' + f(eq(m.s) + m.s.otroD) + '</td><td class="n">' + f(c) + '</td><td class="n">' +
+        porc(c, CD) + '</td></tr>';
+    });
+    h += '</tbody><tfoot><tr><td></td><td>TOTAL</td><td class="n">' + f(t.mat) + '</td><td class="n">' + f(mo(t)) +
+      '</td><td class="n">' + f(eq(t) + t.otroD) + '</td><td class="n">' + f(CD) + '</td><td class="n">100.00</td></tr></tfoot></table>';
+    h += '<p class="nota">Costo directo: materiales, mano de obra con sus cargas sociales, y equipo con las herramientas ' +
+      'menores. El IVA de la mano de obra (' + f(t.iva) + ') es un impuesto y va en los costos indirectos. Con el criterio ' +
+      'del Formulario B-2, que lo deja dentro de la mano de obra, el costo directo sería ' + f(CD + t.iva) +
+      ' (el «subtotal» de los análisis).</p>';
+    h += firmas();
+    abrir('Resumen de costos directos', h);
+  }
+
+  /* rangos referenciales usuales en Bolivia, sobre el costo directo */
+  const RANGOS = { gg: [10, 18], util: [5, 10], imp: [4, 5], total: [19, 33] };
+
+  function indirectos() {
+    const D = desgloseCostos(), { P, t } = D;
+    const CD = D.cd(t), CI = D.ci(t);
+    if (!CD) return alert('El presupuesto todavía no tiene costos.');
+    /* gastos generales y utilidad se comparan por la TASA que aplica el
+       proyecto (la utilidad va sobre C.D. + G.G.: 10 % aplicado son ~11 %
+       del C.D.); los impuestos (IT + IVA) y el total, sobre el costo directo */
+    const rango = (v, k) => {
+      const [a, b] = RANGOS[k];
+      const p = (k === 'gg' || k === 'util') && D.pct[k] !== undefined ? D.pct[k] : (CD ? v / CD * 100 : 0);
+      const fuera = p < a - 1e-9 || p > b + 1e-9;
+      return '<span class="' + (fuera ? 'fuera' : '') + '">' + a + ' – ' + b + ' %' + (fuera ? ' · fuera' : '') + '</span>';
+    };
+    let h = encabezado('Resumen de costos indirectos');
+    h += '<h2>Costos indirectos del presupuesto</h2>';
+    h += '<table><thead><tr><th style="width:30px">Nº</th><th>Componente</th><th style="width:120px">Monto (' + esc(P.moneda) +
+      ')</th><th style="width:78px">% sobre C.D.</th><th style="width:90px">% del presupuesto</th>' +
+      '<th style="width:110px">Rango referencial</th></tr></thead><tbody>';
+    const r = (n, txt, v, k, g) => '<tr' + (g ? ' class="g"' : '') + '><td class="c">' + n + '</td><td>' + txt +
+      '</td><td class="n">' + f(v) + '</td><td class="n">' + porc(v, CD) + '</td><td class="n">' + porc(v, D.total) +
+      '</td><td class="c">' + (k ? rango(v, k) : '') + '</td></tr>';
+    h += r('', 'Costo directo (base)', CD, null, 1);
+    h += r(1, 'Gastos generales y administrativos' + pctTxt(D, 'gg'), t.gg, 'gg');
+    h += r(2, 'Utilidad' + pctTxt(D, 'util'), t.util, 'util');
+    h += r(3, 'Impuesto a las transacciones (IT)' + pctTxt(D, 'it'), t.it);
+    h += r(4, 'IVA mano de obra' + pctTxt(D, 'iva'), t.iva);
+    h += r(5, 'Total impuestos (3 + 4)', t.it + t.iva, 'imp', 1);
+    h += '</tbody><tfoot><tr><td></td><td>TOTAL COSTOS INDIRECTOS (1 + 2 + 5)</td><td class="n">' + f(CI) + '</td><td class="n">' +
+      porc(CI, CD) + '</td><td class="n">' + porc(CI, D.total) + '</td><td class="c">' + rango(CI, 'total') + '</td></tr></tfoot></table>';
+
+    h += '<h2>Cierre con el presupuesto</h2><table><tbody>' +
+      '<tr><td>Costo directo</td><td class="n" style="width:130px">' + f(CD) + '</td></tr>' +
+      '<tr><td>Costos indirectos</td><td class="n">' + f(CI) + '</td></tr>' +
+      '<tr><td>' + esc(D.etiqueta) + '</td><td class="n">' + f(D.redondeo) + '</td></tr>' +
+      '<tr class="tot"><td>TOTAL PRESUPUESTO (B-1)</td><td class="n">' + f(D.total) + '</td></tr></tbody></table>';
+    if (Math.abs(t.iva) >= 0.005)
+      h += '<p class="nota"><b>Variante (criterio del Formulario B-2):</b> si el IVA de la mano de obra (' + f(t.iva) + ') se ' +
+        'deja dentro de la mano de obra, el costo directo es ' + f(CD + t.iva) + ' y los indirectos suman ' + f(CI - t.iva) +
+        ': ' + porc(CI - t.iva, CD + t.iva) + ' % sobre ese costo directo.</p>';
+
+    h += '<h2>Costos indirectos por módulo</h2>';
+    h += '<table><thead><tr><th style="width:30px">Nº</th><th>Módulo</th><th style="width:92px">Costo directo</th>' +
+      '<th style="width:80px">Gastos gen.</th><th style="width:76px">Utilidad</th><th style="width:70px">IT</th>' +
+      '<th style="width:70px">IVA M.O.</th><th style="width:88px">Indirectos</th><th style="width:54px">% s/C.D.</th></tr></thead><tbody>';
+    D.mods.forEach((m, k) => {
+      const c = D.cd(m.s), i = D.ci(m.s);
+      h += '<tr><td class="c">' + (k + 1) + '</td><td>' + esc(m.n) + '</td><td class="n">' + f(c) + '</td><td class="n">' +
+        f(m.s.gg) + '</td><td class="n">' + f(m.s.util) + '</td><td class="n">' + f(m.s.it) + '</td><td class="n">' + f(m.s.iva) +
+        '</td><td class="n">' + f(i) + '</td><td class="n">' + porc(i, c) + '</td></tr>';
+    });
+    h += '</tbody><tfoot><tr><td></td><td>TOTAL</td><td class="n">' + f(CD) + '</td><td class="n">' + f(t.gg) + '</td><td class="n">' +
+      f(t.util) + '</td><td class="n">' + f(t.it) + '</td><td class="n">' + f(t.iva) + '</td><td class="n">' + f(CI) +
+      '</td><td class="n">' + porc(CI, CD) + '</td></tr></tfoot></table>';
+    h += '<p class="nota">Costos indirectos: gastos generales, utilidad e impuestos —el impuesto a las transacciones (IT) y el ' +
+      'IVA de la mano de obra—. Rangos referenciales usuales en Bolivia: gastos generales 10–18 % y utilidad 5–10 % (tasa ' +
+      'aplicada); impuestos 4–5 % y total de indirectos 19–33 %, sobre el costo directo. Son orientativos: cada proyecto ' +
+      'justifica los suyos.</p>';
+    h += firmas();
+    abrir('Resumen de costos indirectos', h);
   }
 
   /* ---------------- CRONOGRAMA Y CURVA S ---------------- */
@@ -577,48 +956,65 @@ const REP = (() => {
        total —el total sale del P.U. ya redondeado—, así que la diferencia va
        como fila propia y el resumen cierra con el B-1. Los subtotales se
        muestran para leerlo igual que el B-2, pero no entran en la suma. */
-    const ex = MOTOR.resumenParametros('exacto'), im = MOTOR.resumenParametros('impreso');
-    const h = nuevaHoja('Resumen general', 'Resumen general por parámetro', [6, 44, 26, 18, 10, 18, 10]);
-    encabezados(h, ['Nº', 'Parámetro', 'Fórmula', 'Monto', 'Inc. %', 'Monto (como PRESCOM)', 'Inc. %']);
-    const LETRA = ['A', 'B', 'C'];
-    let ent = 0;
-    ex.filas.forEach((x, i) => {
-      if (x.k !== 'ent' && x.k !== 'sum' && !x.parametro) return;      // fila en blanco
-      const y = im.filas[i];
-      const formula = x.k === 'ent' ? LETRA[ent++] || ''
-        : x.k === 'sum' ? 'subtotal: ' + (x.sobre || []).map((n, j) => (Number(n) < 0 ? (j ? ' − ' : '−') : (j ? ' + ' : '')) +
-            'Nº' + Math.abs(Number(n))).join('')
-        : (x.pct + ' % × (' + (x.sobre || []).map((n, j) => (Number(n) < 0 ? (j ? ' − ' : '−') : (j ? ' + ' : '')) +
-            'Nº' + Math.abs(Number(n))).join('') + ')' + (x.k === 'imp' ? ' ÷ (1 − impuestos sobre el precio final)' : ''));
-      const sub = x.k === 'sum';
-      h.fila([num(x.i, EST.ctr), cel(x.n + (x.pct !== null ? ' (' + x.pct + '%)' : ''), sub ? EST.subT : undefined),
-        cel(formula), xn(x.monto, sub ? EST.subN : undefined), num(x.inc), xn(y.monto, sub ? EST.subN : undefined), num(y.inc)]);
-    });
+    /* Con la forma que pidió Alvaro (22/10/2026, sobre el Excel del CRECER):
+       cinco columnas y las tres filas de cierre. La columna «como PRESCOM»
+       sigue disponible en MOTOR.resumenParametros('impreso'). */
+    const { ex, filas } = filasParametros();
+    const h = nuevaHoja('Resumen general', 'Resumen general por parámetro', [6, 44, 26, 18, 10]);
+    encabezados(h, ['Nº', 'Parámetro', 'Fórmula', 'Monto', 'Inc. %']);
+    filas.forEach(x => h.fila([num(x.i, EST.ctr), cel(x.n, x.sub ? EST.subT : undefined), cel(x.formula),
+      xn(x.monto, x.sub ? EST.subN : undefined), num(x.inc)]));
     h.fila([cel('', EST.subT), cel('Suma de los parámetros (sin subtotales)', EST.subT), cel('', EST.subT),
-      xn(ex.suma, EST.subN), num(ex.total ? ex.suma / ex.total * 100 : 0, EST.subN),
-      xn(im.suma, EST.subN), num(im.total ? im.suma / im.total * 100 : 0, EST.subN)]);
+      xn(ex.suma, EST.subN), num(ex.total ? ex.suma / ex.total * 100 : 0, EST.subN)]);
     h.fila([cel(''), cel('Diferencia por redondeo del precio unitario'),
       cel('Σ P.U. redondeado × cant. − suma de parámetros'),
-      xn(ex.redondeo), num(ex.total ? ex.redondeo / ex.total * 100 : 0),
-      xn(im.redondeo), num(im.total ? im.redondeo / im.total * 100 : 0)]);
+      xn(ex.redondeo), num(ex.total ? ex.redondeo / ex.total * 100 : 0)]);
     h.fila([cel('', EST.totT), cel('Total presupuesto:', EST.totT), cel('', EST.totT),
-      xn(ex.total, EST.totN), num(100, EST.totN), xn(im.total, EST.totN), num(100, EST.totN)]);
+      xn(ex.total, EST.totN), num(100, EST.totN)]);
+    return h;
+  }
+
+  /* --- 7b. Costos directos e indirectos (los mismos números del reporte) --- */
+  function hCostosDirectos() {
+    const D = desgloseCostos(), t = D.t, CD = D.cd(t) || 1;
+    const h = nuevaHoja('Costos directos', 'Resumen de costos directos', [6, 46, 18, 12, 14]);
+    encabezados(h, ['Nº', 'Componente', 'Monto', '% del C.D.', '% del presup.']);
+    const r = (n, txt, v, s) => h.fila([n === '' ? cel('') : num(n, EST.ctr), cel(txt, s ? EST.subT : undefined),
+      xn(v, s ? EST.subN : undefined), num(v / CD * 100), num(D.total ? v / D.total * 100 : 0)]);
+    r(1, 'Materiales', t.mat); r(2, 'Mano de obra', t.mo); r(3, 'Cargas sociales' + pctTxt(D, 'cargas'), t.cargas);
+    r(4, 'Total mano de obra', t.mo + t.cargas, 1);
+    r(5, 'Equipo y maquinaria', t.eq); r(6, 'Herramientas menores' + pctTxt(D, 'herr'), t.herr);
+    r(7, 'Total equipo, maquinaria y herramientas', t.eq + t.herr, 1);
+    if (Math.abs(t.otroD) >= 0.005) r(8, 'Otros costos directos', t.otroD);
+    h.fila([cel('', EST.totT), cel('COSTO DIRECTO TOTAL', EST.totT), xn(D.cd(t), EST.totN), num(100, EST.totN),
+      num(D.total ? D.cd(t) / D.total * 100 : 0, EST.totN)]);
     h.blanco();
-    h.fila([cel('El total es la suma de precio unitario × cantidad, con cada precio unitario redondeado a ' +
-      '2 decimales. Por eso los parámetros solos no lo alcanzan, aquí ni en PRESCOM: la diferencia queda ' +
-      'a la vista en su propia fila. «Como PRESCOM» suma cada fila tal como se imprime en el análisis ' +
-      '(a 2 decimales por unidad, × cantidad, redondeado por ítem): da los mismos montos que el resumen ' +
-      'general de PRESCOM, y por eso sus porcentajes salen corridos.', EST.nota, 7)]);
-    /* de dónde sale la diferencia: las partidas que más aportan */
-    const may = (ex.mayores || []).filter(x => Math.abs(x.aporte) >= 0.01);
-    if (Math.abs(ex.redondeo) >= 1 && may.length) {
-      h.blanco();
-      h.fila([cel('Partidas que más aportan a la diferencia por redondeo (columna exacta)', EST.grupo, 7)]);
-      /* sin `encabezados`: movería el panel inmovilizado hasta acá */
-      h.fila(['', 'Ítem', 'Cantidad', 'P.U.', 'P.U. sin redondear', 'Aporte', '% de la dif.'].map(c => cel(c, EST.encab)));
-      may.forEach(x => h.fila([cel(''), cel(x.desc), num(x.cant, EST.num4), xn(x.pu), num(x.crudo, EST.num4),
-        xn(x.aporte), num(ex.redondeo ? x.aporte / ex.redondeo * 100 : 0)]));
-    }
+    h.fila([cel('Por módulo', EST.grupo, 5)]);
+    h.fila(['', 'Módulo', 'Costo directo', '% del C.D.', ''].map(c => cel(c, EST.encab)));
+    D.mods.forEach((m, k) => h.fila([num(k + 1, EST.ctr), cel(m.n), xn(D.cd(m.s)), num(D.cd(m.s) / CD * 100), cel('')]));
+    return h;
+  }
+  function hCostosIndirectos() {
+    const D = desgloseCostos(), t = D.t, CD = D.cd(t) || 1, CI = D.ci(t);
+    const h = nuevaHoja('Costos indirectos', 'Resumen de costos indirectos', [6, 46, 18, 12, 14]);
+    encabezados(h, ['Nº', 'Componente', 'Monto', '% s/C.D.', '% del presup.']);
+    const r = (n, txt, v, s) => h.fila([n === '' ? cel('') : num(n, EST.ctr), cel(txt, s ? EST.subT : undefined),
+      xn(v, s ? EST.subN : undefined), num(v / CD * 100), num(D.total ? v / D.total * 100 : 0)]);
+    r('', 'Costo directo (base)', D.cd(t), 1);
+    r(1, 'Gastos generales y administrativos' + pctTxt(D, 'gg'), t.gg);
+    r(2, 'Utilidad' + pctTxt(D, 'util'), t.util);
+    r(3, 'Impuesto a las transacciones (IT)' + pctTxt(D, 'it'), t.it);
+    r(4, 'IVA mano de obra' + pctTxt(D, 'iva'), t.iva);
+    r(5, 'Total impuestos', t.it + t.iva, 1);
+    h.fila([cel('', EST.totT), cel('TOTAL COSTOS INDIRECTOS', EST.totT), xn(CI, EST.totN), num(CI / CD * 100, EST.totN),
+      num(D.total ? CI / D.total * 100 : 0, EST.totN)]);
+    r('', D.etiqueta, D.redondeo);
+    r('', 'Total presupuesto (B-1)', D.total, 1);
+    h.blanco();
+    h.fila([cel('Por módulo', EST.grupo, 5)]);
+    h.fila(['', 'Módulo', 'Indirectos', '% s/C.D.', ''].map(c => cel(c, EST.encab)));
+    D.mods.forEach((m, k) => { const c = D.cd(m.s) || 1, i = D.ci(m.s);
+      h.fila([num(k + 1, EST.ctr), cel(m.n), xn(i), num(i / c * 100), cel('')]); });
     return h;
   }
 
@@ -835,6 +1231,8 @@ const REP = (() => {
     ['Insumos general', hInsumosGeneral],
     ['Insumos por ítem', hInsumosPorItem],
     ['Resumen general', hResumenGeneral],
+    ['Costos directos', hCostosDirectos],
+    ['Costos indirectos', hCostosIndirectos],
     ['Resumen por incidencia', hIncidencia],
     ['Cómputos métricos', hComputos],
     ['Cronograma', hCrono]
@@ -906,8 +1304,8 @@ const REP = (() => {
   }
 
   return {
-    b1, b2, b3, insumos, computos, resumen, crono,
+    b1, b2, b3, insumos, computos, resumen, crono, parametros, directos, indirectos,
     excelPresupuesto, excelLibro, nombresHojas, excelComparacion,
-    csvInsumos, descargar, literal, esc, abrir
+    csvInsumos, descargar, literal, esc, abrir, membrete, MEMBRETE_DEF
   };
 })();
