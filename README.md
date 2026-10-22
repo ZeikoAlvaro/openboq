@@ -5,6 +5,8 @@ formularios B-1, B-2 y B-3, computos metricos, cronograma y curva S. Plataforma 
 
 **Probarlo:** <https://openboq.pages.dev>
 
+**Usarlo con una inteligencia artificial:** servidor MCP en [`mcp/`](mcp/README.md). La IA arma el
+presupuesto o importa un Excel, y el motor de OpenBOQ calcula. [Cómo instalarlo y conectarlo →](mcp/README.md)
 
 ---
 
@@ -22,6 +24,9 @@ formularios B-1, B-2 y B-3, computos metricos, cronograma y curva S. Plataforma 
 | **Excel** | Libro `.xlsx` real, una hoja por reporte, sin librerías externas. |
 | **Formato .ddp** | Abre proyectos en formato `.ddp` y los exporta de vuelta en ese formato, con el membrete y los rótulos del original. Módulo incluido en este repositorio (`js/importador.js`, `js/exportador.js`). |
 | **Nube** | Con sesión de Google, los proyectos se guardan en el Google Drive del propio usuario. Ver [docs/GOOGLE-DRIVE.md](docs/GOOGLE-DRIVE.md). |
+| **Importar desde Excel** | El presupuesto general y los análisis de precios unitarios (.xls o .xlsx) pasan a un proyecto sin rearmar nada; avisa lo que no cuadra en el archivo. HERRAMIENTAS → Importar presupuesto desde Excel. |
+| **Administración directa** | Del mismo proyecto salen el contrato de mano de obra y equipo y los materiales a costo directo, con su comparativo y la planilla de adquisición. |
+| **IA (MCP)** | Servidor MCP en [`mcp/`](mcp/README.md): una IA consulta la base, arma el presupuesto o importa un Excel; el motor de OpenBOQ calcula. |
 
 Además: interfaz simple de cuatro pasos para quien nunca usó un programa de presupuestos, tema
 oscuro, moneda Bs / $US, formatos de incidencias propios, edición masiva de rendimientos y
